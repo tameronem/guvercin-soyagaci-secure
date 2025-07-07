@@ -1,11 +1,19 @@
 // SUPABASE CLIENT CONFIGURATION
 
-// Supabase credentials - BUNLARI KENDİ DEĞERLERİNİZLE DEĞİŞTİRİN!
-const SUPABASE_URL = 'https://sjoaeucsjiqqthwnoxmv.supabase.co'; // örn: https://xxxx.supabase.co
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqb2FldWNzamlxcXRod25veG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyMjM1MzcsImV4cCI6MjA2Njc5OTUzN30.5VdeN7Hy5ak36-YtVYORIMYlL_J-qFzoj1_tiS0zJ2k'; // Dashboard > Settings > API'den alın
+// Supabase credentials - config.js dosyasından veya environment'tan gelir
+const SUPABASE_URL = window.SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
+
+// Yapılandırma kontrolü
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('[Supabase] Yapılandırma eksik! Lütfen config.js dosyasını kontrol edin.');
+    console.error('[Supabase] Detaylı kurulum için README.md dosyasına bakın.');
+}
 
 // Supabase client oluştur
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY 
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
 
 // Debug mode
 const DEBUG = true;
@@ -18,23 +26,29 @@ const logDebug = (message, data = null) => {
 };
 
 // Auth state değişikliklerini dinle
-supabase.auth.onAuthStateChange((event, session) => {
-    logDebug('Auth state changed:', { event, session });
-    
-    if (event === 'SIGNED_IN') {
-        // Kullanıcı giriş yaptı
-        handleSignIn(session);
-    } else if (event === 'SIGNED_OUT') {
-        // Kullanıcı çıkış yaptı
-        handleSignOut();
-    } else if (event === 'USER_UPDATED') {
-        // Kullanıcı bilgileri güncellendi
-        handleUserUpdate(session);
-    }
-});
+if (supabase) {
+    supabase.auth.onAuthStateChange((event, session) => {
+        logDebug('Auth state changed:', { event, session });
+        
+        if (event === 'SIGNED_IN') {
+            // Kullanıcı giriş yaptı
+            handleSignIn(session);
+        } else if (event === 'SIGNED_OUT') {
+            // Kullanıcı çıkış yaptı
+            handleSignOut();
+        } else if (event === 'USER_UPDATED') {
+            // Kullanıcı bilgileri güncellendi
+            handleUserUpdate(session);
+        }
+    });
+}
 
 // Session kontrolü
 async function checkSession() {
+    if (!supabase) {
+        logDebug('Supabase client not initialized');
+        return null;
+    }
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) {
         logDebug('Session check error:', error);
@@ -45,6 +59,10 @@ async function checkSession() {
 
 // Kullanıcı profili getir
 async function getUserProfile(userId) {
+    if (!supabase) {
+        logDebug('Supabase client not initialized');
+        return null;
+    }
     const { data, error } = await supabase
         .from('profiles')
         .select('*')
