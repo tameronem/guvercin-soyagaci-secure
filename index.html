@@ -2889,6 +2889,10 @@
                 mother: "Annesi",
                 description: "Açıklama",
                 save: "Kaydet",
+                saving: "Kaydediliyor...",
+                image_added: "Fotoğraf eklendi",
+                image_added_success: "Fotoğraf başarıyla eklendi",
+                band_number_exists: "Bu künye numarası zaten kullanımda! Her güvercinin benzersiz bir künye numarası olmalıdır.",
                 cancel: "İptal",
                 edit: "Düzenle",
                 basic_info: "Temel Bilgiler",
@@ -3348,6 +3352,10 @@
                 no_hatching: "No upcoming hatching",
                 logout: "Logout",
                 save: "Save",
+                saving: "Saving...",
+                image_added: "Image added",
+                image_added_success: "Image added successfully",
+                band_number_exists: "This band number is already in use! Each pigeon must have a unique band number.",
                 cancel: "Cancel",
                 edit: "Edit",
                 name: "Name",
@@ -7056,7 +7064,13 @@
                 }
             } catch (error) {
                 console.error('Add pigeon error:', error);
-                showNotification(error.message || t.error_occurred, 'error');
+                
+                // Duplicate key hatası kontrolü
+                if (error.message && error.message.includes('pigeons_user_id_band_number_key')) {
+                    showNotification(t.band_number_exists || 'Bu künye numarası zaten kullanımda!', 'warning');
+                } else {
+                    showNotification(error.message || t.error_occurred, 'error');
+                }
             } finally {
                 submitButton.disabled = false;
                 submitButton.innerHTML = '<i class="fas fa-save mr-2"></i> ' + t.save;
@@ -7263,6 +7277,7 @@
 
         // Preview image for add pigeon form
         function previewImage(event) {
+            const t = translations[currentLang];
             const file = event.target.files[0];
             if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
