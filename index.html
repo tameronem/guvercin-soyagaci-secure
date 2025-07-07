@@ -3235,6 +3235,18 @@
                 comparison: "Karşılaştırma",
                 analysis: "Analiz",
                 system: "Sistemi",
+                
+                // Yarış analiz önerileri
+                suggestion_speed_improvement: "Hız Geliştirme Gerekli",
+                suggestion_speed_improvement_desc: "Güvercinlerinizin ortalama hızı düşük. Antrenman programını gözden geçirin.",
+                suggestion_excellent_speed: "Mükemmel Hız Performansı",
+                suggestion_excellent_speed_desc: "Güvercinleriniz ortalamanın üzerinde hız gösteriyor. Başarılı antrenman!",
+                suggestion_ranking_improvement: "Sıralama İyileştirmesi",
+                suggestion_ranking_improvement_desc: "Daha iyi sıralamalar için yarış stratejinizi gözden geçirin.",
+                suggestion_competitive_power: "Rekabet Gücü",
+                suggestion_competitive_power_desc: "Kazanma oranınızı artırmak için daha deneyimli güvercinlerle yarışın.",
+                suggestion_long_distance: "Uzun Mesafe Uzmanı",
+                suggestion_long_distance_desc: "Güvercinleriniz uzun mesafe yarışlarında başarılı görünüyor.",
                 image_added: "Resim eklendi",
                 image_added_success: "Resim başarıyla eklendi",
                 select_valid_image: "Lütfen geçerli bir resim dosyası seçin",
@@ -3842,6 +3854,18 @@
                 comparison: "Comparison",
                 analysis: "Analysis",
                 system: "System",
+                
+                // Race analysis suggestions
+                suggestion_speed_improvement: "Speed Improvement Needed",
+                suggestion_speed_improvement_desc: "Your pigeons' average speed is low. Review your training program.",
+                suggestion_excellent_speed: "Excellent Speed Performance",
+                suggestion_excellent_speed_desc: "Your pigeons show above average speed. Successful training!",
+                suggestion_ranking_improvement: "Ranking Improvement",
+                suggestion_ranking_improvement_desc: "Review your race strategy for better rankings.",
+                suggestion_competitive_power: "Competitive Power",
+                suggestion_competitive_power_desc: "Race with more experienced pigeons to improve your win rate.",
+                suggestion_long_distance: "Long Distance Specialist",
+                suggestion_long_distance_desc: "Your pigeons appear successful in long distance races.",
                 image_added: "Image added",
                 image_added_success: "Image added successfully",
                 select_valid_image: "Please select a valid image file",
@@ -4556,10 +4580,12 @@
                     // Add user info and logout if not exists
                     if (!authSection.querySelector('.user-info')) {
                         const userInfoHtml = `
-                            <span class="text-gray-300 user-info">${translations[currentLang].welcome || 'Hoş geldiniz'}, ${storage.currentUser.name}!</span>
-                            <button onclick="logout()" class="px-4 py-2 text-sm bg-red-500 rounded-lg hover:bg-red-600 transition">
-                                ${translations[currentLang].logout || 'Çıkış'}
-                            </button>
+                            <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                                <span class="text-gray-300 user-info text-xs sm:text-sm text-center sm:text-left">${translations[currentLang].welcome || 'Hoş geldiniz'}, ${storage.currentUser.name}!</span>
+                                <button onclick="logout()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-red-500 rounded-lg hover:bg-red-600 transition whitespace-nowrap">
+                                    ${translations[currentLang].logout || 'Çıkış'}
+                                </button>
+                            </div>
                         `;
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = userInfoHtml;
@@ -11739,6 +11765,12 @@
                 records: validRecords,
                 pigeons
             };
+        }
+        
+        // Translation helper fonksiyonu
+        function getTranslation(key) {
+            const t = translations[currentLang];
+            return t[key] || key;
         }
         
         // Öneri üretme fonksiyonu
