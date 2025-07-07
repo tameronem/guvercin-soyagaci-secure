@@ -6,11 +6,11 @@
     <title>Güvercin Soyağacı Takip Sistemi</title>
     <!-- Tailwind CSS via CDN - For development only. Replace with production build for deployment -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onerror="this.onerror=null;this.href='libs/icons.css';">
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="libs/qrcode-loader.js"></script>
+    <script src="libs/jspdf-loader.js"></script>
+    <script src="libs/chart-loader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -6731,7 +6731,7 @@
             const isPremium = await checkPremiumStatus(user.id);
             
             // Mevcut güvercin sayısını kontrol et
-            const { count, error: countError } = await supabaseClient
+            const { count, error: countError } = await supabase
                 .from('pigeons')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id);
@@ -14170,6 +14170,20 @@
             `;
         }
         
+        // Canvas'ta metin oluşturma fonksiyonu
+        function createTextImage(text, options = {}) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${options.fontSize || 12}px ${options.fontFamily || 'Arial'}`;
+            const metrics = ctx.measureText(text);
+            canvas.width = metrics.width + 10;
+            canvas.height = (options.fontSize || 12) + 10;
+            ctx.font = `${options.fontSize || 12}px ${options.fontFamily || 'Arial'}`;
+            ctx.fillStyle = options.color || '#000000';
+            ctx.fillText(text, 5, (options.fontSize || 12) + 2);
+            return canvas.toDataURL('image/png');
+        }
+
         // PDF raporu oluştur
         function generatePDFReport() {
             const t = translations[currentLang];
