@@ -1,0 +1,39 @@
+# Backup files
+*.backup
+*.bak
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+
+# Environment variables (if you add any later)
+.env
+.env.local
+.env.production
+
+# Node modules (if you add any later)
+node_modules/
+
+# Build directories (if you add any later)
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp
