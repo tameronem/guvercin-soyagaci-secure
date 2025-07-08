@@ -7630,6 +7630,10 @@
             // Use container rect for reference (more reliable when scaled)
             const containerRect = container.getBoundingClientRect();
             
+            // Get container scroll positions
+            const scrollLeft = container.scrollLeft;
+            const scrollTop = container.scrollTop;
+            
             generations.forEach((gen, genIndex) => {
                 if (genIndex >= generations.length - 1) return;
                 
@@ -7643,17 +7647,17 @@
                     
                     // Use getBoundingClientRect for accurate viewport positioning
                     const nodeRect = node.getBoundingClientRect();
-                    // Normalize coordinates by dividing by scale
-                    const nodeX = (nodeRect.right - containerRect.left) / scale;
-                    const nodeY = (nodeRect.top + nodeRect.height / 2 - containerRect.top) / scale;
+                    // Normalize coordinates by dividing by scale and adding scroll offset
+                    const nodeX = (nodeRect.right - containerRect.left + scrollLeft) / scale;
+                    const nodeY = (nodeRect.top + nodeRect.height / 2 - containerRect.top + scrollTop) / scale;
                     
                     // Connect to father (top child)
                     const father = nextNodes[childIndex];
                     if (father) {
                         const fatherRect = father.getBoundingClientRect();
-                        // Normalize coordinates by dividing by scale
-                        const fatherX = (fatherRect.left - containerRect.left) / scale;
-                        const fatherY = (fatherRect.top + fatherRect.height / 2 - containerRect.top) / scale;
+                        // Normalize coordinates by dividing by scale and adding scroll offset
+                        const fatherX = (fatherRect.left - containerRect.left + scrollLeft) / scale;
+                        const fatherY = (fatherRect.top + fatherRect.height / 2 - containerRect.top + scrollTop) / scale;
                         drawSVGLine(svg, nodeX, nodeY, fatherX, fatherY, isMobile);
                     }
                     
@@ -7661,9 +7665,9 @@
                     const mother = nextNodes[childIndex + 1];
                     if (mother) {
                         const motherRect = mother.getBoundingClientRect();
-                        // Normalize coordinates by dividing by scale
-                        const motherX = (motherRect.left - containerRect.left) / scale;
-                        const motherY = (motherRect.top + motherRect.height / 2 - containerRect.top) / scale;
+                        // Normalize coordinates by dividing by scale and adding scroll offset
+                        const motherX = (motherRect.left - containerRect.left + scrollLeft) / scale;
+                        const motherY = (motherRect.top + motherRect.height / 2 - containerRect.top + scrollTop) / scale;
                         drawSVGLine(svg, nodeX, nodeY, motherX, motherY, isMobile);
                     }
                 });
