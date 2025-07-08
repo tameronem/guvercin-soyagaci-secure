@@ -1055,7 +1055,7 @@
         }
         
         .pigeon-node {
-            position: relative;
+            position: absolute;
             background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(10px);
             border-radius: 20px;
@@ -7558,21 +7558,43 @@
             `;
         }
         
-        // Get the scale factor of a container element
-        function getContainerScale(container) {
-            const containerStyle = window.getComputedStyle(container);
-            const transform = containerStyle.transform;
-            let scale = 1;
+        // Position nodes with absolute positioning
+        function positionNodes() {
+            const container = document.querySelector('.pedigree-tree');
+            if (!container) return;
             
-            if (transform && transform !== 'none') {
-                const matrix = transform.match(/matrix\(([^)]+)\)/);
-                if (matrix) {
-                    const values = matrix[1].split(',').map(v => parseFloat(v.trim()));
-                    scale = values[0]; // 'a' value represents X-axis scale
-                }
+            const generations = container.querySelectorAll('.generation');
+            const isMobile = window.innerWidth <= 768;
+            const nodeWidth = isMobile ? 200 : 280;
+            const nodeHeight = isMobile ? 100 : 120;
+            const horizontalGap = isMobile ? 150 : 200;
+            const verticalGap = isMobile ? 30 : 40;
+            
+            let currentX = 20;
+            
+            generations.forEach((gen, genIndex) => {
+                const nodes = gen.querySelectorAll('.pigeon-node');
+                const totalHeight = nodes.length * (nodeHeight + verticalGap) - verticalGap;
+                let currentY = (container.offsetHeight - totalHeight) / 2;
+                
+                if (currentY < 20) currentY = 20;
+                
+                nodes.forEach((node, nodeIndex) => {
+                    node.style.left = currentX + 'px';
+                    node.style.top = currentY + 'px';
+                    node.style.width = nodeWidth + 'px';
+                    
+                    currentY += nodeHeight + verticalGap;
+                });
+                
+                currentX += nodeWidth + horizontalGap;
+            });
+            
+            // Update container height if needed
+            const maxY = Math.max(...Array.from(container.querySelectorAll('.pigeon-node')).map(n => n.offsetTop + n.offsetHeight));
+            if (maxY > container.offsetHeight) {
+                container.style.minHeight = (maxY + 40) + 'px';
             }
-            
-            return scale;
         }
         
         // Draw connection lines between nodes
@@ -7624,16 +7646,6 @@
             const generations = container.querySelectorAll('.generation');
             const isMobile = window.innerWidth <= 768;
             
-            // Get scale factor
-            const scale = getContainerScale(container);
-            
-            // Use container rect for reference (more reliable when scaled)
-            const containerRect = container.getBoundingClientRect();
-            
-            // Get container scroll positions
-            const scrollLeft = container.scrollLeft;
-            const scrollTop = container.scrollTop;
-            
             generations.forEach((gen, genIndex) => {
                 if (genIndex >= generations.length - 1) return;
                 
@@ -7645,29 +7657,23 @@
                     const childIndex = nodeIndex * 2;
                     if (childIndex >= nextNodes.length) return;
                     
-                    // Use getBoundingClientRect for accurate viewport positioning
-                    const nodeRect = node.getBoundingClientRect();
-                    // Normalize coordinates by dividing by scale and adding scroll offset
-                    const nodeX = (nodeRect.right - containerRect.left + scrollLeft) / scale;
-                    const nodeY = (nodeRect.top + nodeRect.height / 2 - containerRect.top + scrollTop) / scale;
+                    // Use simple offsetLeft/offsetTop positioning
+                    const nodeX = node.offsetLeft + node.offsetWidth;
+                    const nodeY = node.offsetTop + node.offsetHeight / 2;
                     
                     // Connect to father (top child)
                     const father = nextNodes[childIndex];
                     if (father) {
-                        const fatherRect = father.getBoundingClientRect();
-                        // Normalize coordinates by dividing by scale and adding scroll offset
-                        const fatherX = (fatherRect.left - containerRect.left + scrollLeft) / scale;
-                        const fatherY = (fatherRect.top + fatherRect.height / 2 - containerRect.top + scrollTop) / scale;
+                        const fatherX = father.offsetLeft;
+                        const fatherY = father.offsetTop + father.offsetHeight / 2;
                         drawSVGLine(svg, nodeX, nodeY, fatherX, fatherY, isMobile);
                     }
                     
                     // Connect to mother (bottom child)
                     const mother = nextNodes[childIndex + 1];
                     if (mother) {
-                        const motherRect = mother.getBoundingClientRect();
-                        // Normalize coordinates by dividing by scale and adding scroll offset
-                        const motherX = (motherRect.left - containerRect.left + scrollLeft) / scale;
-                        const motherY = (motherRect.top + motherRect.height / 2 - containerRect.top + scrollTop) / scale;
+                        const motherX = mother.offsetLeft;
+                        const motherY = mother.offsetTop + mother.offsetHeight / 2;
                         drawSVGLine(svg, nodeX, nodeY, motherX, motherY, isMobile);
                     }
                 });
@@ -8366,9 +8372,12 @@
                     </div>
                 `;
                 
-                // Add connection lines after rendering
+                // Position nodes and add connection lines after rendering
                 if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
-                window.pedigreeTimeout = setTimeout(() => drawConnectionLines(), 100);
+                window.pedigreeTimeout = setTimeout(() => {
+                    positionNodes();
+                    drawConnectionLines();
+                }, 100);
                 
                 // Add resize event handler with debouncing (only once)
                 if (!window.pedigreeResizeHandler) {
@@ -8377,6 +8386,7 @@
                     window.addEventListener('resize', () => {
                         clearTimeout(resizeTimeout);
                         resizeTimeout = setTimeout(() => {
+                            positionNodes();
                             drawConnectionLines();
                         }, 150); // Faster response for mobile
                     });
@@ -8389,6 +8399,7 @@
                             container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
                         }
                         setTimeout(() => {
+                            positionNodes();
                             drawConnectionLines();
                         }, 200);
                     });
@@ -8401,6 +8412,7 @@
                     pedigreeContainer.addEventListener('scroll', () => {
                         clearTimeout(scrollTimeout);
                         scrollTimeout = setTimeout(() => {
+                            positionNodes();
                             drawConnectionLines();
                         }, 100);
                     });
@@ -8409,6 +8421,7 @@
                 // Use IntersectionObserver for performance optimization
                 const observer = new IntersectionObserver((entries) => {
                     if (entries.some(entry => entry.isIntersecting)) {
+                        positionNodes();
                         drawConnectionLines();
                     }
                 });
