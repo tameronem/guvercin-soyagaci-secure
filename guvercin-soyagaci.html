@@ -1035,7 +1035,7 @@
             justify-content: center;
             gap: 2rem;
             margin-right: 6rem;
-            position: relative;
+            position: static !important;
             animation: fadeInLeft 0.6s ease-out;
         }
         
@@ -7444,14 +7444,29 @@
             // Build HTML structure
             let html = '<div class="pedigree-tree">';
             
+            // Calculate parent IDs for each node
+            const nodeParentMap = {};
             generations.forEach((gen, genIndex) => {
-                html += `<div class="generation" data-generation="${genIndex}">`;
-                
                 gen.forEach((pigeon, index) => {
-                    html += renderPigeonNode(pigeon, t, genIndex, index);
+                    if (genIndex > 0 && !pigeon.empty) {
+                        const parentIndex = Math.floor(index / 2);
+                        const parentGen = generations[genIndex - 1];
+                        if (parentGen && parentGen[parentIndex]) {
+                            nodeParentMap[`${genIndex}-${index}`] = {
+                                fatherId: index % 2 === 0 ? parentGen[parentIndex].id : null,
+                                motherId: index % 2 === 1 ? parentGen[parentIndex].id : null
+                            };
+                        }
+                    }
                 });
-                
-                html += '</div>';
+            });
+            
+            // Render all nodes directly without generation wrappers
+            generations.forEach((gen, genIndex) => {
+                gen.forEach((pigeon, index) => {
+                    const parentInfo = nodeParentMap[`${genIndex}-${index}`] || {};
+                    html += renderPigeonNode(pigeon, t, genIndex, index, parentInfo);
+                });
             });
             
             html += '</div>';
@@ -7489,10 +7504,13 @@
         }
         
         // Render individual pigeon node
-        function renderPigeonNode(pigeon, t, genIndex, nodeIndex) {
+        function renderPigeonNode(pigeon, t, genIndex, nodeIndex, parentInfo = {}) {
             if (pigeon.empty) {
                 return `
-                    <div class="pigeon-node empty ${pigeon.gender}" data-gen="${genIndex}" data-index="${nodeIndex}">
+                    <div class="pigeon-node empty ${pigeon.gender}" 
+                         data-generation="${genIndex}" 
+                         data-gen="${genIndex}" 
+                         data-index="${nodeIndex}">
                         <div class="pigeon-header">
                             <div class="pigeon-icon bg-gray-700">
                                 <i class="fas fa-question text-gray-500"></i>
@@ -7512,9 +7530,13 @@
             
             return `
                 <div class="pigeon-node ${genderClass}" 
+                     id="pigeon-${pigeon.id}"
                      data-pigeon-id="${pigeon.id}" 
+                     data-generation="${genIndex}"
                      data-gen="${genIndex}" 
                      data-index="${nodeIndex}"
+                     ${parentInfo.fatherId ? `data-father-id="pigeon-${parentInfo.fatherId}"` : ''}
+                     ${parentInfo.motherId ? `data-mother-id="pigeon-${parentInfo.motherId}"` : ''}
                      onclick="showPedigree('${pigeon.id}')">
                     <div class="pigeon-tooltip">
                         <div class="text-sm font-semibold text-gray-200 mb-2">${t.quick_info || 'Hızlı Bilgi'}</div>
@@ -7563,35 +7585,44 @@
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
             
-            const generations = container.querySelectorAll('.generation');
+            // Get all nodes directly (no generation wrappers)
+            const allNodes = container.querySelectorAll('.pigeon-node');
+            
+            // Group nodes by generation
+            const nodesByGeneration = {};
+            allNodes.forEach(node => {
+                const gen = node.getAttribute('data-generation') || '0';
+                if (!nodesByGeneration[gen]) {
+                    nodesByGeneration[gen] = [];
+                }
+                nodesByGeneration[gen].push(node);
+            });
+            
             const isMobile = window.innerWidth <= 768;
             const nodeWidth = isMobile ? 200 : 280;
             const nodeHeight = isMobile ? 100 : 120;
             const horizontalGap = isMobile ? 150 : 200;
             const verticalGap = isMobile ? 30 : 40;
             
-            let currentX = 20;
-            
-            generations.forEach((gen, genIndex) => {
-                const nodes = gen.querySelectorAll('.pigeon-node');
+            // Position each generation
+            Object.keys(nodesByGeneration).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen, genIndex) => {
+                const nodes = nodesByGeneration[gen];
+                const x = 20 + genIndex * (nodeWidth + horizontalGap);
+                
                 const totalHeight = nodes.length * (nodeHeight + verticalGap) - verticalGap;
-                let currentY = (container.offsetHeight - totalHeight) / 2;
+                let y = Math.max(20, (container.offsetHeight - totalHeight) / 2);
                 
-                if (currentY < 20) currentY = 20;
-                
-                nodes.forEach((node, nodeIndex) => {
-                    node.style.left = currentX + 'px';
-                    node.style.top = currentY + 'px';
+                nodes.forEach(node => {
+                    node.style.left = x + 'px';
+                    node.style.top = y + 'px';
                     node.style.width = nodeWidth + 'px';
                     
-                    currentY += nodeHeight + verticalGap;
+                    y += nodeHeight + verticalGap;
                 });
-                
-                currentX += nodeWidth + horizontalGap;
             });
             
             // Update container height if needed
-            const maxY = Math.max(...Array.from(container.querySelectorAll('.pigeon-node')).map(n => n.offsetTop + n.offsetHeight));
+            const maxY = Math.max(...Array.from(allNodes).map(n => n.offsetTop + n.offsetHeight));
             if (maxY > container.offsetHeight) {
                 container.style.minHeight = (maxY + 40) + 'px';
             }
@@ -7643,40 +7674,39 @@
             // Append SVG to container first
             container.appendChild(svg);
             
-            const generations = container.querySelectorAll('.generation');
+            const allNodes = container.querySelectorAll('.pigeon-node');
             const isMobile = window.innerWidth <= 768;
             
-            generations.forEach((gen, genIndex) => {
-                if (genIndex >= generations.length - 1) return;
+            // Draw connections based on parent IDs
+            allNodes.forEach(node => {
+                const fatherId = node.getAttribute('data-father-id');
+                const motherId = node.getAttribute('data-mother-id');
                 
-                const nodes = gen.querySelectorAll('.pigeon-node');
-                const nextGen = generations[genIndex + 1];
-                const nextNodes = nextGen.querySelectorAll('.pigeon-node');
-                
-                nodes.forEach((node, nodeIndex) => {
-                    const childIndex = nodeIndex * 2;
-                    if (childIndex >= nextNodes.length) return;
-                    
-                    // Use simple offsetLeft/offsetTop positioning
-                    const nodeX = node.offsetLeft + node.offsetWidth;
+                if (fatherId || motherId) {
+                    // Child node position (left side)
+                    const nodeX = node.offsetLeft;
                     const nodeY = node.offsetTop + node.offsetHeight / 2;
                     
-                    // Connect to father (top child)
-                    const father = nextNodes[childIndex];
-                    if (father) {
-                        const fatherX = father.offsetLeft;
-                        const fatherY = father.offsetTop + father.offsetHeight / 2;
-                        drawSVGLine(svg, nodeX, nodeY, fatherX, fatherY, isMobile);
+                    // Connect to father
+                    if (fatherId) {
+                        const father = container.querySelector(`#${fatherId}`);
+                        if (father) {
+                            const fatherX = father.offsetLeft + father.offsetWidth;
+                            const fatherY = father.offsetTop + father.offsetHeight / 2;
+                            drawSVGLine(svg, fatherX, fatherY, nodeX, nodeY, isMobile);
+                        }
                     }
                     
-                    // Connect to mother (bottom child)
-                    const mother = nextNodes[childIndex + 1];
-                    if (mother) {
-                        const motherX = mother.offsetLeft;
-                        const motherY = mother.offsetTop + mother.offsetHeight / 2;
-                        drawSVGLine(svg, nodeX, nodeY, motherX, motherY, isMobile);
+                    // Connect to mother
+                    if (motherId) {
+                        const mother = container.querySelector(`#${motherId}`);
+                        if (mother) {
+                            const motherX = mother.offsetLeft + mother.offsetWidth;
+                            const motherY = mother.offsetTop + mother.offsetHeight / 2;
+                            drawSVGLine(svg, motherX, motherY, nodeX, nodeY, isMobile);
+                        }
                     }
-                });
+                }
             });
         }
         
