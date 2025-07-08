@@ -1004,6 +1004,9 @@
             background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
+            /* Ensure proper stacking context for SVG */
+            z-index: 0;
+            transform: translateZ(0);
         }
         
         /* Custom scrollbar for pedigree tree */
@@ -1336,6 +1339,40 @@
             z-index: 1;
         }
         
+        /* SVG Connection styles */
+        .connection-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .connection-svg path {
+            fill: none;
+            stroke-width: 2;
+            opacity: 0.8;
+            animation: lineGlow 3s ease-in-out infinite;
+        }
+        
+        .connection-svg circle {
+            opacity: 0.9;
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% {
+                r: 4;
+                opacity: 0.9;
+            }
+            50% {
+                r: 6;
+                opacity: 1;
+            }
+        }
+        
         @keyframes lineGlow {
             0%, 100% {
                 opacity: 0.6;
@@ -1449,6 +1486,23 @@
                 height: 10px !important;
                 background: radial-gradient(circle, #6366f1, #8b5cf6) !important;
                 z-index: 11;
+            }
+            
+            /* Mobile SVG specific styles */
+            .connection-svg {
+                touch-action: none;
+                will-change: transform;
+            }
+            
+            .connection-svg path {
+                stroke-width: 3 !important;
+                stroke: url(#lineGradient) !important;
+                opacity: 0.9 !important;
+            }
+            
+            .connection-svg circle {
+                r: 5 !important;
+                opacity: 1 !important;
             }
             
             /* Ensure lines are properly positioned relative to viewport */
@@ -7509,30 +7563,46 @@
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
             
-            // Clear existing lines
-            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint').forEach(line => line.remove());
+            // Clear existing lines and SVG
+            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
+            
+            // Create or get SVG element
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.classList.add('connection-svg');
+            
+            // Set SVG dimensions to match container's scroll dimensions
+            svg.setAttribute('width', container.scrollWidth);
+            svg.setAttribute('height', container.scrollHeight);
+            svg.style.position = 'absolute';
+            svg.style.top = '0';
+            svg.style.left = '0';
+            
+            // Create gradient definition
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+            gradient.setAttribute('id', 'lineGradient');
+            gradient.setAttribute('x1', '0%');
+            gradient.setAttribute('y1', '0%');
+            gradient.setAttribute('x2', '100%');
+            gradient.setAttribute('y2', '0%');
+            
+            const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop1.setAttribute('offset', '0%');
+            stop1.setAttribute('stop-color', isMobile ? 'rgba(99, 102, 241, 0.7)' : 'rgba(99, 102, 241, 0.5)');
+            
+            const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop2.setAttribute('offset', '100%');
+            stop2.setAttribute('stop-color', isMobile ? 'rgba(168, 85, 247, 0.7)' : 'rgba(168, 85, 247, 0.5)');
+            
+            gradient.appendChild(stop1);
+            gradient.appendChild(stop2);
+            defs.appendChild(gradient);
+            svg.appendChild(defs);
+            
+            // Append SVG to container first
+            container.appendChild(svg);
             
             const generations = container.querySelectorAll('.generation');
-            
-            // Get container's transform scale
-            const containerStyle = window.getComputedStyle(container);
-            const transform = containerStyle.transform;
-            let scale = 1;
-            
-            if (transform && transform !== 'none') {
-                // Extract scale from transform matrix
-                const matrix = transform.match(/matrix\(([^)]+)\)/);
-                if (matrix) {
-                    const values = matrix[1].split(',').map(v => parseFloat(v.trim()));
-                    scale = values[0]; // a value represents scale X
-                }
-            }
-            
-            // Account for container's scroll position
-            const scrollLeft = container.scrollLeft || 0;
-            const scrollTop = container.scrollTop || 0;
-            
-            // Check if mobile viewport
             const isMobile = window.innerWidth <= 768;
             
             generations.forEach((gen, genIndex) => {
@@ -7546,50 +7616,72 @@
                     const childIndex = nodeIndex * 2;
                     if (childIndex >= nextNodes.length) return;
                     
-                    const nodeRect = node.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
-                    
-                    // Adjust positions for scale transform
-                    const adjustForScale = (value, containerValue) => {
-                        return (value - containerValue) / scale + scrollLeft;
-                    };
-                    
-                    const adjustForScaleY = (value, containerValue) => {
-                        return (value - containerValue) / scale + scrollTop;
-                    };
+                    // Use offsetLeft/offsetTop for more reliable positioning
+                    const nodeX = node.offsetLeft + node.offsetWidth;
+                    const nodeY = node.offsetTop + node.offsetHeight / 2;
                     
                     // Connect to father (top child)
                     const father = nextNodes[childIndex];
                     if (father) {
-                        const fatherRect = father.getBoundingClientRect();
-                        drawLine(
-                            adjustForScale(nodeRect.right, containerRect.left),
-                            adjustForScaleY(nodeRect.top + nodeRect.height / 2, containerRect.top),
-                            adjustForScale(fatherRect.left, containerRect.left),
-                            adjustForScaleY(fatherRect.top + fatherRect.height / 2, containerRect.top),
-                            container,
-                            isMobile
-                        );
+                        const fatherX = father.offsetLeft;
+                        const fatherY = father.offsetTop + father.offsetHeight / 2;
+                        drawSVGLine(svg, nodeX, nodeY, fatherX, fatherY, isMobile);
                     }
                     
                     // Connect to mother (bottom child)
                     const mother = nextNodes[childIndex + 1];
                     if (mother) {
-                        const motherRect = mother.getBoundingClientRect();
-                        drawLine(
-                            adjustForScale(nodeRect.right, containerRect.left),
-                            adjustForScaleY(nodeRect.top + nodeRect.height / 2, containerRect.top),
-                            adjustForScale(motherRect.left, containerRect.left),
-                            adjustForScaleY(motherRect.top + motherRect.height / 2, containerRect.top),
-                            container,
-                            isMobile
-                        );
+                        const motherX = mother.offsetLeft;
+                        const motherY = mother.offsetTop + mother.offsetHeight / 2;
+                        drawSVGLine(svg, nodeX, nodeY, motherX, motherY, isMobile);
                     }
                 });
             });
         }
         
-        // Draw a single connection line with 90-degree elbow paths
+        // Draw SVG connection line with 90-degree elbow paths
+        function drawSVGLine(svg, x1, y1, x2, y2, isMobile = false) {
+            // Calculate midpoint for the elbow
+            const midX = x1 + (x2 - x1) / 2;
+            
+            // Create path element
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            
+            // Create path data with 90-degree angles
+            const pathData = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+            path.setAttribute('d', pathData);
+            path.setAttribute('stroke', 'url(#lineGradient)');
+            path.setAttribute('stroke-width', isMobile ? '3' : '2');
+            path.setAttribute('fill', 'none');
+            
+            // Add animation delay based on position
+            const delay = (x1 / 100) * 0.1;
+            path.style.animationDelay = `${delay}s`;
+            
+            // Add path to SVG
+            svg.appendChild(path);
+            
+            // Create connection joints (circles at corners)
+            const joint1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            joint1.setAttribute('cx', midX);
+            joint1.setAttribute('cy', y1);
+            joint1.setAttribute('r', isMobile ? '5' : '4');
+            joint1.setAttribute('fill', '#6366f1');
+            joint1.style.animationDelay = `${delay + 0.1}s`;
+            
+            const joint2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            joint2.setAttribute('cx', midX);
+            joint2.setAttribute('cy', y2);
+            joint2.setAttribute('r', isMobile ? '5' : '4');
+            joint2.setAttribute('fill', '#8b5cf6');
+            joint2.style.animationDelay = `${delay + 0.2}s`;
+            
+            // Add joints to SVG
+            svg.appendChild(joint1);
+            svg.appendChild(joint2);
+        }
+        
+        // OLD: Draw a single connection line with 90-degree elbow paths (keeping for backwards compatibility)
         function drawLine(x1, y1, x2, y2, container, isMobile = false) {
             // Calculate midpoint for the elbow
             const midX = x1 + (x2 - x1) / 2;
@@ -7662,7 +7754,7 @@
             });
             
             // Clean any connection lines, joints and SVG elements
-            const connectionElements = document.querySelectorAll('.connection-line, .vertical-line, .connection-joint, svg');
+            const connectionElements = document.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg');
             connectionElements.forEach(element => element.remove());
             
             // Clean pedigree specific nodes and elements
@@ -8259,7 +8351,7 @@
                         // Clear lines immediately for visual feedback
                         const container = document.querySelector('.pedigree-tree');
                         if (container) {
-                            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint').forEach(line => line.remove());
+                            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
                         }
                         setTimeout(() => {
                             drawConnectionLines();
