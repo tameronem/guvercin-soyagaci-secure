@@ -7569,6 +7569,7 @@
             // Create or get SVG element
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.classList.add('connection-svg');
+            svg.setAttribute('id', 'pedigree-svg');
             
             // Set SVG dimensions to match container's scroll dimensions
             svg.setAttribute('width', container.scrollWidth);
@@ -7576,6 +7577,7 @@
             svg.style.position = 'absolute';
             svg.style.top = '0';
             svg.style.left = '0';
+            svg.style.pointerEvents = 'none';
             
             // Create gradient definition
             const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -7605,6 +7607,9 @@
             const generations = container.querySelectorAll('.generation');
             const isMobile = window.innerWidth <= 768;
             
+            // Get SVG bounds for relative positioning
+            const svgRect = svg.getBoundingClientRect();
+            
             generations.forEach((gen, genIndex) => {
                 if (genIndex >= generations.length - 1) return;
                 
@@ -7616,23 +7621,26 @@
                     const childIndex = nodeIndex * 2;
                     if (childIndex >= nextNodes.length) return;
                     
-                    // Use offsetLeft/offsetTop for more reliable positioning
-                    const nodeX = node.offsetLeft + node.offsetWidth;
-                    const nodeY = node.offsetTop + node.offsetHeight / 2;
+                    // Use getBoundingClientRect for accurate viewport positioning
+                    const nodeRect = node.getBoundingClientRect();
+                    const nodeX = nodeRect.right - svgRect.left;
+                    const nodeY = nodeRect.top + nodeRect.height / 2 - svgRect.top;
                     
                     // Connect to father (top child)
                     const father = nextNodes[childIndex];
                     if (father) {
-                        const fatherX = father.offsetLeft;
-                        const fatherY = father.offsetTop + father.offsetHeight / 2;
+                        const fatherRect = father.getBoundingClientRect();
+                        const fatherX = fatherRect.left - svgRect.left;
+                        const fatherY = fatherRect.top + fatherRect.height / 2 - svgRect.top;
                         drawSVGLine(svg, nodeX, nodeY, fatherX, fatherY, isMobile);
                     }
                     
                     // Connect to mother (bottom child)
                     const mother = nextNodes[childIndex + 1];
                     if (mother) {
-                        const motherX = mother.offsetLeft;
-                        const motherY = mother.offsetTop + mother.offsetHeight / 2;
+                        const motherRect = mother.getBoundingClientRect();
+                        const motherX = motherRect.left - svgRect.left;
+                        const motherY = motherRect.top + motherRect.height / 2 - svgRect.top;
                         drawSVGLine(svg, nodeX, nodeY, motherX, motherY, isMobile);
                     }
                 });
