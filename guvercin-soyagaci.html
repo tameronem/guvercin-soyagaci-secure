@@ -7558,6 +7558,23 @@
             `;
         }
         
+        // Get the scale factor of a container element
+        function getContainerScale(container) {
+            const containerStyle = window.getComputedStyle(container);
+            const transform = containerStyle.transform;
+            let scale = 1;
+            
+            if (transform && transform !== 'none') {
+                const matrix = transform.match(/matrix\(([^)]+)\)/);
+                if (matrix) {
+                    const values = matrix[1].split(',').map(v => parseFloat(v.trim()));
+                    scale = values[0]; // 'a' value represents X-axis scale
+                }
+            }
+            
+            return scale;
+        }
+        
         // Draw connection lines between nodes
         function drawConnectionLines() {
             const container = document.querySelector('.pedigree-tree');
@@ -7607,8 +7624,11 @@
             const generations = container.querySelectorAll('.generation');
             const isMobile = window.innerWidth <= 768;
             
-            // Get SVG bounds for relative positioning
-            const svgRect = svg.getBoundingClientRect();
+            // Get scale factor
+            const scale = getContainerScale(container);
+            
+            // Use container rect for reference (more reliable when scaled)
+            const containerRect = container.getBoundingClientRect();
             
             generations.forEach((gen, genIndex) => {
                 if (genIndex >= generations.length - 1) return;
@@ -7623,15 +7643,17 @@
                     
                     // Use getBoundingClientRect for accurate viewport positioning
                     const nodeRect = node.getBoundingClientRect();
-                    const nodeX = nodeRect.right - svgRect.left;
-                    const nodeY = nodeRect.top + nodeRect.height / 2 - svgRect.top;
+                    // Normalize coordinates by dividing by scale
+                    const nodeX = (nodeRect.right - containerRect.left) / scale;
+                    const nodeY = (nodeRect.top + nodeRect.height / 2 - containerRect.top) / scale;
                     
                     // Connect to father (top child)
                     const father = nextNodes[childIndex];
                     if (father) {
                         const fatherRect = father.getBoundingClientRect();
-                        const fatherX = fatherRect.left - svgRect.left;
-                        const fatherY = fatherRect.top + fatherRect.height / 2 - svgRect.top;
+                        // Normalize coordinates by dividing by scale
+                        const fatherX = (fatherRect.left - containerRect.left) / scale;
+                        const fatherY = (fatherRect.top + fatherRect.height / 2 - containerRect.top) / scale;
                         drawSVGLine(svg, nodeX, nodeY, fatherX, fatherY, isMobile);
                     }
                     
@@ -7639,8 +7661,9 @@
                     const mother = nextNodes[childIndex + 1];
                     if (mother) {
                         const motherRect = mother.getBoundingClientRect();
-                        const motherX = motherRect.left - svgRect.left;
-                        const motherY = motherRect.top + motherRect.height / 2 - svgRect.top;
+                        // Normalize coordinates by dividing by scale
+                        const motherX = (motherRect.left - containerRect.left) / scale;
+                        const motherY = (motherRect.top + motherRect.height / 2 - containerRect.top) / scale;
                         drawSVGLine(svg, nodeX, nodeY, motherX, motherY, isMobile);
                     }
                 });
