@@ -1035,7 +1035,7 @@
             justify-content: center;
             gap: 2rem;
             margin-right: 6rem;
-            position: static !important;
+            position: relative;
             animation: fadeInLeft 0.6s ease-out;
         }
         
@@ -7448,14 +7448,22 @@
             const nodeParentMap = {};
             generations.forEach((gen, genIndex) => {
                 gen.forEach((pigeon, index) => {
-                    if (genIndex > 0 && !pigeon.empty) {
+                    if (genIndex > 0 && !pigeon.empty && pigeon.id) {
                         const parentIndex = Math.floor(index / 2);
                         const parentGen = generations[genIndex - 1];
-                        if (parentGen && parentGen[parentIndex]) {
-                            nodeParentMap[`${genIndex}-${index}`] = {
-                                fatherId: index % 2 === 0 ? parentGen[parentIndex].id : null,
-                                motherId: index % 2 === 1 ? parentGen[parentIndex].id : null
-                            };
+                        if (parentGen && parentGen[parentIndex] && !parentGen[parentIndex].empty) {
+                            const parent = parentGen[parentIndex];
+                            // index çift ise bu pigeon parent'ın father tarafından gelen çocuğu
+                            // index tek ise bu pigeon parent'ın mother tarafından gelen çocuğu
+                            if (index % 2 === 0) {
+                                nodeParentMap[pigeon.id] = {
+                                    fatherId: parent.id
+                                };
+                            } else {
+                                nodeParentMap[pigeon.id] = {
+                                    motherId: parent.id
+                                };
+                            }
                         }
                     }
                 });
@@ -7464,7 +7472,7 @@
             // Render all nodes directly without generation wrappers
             generations.forEach((gen, genIndex) => {
                 gen.forEach((pigeon, index) => {
-                    const parentInfo = nodeParentMap[`${genIndex}-${index}`] || {};
+                    const parentInfo = pigeon.id ? (nodeParentMap[pigeon.id] || {}) : {};
                     html += renderPigeonNode(pigeon, t, genIndex, index, parentInfo);
                 });
             });
