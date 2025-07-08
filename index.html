@@ -2644,31 +2644,34 @@
         <button onclick="toggleMobileMenu()" class="mobile-menu-close">
             <i class="fas fa-times"></i>
         </button>
-        <div class="p-4 space-y-2" id="mobileMenuItems">
-            <button onclick="showHomepage(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                <i class="fas fa-home mr-2"></i> <span class="lang-text" data-tr="nav_home">Anasayfa</span>
-            </button>
-            <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
-            </button>
-            <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
-            </button>
-            <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                <i class="fas fa-notes-medical mr-2"></i> <span class="lang-text" data-tr="nav_health">Sağlık</span>
-            </button>
-            <button onclick="showPerformanceRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                <i class="fas fa-chart-line mr-2"></i> <span class="lang-text" data-tr="nav_performance">Performans</span>
-            </button>
-            <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                <i class="fas fa-flag-checkered mr-2"></i> <span class="lang-text" data-tr="nav_racing">Yarış</span>
-            </button>
-            <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                <i class="fas fa-robot mr-2"></i> <span class="lang-text" data-tr="nav_ai_breeding">AI Eşleştirme</span>
-            </button>
-            <button onclick="showPricing(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                <i class="fas fa-tags mr-2"></i> <span class="lang-text" data-tr="nav_pricing">Fiyatlandırma</span>
-            </button>
+        <div id="mobileMenuContent">
+            <!-- User info will be added here dynamically -->
+            <div class="p-4 space-y-2" id="mobileMenuItems">
+                <button onclick="showHomepage(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                    <i class="fas fa-home mr-2"></i> <span class="lang-text" data-tr="nav_home">Anasayfa</span>
+                </button>
+                <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+                    <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
+                </button>
+                <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+                    <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
+                </button>
+                <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+                    <i class="fas fa-notes-medical mr-2"></i> <span class="lang-text" data-tr="nav_health">Sağlık</span>
+                </button>
+                <button onclick="showPerformanceRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+                    <i class="fas fa-chart-line mr-2"></i> <span class="lang-text" data-tr="nav_performance">Performans</span>
+                </button>
+                <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+                    <i class="fas fa-flag-checkered mr-2"></i> <span class="lang-text" data-tr="nav_racing">Yarış</span>
+                </button>
+                <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+                    <i class="fas fa-robot mr-2"></i> <span class="lang-text" data-tr="nav_ai_breeding">AI Eşleştirme</span>
+                </button>
+                <button onclick="showPricing(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                    <i class="fas fa-tags mr-2"></i> <span class="lang-text" data-tr="nav_pricing">Fiyatlandırma</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -4579,19 +4582,68 @@
                     
                     // Add user info and logout if not exists
                     if (!authSection.querySelector('.user-info')) {
-                        const userInfoHtml = `
-                            <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-                                <span class="text-gray-300 user-info text-xs sm:text-sm text-center sm:text-left">${translations[currentLang].welcome || 'Hoş geldiniz'}, ${storage.currentUser.name}!</span>
-                                <button onclick="logout()" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-red-500 rounded-lg hover:bg-red-600 transition whitespace-nowrap">
-                                    ${translations[currentLang].logout || 'Çıkış'}
-                                </button>
-                            </div>
-                        `;
+                        const isMobile = window.innerWidth < 768;
+                        let userInfoHtml;
+                        
+                        if (isMobile) {
+                            // Mobil için minimal görünüm - sadece ikon ve kısa isim
+                            const firstName = storage.currentUser.name.split(' ')[0];
+                            userInfoHtml = `
+                                <div class="flex items-center gap-2 user-info">
+                                    <i class="fas fa-user-circle text-gray-300 text-lg"></i>
+                                    <span class="text-gray-300 text-sm">${firstName}</span>
+                                </div>
+                            `;
+                        } else {
+                            // Desktop için mevcut görünüm
+                            userInfoHtml = `
+                                <div class="flex items-center gap-4 user-info">
+                                    <span class="text-gray-300 text-sm">${translations[currentLang].welcome || 'Hoş geldiniz'}, ${storage.currentUser.name}!</span>
+                                    <button onclick="logout()" class="px-4 py-2 text-sm bg-red-500 rounded-lg hover:bg-red-600 transition">
+                                        ${translations[currentLang].logout || 'Çıkış'}
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = userInfoHtml;
                         while (tempDiv.firstChild) {
                             authSection.appendChild(tempDiv.firstChild);
                         }
+                    }
+                }
+                
+                // Update mobile menu with user info
+                const mobileMenuContent = document.getElementById('mobileMenuContent');
+                if (mobileMenuContent && storage.currentUser) {
+                    let userSection = mobileMenuContent.querySelector('.mobile-user-section');
+                    if (!userSection) {
+                        userSection = document.createElement('div');
+                        userSection.className = 'mobile-user-section p-4 border-b border-gray-700 mb-4';
+                        userSection.innerHTML = `
+                            <div class="flex items-center gap-3 mb-4">
+                                <i class="fas fa-user-circle text-3xl text-cyan-400"></i>
+                                <div>
+                                    <div class="font-bold text-white">${storage.currentUser.name}</div>
+                                    <div class="text-sm text-gray-400">${storage.currentUser.email}</div>
+                                </div>
+                            </div>
+                        `;
+                        mobileMenuContent.insertBefore(userSection, mobileMenuContent.firstChild);
+                    }
+                    
+                    // Add logout button at the bottom if not exists
+                    let logoutSection = mobileMenuContent.querySelector('.mobile-logout-section');
+                    if (!logoutSection) {
+                        logoutSection = document.createElement('div');
+                        logoutSection.className = 'mobile-logout-section p-4 mt-4 border-t border-gray-700';
+                        logoutSection.innerHTML = `
+                            <button onclick="logout(); toggleMobileMenu();" class="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition">
+                                <i class="fas fa-sign-out-alt mr-2"></i> ${translations[currentLang].logout || 'Çıkış Yap'}
+                            </button>
+                        `;
+                        mobileMenuContent.appendChild(logoutSection);
                     }
                 }
             } else {
@@ -4616,6 +4668,15 @@
                     if (userInfo) userInfo.remove();
                     const logoutBtn = authSection.querySelector('button[onclick="logout()"]');
                     if (logoutBtn) logoutBtn.remove();
+                }
+                
+                // Remove mobile menu user sections
+                const mobileMenuContent = document.getElementById('mobileMenuContent');
+                if (mobileMenuContent) {
+                    const userSection = mobileMenuContent.querySelector('.mobile-user-section');
+                    if (userSection) userSection.remove();
+                    const logoutSection = mobileMenuContent.querySelector('.mobile-logout-section');
+                    if (logoutSection) logoutSection.remove();
                 }
             }
             
@@ -15004,6 +15065,17 @@
             showHomepage();
             
             console.log('Application initialized successfully!');
+            
+            // Handle window resize to update navigation display
+            let resizeTimeout;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(function() {
+                    if (storage.currentUser) {
+                        updateNavigation();
+                    }
+                }, 250);
+            });
         });
         
         // Check auth state on load
