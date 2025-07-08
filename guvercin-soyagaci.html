@@ -1065,6 +1065,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             animation: nodeAppear 0.5s ease-out;
             animation-fill-mode: backwards;
+            z-index: 20; /* Ensure nodes are above connection lines */
         }
         
         .pigeon-node:hover {
@@ -1374,19 +1375,22 @@
             .pedigree-tree {
                 padding: 1rem;
                 min-height: 400px;
-                transform: scale(0.8);
-                transform-origin: left center;
+                /* Removed transform scale - using smaller sizes instead */
+                font-size: 0.85rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
             
             .generation {
-                margin-right: 3rem;
-                gap: 1rem;
+                margin-right: 2rem;
+                gap: 0.75rem;
             }
             
             .pigeon-node {
-                min-width: 180px;
-                max-width: 200px;
-                padding: 0.75rem;
+                min-width: 140px;
+                max-width: 160px;
+                padding: 0.5rem;
+                font-size: 0.8rem;
             }
             
             .pigeon-header {
@@ -1432,14 +1436,19 @@
             
             /* Mobile-specific connection line improvements */
             .connection-line {
-                /* Thinner lines with lighter gradient for mobile */
-                background: linear-gradient(90deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3)) !important;
-                z-index: 1;
+                /* Stronger lines for better visibility on mobile */
+                background: linear-gradient(90deg, rgba(99, 102, 241, 0.6), rgba(168, 85, 247, 0.6)) !important;
+                z-index: 10;
+                min-height: 3px !important;
+                min-width: 3px !important;
             }
             
-            /* Hide connection joints on mobile for cleaner look */
+            /* Keep connection joints for better visual guidance */
             .connection-joint {
-                display: none !important;
+                width: 10px !important;
+                height: 10px !important;
+                background: radial-gradient(circle, #6366f1, #8b5cf6) !important;
+                z-index: 11;
             }
             
             /* Ensure lines are properly positioned relative to viewport */
@@ -1453,22 +1462,44 @@
             .pedigree-connection-line {
                 margin: 0 10px;
                 width: 30px;
+                height: 3px;
+                background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.7), transparent) !important;
             }
         }
         
         /* Very small screens */
         @media (max-width: 480px) {
             .pedigree-tree {
-                transform: scale(0.65);
+                /* Removed transform scale - using even smaller sizes */
+                font-size: 0.75rem;
+                padding: 0.5rem;
             }
             
             .generation {
-                margin-right: 2rem;
+                margin-right: 1.5rem;
+                gap: 0.5rem;
             }
             
             .pigeon-node {
-                min-width: 150px;
-                max-width: 170px;
+                min-width: 120px;
+                max-width: 140px;
+                padding: 0.4rem;
+                font-size: 0.75rem;
+            }
+            
+            .pigeon-avatar {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .pigeon-image {
+                width: 30px;
+                height: 30px;
+            }
+            
+            .pigeon-detail-item {
+                font-size: 0.65rem;
+                padding: 0.2rem 0.4rem;
             }
         }
         
@@ -7479,9 +7510,23 @@
             if (!container) return;
             
             // Clear existing lines
-            container.querySelectorAll('.connection-line, .vertical-line').forEach(line => line.remove());
+            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint').forEach(line => line.remove());
             
             const generations = container.querySelectorAll('.generation');
+            
+            // Get container's transform scale
+            const containerStyle = window.getComputedStyle(container);
+            const transform = containerStyle.transform;
+            let scale = 1;
+            
+            if (transform && transform !== 'none') {
+                // Extract scale from transform matrix
+                const matrix = transform.match(/matrix\(([^)]+)\)/);
+                if (matrix) {
+                    const values = matrix[1].split(',').map(v => parseFloat(v.trim()));
+                    scale = values[0]; // a value represents scale X
+                }
+            }
             
             // Account for container's scroll position
             const scrollLeft = container.scrollLeft || 0;
@@ -7504,19 +7549,24 @@
                     const nodeRect = node.getBoundingClientRect();
                     const containerRect = container.getBoundingClientRect();
                     
-                    // Adjust positions for scroll and container transform
-                    const adjustX = scrollLeft;
-                    const adjustY = scrollTop;
+                    // Adjust positions for scale transform
+                    const adjustForScale = (value, containerValue) => {
+                        return (value - containerValue) / scale + scrollLeft;
+                    };
+                    
+                    const adjustForScaleY = (value, containerValue) => {
+                        return (value - containerValue) / scale + scrollTop;
+                    };
                     
                     // Connect to father (top child)
                     const father = nextNodes[childIndex];
                     if (father) {
                         const fatherRect = father.getBoundingClientRect();
                         drawLine(
-                            nodeRect.right - containerRect.left + adjustX,
-                            nodeRect.top + nodeRect.height / 2 - containerRect.top + adjustY,
-                            fatherRect.left - containerRect.left + adjustX,
-                            fatherRect.top + fatherRect.height / 2 - containerRect.top + adjustY,
+                            adjustForScale(nodeRect.right, containerRect.left),
+                            adjustForScaleY(nodeRect.top + nodeRect.height / 2, containerRect.top),
+                            adjustForScale(fatherRect.left, containerRect.left),
+                            adjustForScaleY(fatherRect.top + fatherRect.height / 2, containerRect.top),
                             container,
                             isMobile
                         );
@@ -7527,10 +7577,10 @@
                     if (mother) {
                         const motherRect = mother.getBoundingClientRect();
                         drawLine(
-                            nodeRect.right - containerRect.left + adjustX,
-                            nodeRect.top + nodeRect.height / 2 - containerRect.top + adjustY,
-                            motherRect.left - containerRect.left + adjustX,
-                            motherRect.top + motherRect.height / 2 - containerRect.top + adjustY,
+                            adjustForScale(nodeRect.right, containerRect.left),
+                            adjustForScaleY(nodeRect.top + nodeRect.height / 2, containerRect.top),
+                            adjustForScale(motherRect.left, containerRect.left),
+                            adjustForScaleY(motherRect.top + motherRect.height / 2, containerRect.top),
                             container,
                             isMobile
                         );
@@ -7544,29 +7594,32 @@
             // Calculate midpoint for the elbow
             const midX = x1 + (x2 - x1) / 2;
             
+            // Line thickness based on viewport
+            const lineThickness = isMobile ? '3px' : '2px';
+            
             // Create horizontal line from parent node
             const hLine1 = document.createElement('div');
             hLine1.className = 'connection-line';
-            hLine1.style.width = `${midX - x1}px`;
-            hLine1.style.height = '2px';
+            hLine1.style.width = `${Math.max(midX - x1, 0)}px`;
+            hLine1.style.height = lineThickness;
             hLine1.style.left = `${x1}px`;
-            hLine1.style.top = `${y1}px`;
+            hLine1.style.top = `${y1 - (isMobile ? 1.5 : 1)}px`;
             
             // Create vertical line
             const vLine = document.createElement('div');
             vLine.className = 'connection-line';
-            vLine.style.width = '2px';
-            vLine.style.height = `${Math.abs(y2 - y1)}px`;
-            vLine.style.left = `${midX}px`;
+            vLine.style.width = lineThickness;
+            vLine.style.height = `${Math.max(Math.abs(y2 - y1), 0)}px`;
+            vLine.style.left = `${midX - (isMobile ? 1.5 : 1)}px`;
             vLine.style.top = `${Math.min(y1, y2)}px`;
             
             // Create horizontal line to child node
             const hLine2 = document.createElement('div');
             hLine2.className = 'connection-line';
-            hLine2.style.width = `${x2 - midX}px`;
-            hLine2.style.height = '2px';
+            hLine2.style.width = `${Math.max(x2 - midX, 0)}px`;
+            hLine2.style.height = lineThickness;
             hLine2.style.left = `${midX}px`;
-            hLine2.style.top = `${y2}px`;
+            hLine2.style.top = `${y2 - (isMobile ? 1.5 : 1)}px`;
             
             // Add stagger animation based on position
             const delay = (x1 / 100) * 0.1;
@@ -8198,14 +8251,19 @@
                         clearTimeout(resizeTimeout);
                         resizeTimeout = setTimeout(() => {
                             drawConnectionLines();
-                        }, 250);
+                        }, 150); // Faster response for mobile
                     });
                     
                     // Handle orientation changes for mobile devices
                     window.addEventListener('orientationchange', () => {
+                        // Clear lines immediately for visual feedback
+                        const container = document.querySelector('.pedigree-tree');
+                        if (container) {
+                            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint').forEach(line => line.remove());
+                        }
                         setTimeout(() => {
                             drawConnectionLines();
-                        }, 300);
+                        }, 200);
                     });
                 }
                 
