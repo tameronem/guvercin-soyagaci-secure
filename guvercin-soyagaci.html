@@ -7444,29 +7444,34 @@
             // Build HTML structure
             let html = '<div class="pedigree-tree">';
             
-            // Calculate parent IDs for each node
+            // Calculate parent IDs for each node (parent-to-child approach)
             const nodeParentMap = {};
             generations.forEach((gen, genIndex) => {
-                gen.forEach((pigeon, index) => {
-                    if (genIndex > 0 && !pigeon.empty && pigeon.id) {
-                        const parentIndex = Math.floor(index / 2);
-                        const parentGen = generations[genIndex - 1];
-                        if (parentGen && parentGen[parentIndex] && !parentGen[parentIndex].empty) {
-                            const parent = parentGen[parentIndex];
-                            // index çift ise bu pigeon parent'ın father tarafından gelen çocuğu
-                            // index tek ise bu pigeon parent'ın mother tarafından gelen çocuğu
-                            if (index % 2 === 0) {
-                                nodeParentMap[pigeon.id] = {
+                if (genIndex < generations.length - 1) { // Son generation'ın çocuğu yok
+                    gen.forEach((parent, parentIndex) => {
+                        if (!parent.empty && parent.id) {
+                            const childGen = generations[genIndex + 1];
+                            const fatherChild = childGen[parentIndex * 2];     // Sol çocuk (father tarafı)
+                            const motherChild = childGen[parentIndex * 2 + 1]; // Sağ çocuk (mother tarafı)
+                            
+                            if (fatherChild && !fatherChild.empty && fatherChild.id) {
+                                // Mevcut bilgiyi koru ve yeni bilgiyi ekle
+                                nodeParentMap[fatherChild.id] = {
+                                    ...(nodeParentMap[fatherChild.id] || {}),
                                     fatherId: parent.id
                                 };
-                            } else {
-                                nodeParentMap[pigeon.id] = {
+                            }
+                            
+                            if (motherChild && !motherChild.empty && motherChild.id) {
+                                // Mevcut bilgiyi koru ve yeni bilgiyi ekle
+                                nodeParentMap[motherChild.id] = {
+                                    ...(nodeParentMap[motherChild.id] || {}),
                                     motherId: parent.id
                                 };
                             }
                         }
-                    }
-                });
+                    });
+                }
             });
             
             // Render all nodes directly without generation wrappers
