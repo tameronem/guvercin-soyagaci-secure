@@ -11591,11 +11591,11 @@
                                         const total = analyticsData.totalRaces || 1;
                                         
                                         return [
-                                            { icon: 'fa-medal', color: 'yellow', label: '${translations[currentLang].racing_analytics_1st_place || "1. Sıra"}', count: ranks.gold, gradient: 'from-yellow-400 to-amber-500' },
-                                            { icon: 'fa-medal', color: 'gray', label: '${translations[currentLang].racing_analytics_2nd_place || "2. Sıra"}', count: ranks.silver, gradient: 'from-gray-300 to-gray-400' },
-                                            { icon: 'fa-medal', color: 'orange', label: '${translations[currentLang].racing_analytics_3rd_place || "3. Sıra"}', count: ranks.bronze, gradient: 'from-orange-400 to-orange-600' },
-                                            { icon: 'fa-certificate', color: 'blue', label: '${translations[currentLang].racing_analytics_top_10 || "İlk 10"}', count: ranks.top10, gradient: 'from-blue-400 to-blue-600' },
-                                            { icon: 'fa-flag-checkered', color: 'gray', label: '${translations[currentLang].racing_analytics_other || "Diğer"}', count: ranks.other, gradient: 'from-gray-500 to-gray-600' }
+                                            { icon: 'fa-medal', color: 'yellow', label: translations[currentLang].racing_analytics_1st_place || "1. Sıra", count: ranks.gold, gradient: 'from-yellow-400 to-amber-500' },
+                                            { icon: 'fa-medal', color: 'gray', label: translations[currentLang].racing_analytics_2nd_place || "2. Sıra", count: ranks.silver, gradient: 'from-gray-300 to-gray-400' },
+                                            { icon: 'fa-medal', color: 'orange', label: translations[currentLang].racing_analytics_3rd_place || "3. Sıra", count: ranks.bronze, gradient: 'from-orange-400 to-orange-600' },
+                                            { icon: 'fa-certificate', color: 'blue', label: translations[currentLang].racing_analytics_top_10 || "İlk 10", count: ranks.top10, gradient: 'from-blue-400 to-blue-600' },
+                                            { icon: 'fa-flag-checkered', color: 'gray', label: translations[currentLang].racing_analytics_other || "Diğer", count: ranks.other, gradient: 'from-gray-500 to-gray-600' }
                                         ].map(item => `
                                             <div class="flex items-center gap-3">
                                                 <i class="fas ${item.icon} text-2xl text-${item.color}-400"></i>
