@@ -1429,6 +1429,31 @@
                 width: 6px;
                 height: 6px;
             }
+            
+            /* Mobile-specific connection line improvements */
+            .connection-line {
+                /* Thinner lines with lighter gradient for mobile */
+                background: linear-gradient(90deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3)) !important;
+                z-index: 1;
+            }
+            
+            /* Hide connection joints on mobile for cleaner look */
+            .connection-joint {
+                display: none !important;
+            }
+            
+            /* Ensure lines are properly positioned relative to viewport */
+            .pedigree-tree {
+                position: relative;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+            
+            /* Adjust line positioning for mobile viewport */
+            .pedigree-connection-line {
+                margin: 0 10px;
+                width: 30px;
+            }
         }
         
         /* Very small screens */
@@ -7458,6 +7483,13 @@
             
             const generations = container.querySelectorAll('.generation');
             
+            // Account for container's scroll position
+            const scrollLeft = container.scrollLeft || 0;
+            const scrollTop = container.scrollTop || 0;
+            
+            // Check if mobile viewport
+            const isMobile = window.innerWidth <= 768;
+            
             generations.forEach((gen, genIndex) => {
                 if (genIndex >= generations.length - 1) return;
                 
@@ -7472,16 +7504,21 @@
                     const nodeRect = node.getBoundingClientRect();
                     const containerRect = container.getBoundingClientRect();
                     
+                    // Adjust positions for scroll and container transform
+                    const adjustX = scrollLeft;
+                    const adjustY = scrollTop;
+                    
                     // Connect to father (top child)
                     const father = nextNodes[childIndex];
                     if (father) {
                         const fatherRect = father.getBoundingClientRect();
                         drawLine(
-                            nodeRect.right - containerRect.left,
-                            nodeRect.top + nodeRect.height / 2 - containerRect.top,
-                            fatherRect.left - containerRect.left,
-                            fatherRect.top + fatherRect.height / 2 - containerRect.top,
-                            container
+                            nodeRect.right - containerRect.left + adjustX,
+                            nodeRect.top + nodeRect.height / 2 - containerRect.top + adjustY,
+                            fatherRect.left - containerRect.left + adjustX,
+                            fatherRect.top + fatherRect.height / 2 - containerRect.top + adjustY,
+                            container,
+                            isMobile
                         );
                     }
                     
@@ -7490,11 +7527,12 @@
                     if (mother) {
                         const motherRect = mother.getBoundingClientRect();
                         drawLine(
-                            nodeRect.right - containerRect.left,
-                            nodeRect.top + nodeRect.height / 2 - containerRect.top,
-                            motherRect.left - containerRect.left,
-                            motherRect.top + motherRect.height / 2 - containerRect.top,
-                            container
+                            nodeRect.right - containerRect.left + adjustX,
+                            nodeRect.top + nodeRect.height / 2 - containerRect.top + adjustY,
+                            motherRect.left - containerRect.left + adjustX,
+                            motherRect.top + motherRect.height / 2 - containerRect.top + adjustY,
+                            container,
+                            isMobile
                         );
                     }
                 });
@@ -7502,7 +7540,7 @@
         }
         
         // Draw a single connection line with 90-degree elbow paths
-        function drawLine(x1, y1, x2, y2, container) {
+        function drawLine(x1, y1, x2, y2, container, isMobile = false) {
             // Calculate midpoint for the elbow
             const midX = x1 + (x2 - x1) / 2;
             
@@ -8151,6 +8189,49 @@
                 // Add connection lines after rendering
                 if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
                 window.pedigreeTimeout = setTimeout(() => drawConnectionLines(), 100);
+                
+                // Add resize event handler with debouncing (only once)
+                if (!window.pedigreeResizeHandler) {
+                    window.pedigreeResizeHandler = true;
+                    let resizeTimeout;
+                    window.addEventListener('resize', () => {
+                        clearTimeout(resizeTimeout);
+                        resizeTimeout = setTimeout(() => {
+                            drawConnectionLines();
+                        }, 250);
+                    });
+                    
+                    // Handle orientation changes for mobile devices
+                    window.addEventListener('orientationchange', () => {
+                        setTimeout(() => {
+                            drawConnectionLines();
+                        }, 300);
+                    });
+                }
+                
+                // Redraw lines when container is scrolled (for mobile)
+                const pedigreeContainer = document.querySelector('.pedigree-tree');
+                if (pedigreeContainer) {
+                    let scrollTimeout;
+                    pedigreeContainer.addEventListener('scroll', () => {
+                        clearTimeout(scrollTimeout);
+                        scrollTimeout = setTimeout(() => {
+                            drawConnectionLines();
+                        }, 100);
+                    });
+                }
+                
+                // Use IntersectionObserver for performance optimization
+                const observer = new IntersectionObserver((entries) => {
+                    if (entries.some(entry => entry.isIntersecting)) {
+                        drawConnectionLines();
+                    }
+                });
+                
+                // Observe the pedigree container
+                if (pedigreeContainer) {
+                    observer.observe(pedigreeContainer);
+                }
                 
             } catch (error) {
                 console.error('Pedigree error:', error);
