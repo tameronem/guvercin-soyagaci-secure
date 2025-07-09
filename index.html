@@ -992,6 +992,31 @@
             background: rgba(255, 255, 255, 0.1);
             transform: scale(0.98);
         }
+        
+        /* Mobile menu user welcome */
+        .user-welcome {
+            padding: 1.5rem;
+            background: rgba(102, 126, 234, 0.15);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 600;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Logout button in mobile menu */
+        .mobile-menu .logout-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+            margin-top: auto;
+            font-weight: 600;
+        }
+        
+        .mobile-menu .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: rgba(239, 68, 68, 0.6);
+        }
 
         /* Pigeon card styles - removed animation effects */
         .pigeon-card {
@@ -2704,6 +2729,25 @@
         .gradient-gray {
             background: linear-gradient(to right, #6b7280, #4b5563);
         }
+        
+        /* Footer styles */
+        .footer-section {
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            margin-top: 4rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Ensure footer stays at bottom */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        #content {
+            flex: 1;
+        }
     </style>
 </head>
 <body>
@@ -2781,6 +2825,11 @@
             <i class="fas fa-times text-xl"></i>
         </button>
         <div class="p-4 space-y-2" id="mobileMenuItems">
+            <!-- User welcome message will be added here dynamically -->
+            <div id="mobileUserInfo" class="user-welcome hidden mb-4">
+                <!-- User info will be injected here -->
+            </div>
+            
             <button onclick="showHomepage(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
                 <i class="fas fa-home mr-2"></i> <span class="lang-text" data-tr="nav_home">Anasayfa</span>
             </button>
@@ -2804,6 +2853,11 @@
             </button>
             <button onclick="showPricing(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
                 <i class="fas fa-tags mr-2"></i> <span class="lang-text" data-tr="nav_pricing">Fiyatlandırma</span>
+            </button>
+            
+            <!-- Logout button will be added here dynamically -->
+            <button id="mobileLogoutBtn" onclick="logout(); toggleMobileMenu();" class="w-full logout-btn px-4 py-3 rounded-lg text-left mt-4 hidden">
+                <i class="fas fa-sign-out-alt mr-2"></i> <span class="lang-text" data-tr="logout">Çıkış Yap</span>
             </button>
         </div>
     </div>
@@ -3371,6 +3425,8 @@
                 image_added_success: "Resim başarıyla eklendi",
                 select_valid_image: "Lütfen geçerli bir resim dosyası seçin",
                 error_loading: "Yüklenirken hata oluştu",
+                pigeon_added_success: "Güvercin başarıyla eklendi!",
+                error_occurred: "Bir hata oluştu",
                 
                 // Renk genetiği çevirileri
                 color_predictions: "Yavru Renk Tahminleri",
@@ -4683,16 +4739,31 @@
                 // Show mobile menu items
                 if (mobileMenuItems) mobileMenuItems.style.display = 'block';
                 
-                // Update auth buttons to show user info and logout
+                // Update mobile menu user info
+                const mobileUserInfo = document.getElementById('mobileUserInfo');
+                const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+                if (mobileUserInfo) {
+                    mobileUserInfo.innerHTML = `
+                        <i class="fas fa-user-circle text-2xl mb-2"></i>
+                        <p class="font-semibold">${translations[currentLang].welcome || 'Hoş geldiniz'},</p>
+                        <p class="text-lg">${storage.currentUser.name}!</p>
+                    `;
+                    mobileUserInfo.classList.remove('hidden');
+                }
+                if (mobileLogoutBtn) {
+                    mobileLogoutBtn.classList.remove('hidden');
+                }
+                
+                // Update auth buttons to show user info and logout (desktop only)
                 if (authSection) {
                     const buttons = authSection.querySelectorAll('button[onclick*="openAuthModal"]');
                     buttons.forEach(btn => btn.style.display = 'none');
                     
-                    // Add user info and logout if not exists
+                    // Add user info and logout only on desktop
                     if (!authSection.querySelector('.user-info')) {
                         const userInfoHtml = `
-                            <span class="text-gray-300 user-info">${translations[currentLang].welcome || 'Hoş geldiniz'}, ${storage.currentUser.name}!</span>
-                            <button onclick="logout()" class="px-4 py-2 text-sm bg-red-500 rounded-lg hover:bg-red-600 transition">
+                            <span class="text-gray-300 user-info hidden md:inline-block">${translations[currentLang].welcome || 'Hoş geldiniz'}, ${storage.currentUser.name}!</span>
+                            <button onclick="logout()" class="hidden md:inline-block px-4 py-2 text-sm bg-red-500 rounded-lg hover:bg-red-600 transition">
                                 ${translations[currentLang].logout || 'Çıkış'}
                             </button>
                         `;
@@ -4714,6 +4785,12 @@
                     const mobileAuthButtons = mobileMenuItems.querySelectorAll('.nav-auth-required');
                     mobileAuthButtons.forEach(btn => btn.style.display = 'none');
                 }
+                
+                // Hide mobile user info and logout button
+                const mobileUserInfo = document.getElementById('mobileUserInfo');
+                const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+                if (mobileUserInfo) mobileUserInfo.classList.add('hidden');
+                if (mobileLogoutBtn) mobileLogoutBtn.classList.add('hidden');
                 
                 // Show login/register buttons
                 if (authSection) {
@@ -7407,6 +7484,7 @@
         // Preview image for add pigeon form
         function previewImage(event) {
             const file = event.target.files[0];
+            const t = translations[currentLang];
             if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -7415,13 +7493,13 @@
                         <div class="relative">
                             <img src="${e.target.result}" class="image-preview animate-fadeIn">
                             <div class="absolute top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm animate-slideIn">
-                                <i class="fas fa-check mr-1"></i> ${t.image_added || 'Image added'}
+                                <i class="fas fa-check mr-1"></i> ${t.image_added || 'Resim eklendi'}
                             </div>
                         </div>
                     `;
                     
                     // Başarı bildirimi göster
-                    showNotification(t.image_added_success || 'Image added successfully', 'success');
+                    showNotification(t.image_added_success || 'Resim başarıyla eklendi', 'success');
                 };
                 reader.readAsDataURL(file);
             } else if (file) {
@@ -15271,6 +15349,53 @@
     <script src="js/ai-breeding/kinship-analyzer.js"></script>
     <script src="js/ai-breeding/compatibility-scorer.js"></script>
     <script src="js/ai-breeding/recommendation-engine.js"></script>
+    
+    <!-- Footer -->
+    <footer class="footer-section mt-auto">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 py-8">
+                <!-- Contact Info -->
+                <div class="text-center md:text-left">
+                    <h3 class="text-xl font-bold mb-4 text-cyan-400">İletişim</h3>
+                    <div class="space-y-2">
+                        <p class="flex items-center justify-center md:justify-start gap-3">
+                            <i class="fas fa-phone text-cyan-400"></i>
+                            <a href="tel:05369134977" class="hover:text-cyan-400 transition">0536 913 49 77</a>
+                        </p>
+                        <p class="flex items-center justify-center md:justify-start gap-3">
+                            <i class="fas fa-map-marker-alt text-cyan-400"></i>
+                            <span>Eşme Mahallesi Uhut Caddesi No:7 Kartepe / Kocaeli</span>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- App Info -->
+                <div class="text-center md:text-right">
+                    <h3 class="text-xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                        Güvercin Soyağacı
+                    </h3>
+                    <p class="text-gray-400 mb-4">
+                        Profesyonel güvercin yönetim sistemi
+                    </p>
+                    <div class="flex gap-4 justify-center md:justify-end">
+                        <a href="#" onclick="showPricing()" class="text-gray-400 hover:text-cyan-400 transition">
+                            <i class="fas fa-tags"></i> Fiyatlandırma
+                        </a>
+                        <a href="#" onclick="showHomepage()" class="text-gray-400 hover:text-cyan-400 transition">
+                            <i class="fas fa-info-circle"></i> Hakkımızda
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Copyright -->
+            <div class="border-t border-gray-800 py-4 text-center">
+                <p class="text-sm text-gray-500">
+                    &copy; 2024 Güvercin Soyağacı. Tüm hakları saklıdır.
+                </p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
                 
