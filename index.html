@@ -3994,6 +3994,13 @@
             });
         }
         
+        // Helper function to get translation with fallback
+        function getTranslation(key) {
+            return translations[currentLang] && translations[currentLang][key] 
+                ? translations[currentLang][key] 
+                : key;
+        }
+        
         // Helper function for locale-aware date formatting
         function formatDate(date, options = {}) {
             const locale = currentLang === 'tr' ? 'tr-TR' : 'en-US';
