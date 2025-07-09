@@ -1350,18 +1350,20 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 1;
+            z-index: 5 !important;
         }
         
         .connection-svg path {
             fill: none;
-            stroke-width: 2;
-            opacity: 0.8;
+            stroke-width: 3 !important;
+            opacity: 1 !important;
+            stroke: url(#lineGradient) !important;
             animation: lineGlow 3s ease-in-out infinite;
         }
         
         .connection-svg circle {
-            opacity: 0.9;
+            opacity: 1 !important;
+            fill: #6366f1 !important;
             animation: pulseGlow 2s ease-in-out infinite;
         }
         
@@ -2758,22 +2760,22 @@
             <button onclick="showHomepage(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
                 <i class="fas fa-home mr-2"></i> <span class="lang-text" data-tr="nav_home">Anasayfa</span>
             </button>
-            <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+            <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
                 <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
             </button>
-            <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+            <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
                 <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
             </button>
-            <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+            <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
                 <i class="fas fa-notes-medical mr-2"></i> <span class="lang-text" data-tr="nav_health">Sağlık</span>
             </button>
-            <button onclick="showPerformanceRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+            <button onclick="showPerformanceRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
                 <i class="fas fa-chart-line mr-2"></i> <span class="lang-text" data-tr="nav_performance">Performans</span>
             </button>
-            <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+            <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
                 <i class="fas fa-flag-checkered mr-2"></i> <span class="lang-text" data-tr="nav_racing">Yarış</span>
             </button>
-            <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+            <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
                 <i class="fas fa-robot mr-2"></i> <span class="lang-text" data-tr="nav_ai_breeding">AI Eşleştirme</span>
             </button>
             <button onclick="showPricing(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
@@ -11654,9 +11656,9 @@
                                     const data = race.performance_data || {};
                                     return `
                                         <div class="glass p-4 rounded-xl hover:scale-[1.02] transition-transform">
-                                            <div class="flex items-center justify-between">
+                                            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                                                 <div class="flex items-center gap-3">
-                                                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-red-400 to-orange-400 flex items-center justify-center">
+                                                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-red-400 to-orange-400 flex items-center justify-center flex-shrink-0">
                                                         <i class="fas fa-dove text-white"></i>
                                                     </div>
                                                     <div>
@@ -11664,20 +11666,18 @@
                                                         <div class="text-sm text-gray-400">${formatDate(race.date)}</div>
                                                     </div>
                                                 </div>
-                                                <div class="text-right">
-                                                    <div class="flex items-center gap-4">
-                                                        <div>
-                                                            <div class="text-sm text-gray-400">Sıralama</div>
-                                                            <div class="font-bold text-lg">${data.rank || '-'}/${data.totalParticipants || '-'}</div>
-                                                        </div>
-                                                        <div>
-                                                            <div class="text-sm text-gray-400">Hız</div>
-                                                            <div class="font-bold text-lg">${data.speed || 0} km/h</div>
-                                                        </div>
-                                                        <div>
-                                                            <div class="text-sm text-gray-400">Mesafe</div>
-                                                            <div class="font-bold text-lg">${data.distance || 0} km</div>
-                                                        </div>
+                                                <div class="flex flex-wrap gap-4 justify-end">
+                                                    <div class="text-center md:text-right">
+                                                        <div class="text-xs text-gray-400">Sıralama</div>
+                                                        <div class="font-bold text-base md:text-lg">${data.rank || '-'}/${data.totalParticipants || '-'}</div>
+                                                    </div>
+                                                    <div class="text-center md:text-right">
+                                                        <div class="text-xs text-gray-400">Hız</div>
+                                                        <div class="font-bold text-base md:text-lg">${data.speed || 0} km/h</div>
+                                                    </div>
+                                                    <div class="text-center md:text-right">
+                                                        <div class="text-xs text-gray-400">Mesafe</div>
+                                                        <div class="font-bold text-base md:text-lg">${data.distance || 0} km</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -11694,20 +11694,6 @@
                                 </button>
                             </div>
                         `}
-                    </div>
-                    
-                    <!-- Performans Grafiği Placeholder -->
-                    <div class="glass p-6 rounded-2xl">
-                        <h3 class="text-xl font-bold mb-4">
-                            <i class="fas fa-chart-area text-purple-400 mr-2"></i>
-                            Hız Trend Analizi
-                        </h3>
-                        <div class="h-64 flex items-center justify-center text-gray-500">
-                            <div class="text-center">
-                                <i class="fas fa-chart-line text-6xl mb-3 opacity-30"></i>
-                                <p>Grafik özelliği yakında eklenecek</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             `;
@@ -15174,6 +15160,7 @@
         window.changeLanguage = changeLanguage;
         window.updateNavigation = updateNavigation;
         window.showNotification = showNotification;
+        window.logout = logout;
         
         // Initialize application when DOM is ready
         // Global premium purchase handler
