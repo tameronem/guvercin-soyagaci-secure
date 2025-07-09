@@ -4176,6 +4176,77 @@
         }
         window.closeAuthModal = window._closeAuthModalImpl;
 
+        // PHP Session Management Functions
+        async function checkPHPSession() {
+            try {
+                const response = await fetch('session-handler.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'check_session' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.logged_in) {
+                    // Session varsa kullanıcı bilgilerini güncelle
+                    storage.currentUser = {
+                        id: data.user_id,
+                        email: data.user_email,
+                        name: data.user_name
+                    };
+                    updateNavigation();
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Session check error:', error);
+                return { logged_in: false };
+            }
+        }
+
+        async function createPHPSession(user) {
+            try {
+                const response = await fetch('session-handler.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'create_session',
+                        user_id: user.id,
+                        user_email: user.email,
+                        user_name: user.name || user.firstName + ' ' + user.lastName
+                    })
+                });
+                
+                const data = await response.json();
+                return data.success;
+            } catch (error) {
+                console.error('Session creation error:', error);
+                return false;
+            }
+        }
+
+        async function destroyPHPSession() {
+            try {
+                const response = await fetch('session-handler.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'destroy_session' })
+                });
+                
+                const data = await response.json();
+                return data.success;
+            } catch (error) {
+                console.error('Session destroy error:', error);
+                return false;
+            }
+        }
+
         // Handle Login
         async function handleLogin(event) {
             event.preventDefault();
@@ -4189,6 +4260,9 @@
                 const result = await SupabaseAuth.login(email, password);
                 
                 if (result.success) {
+                    // PHP session oluştur
+                    await createPHPSession(result.user);
+                    
                     storage.currentUser = result.user;
                     closeAuthModal();
                     showNotification(result.message, 'success');
@@ -4233,6 +4307,9 @@
                     // Auto login after registration
                     const loginResult = await SupabaseAuth.login(email, password);
                     if (loginResult.success) {
+                        // PHP session oluştur
+                        await createPHPSession(loginResult.user);
+                        
                         storage.currentUser = loginResult.user;
                         closeAuthModal();
                         updateNavigation();
@@ -4857,14 +4934,23 @@
 
         // Logout
         async function logout() {
-            const result = await SupabaseAuth.logout();
-            
-            if (result.success) {
-                storage.currentUser = null;
-                saveToStorage();
-                location.reload();
-            } else {
-                showNotification(result.message || 'Çıkış yapılamadı', 'error');
+            try {
+                // PHP session sil
+                await destroyPHPSession();
+                
+                // Supabase logout
+                const result = await SupabaseAuth.logout();
+                
+                if (result.success) {
+                    storage.currentUser = null;
+                    saveToStorage();
+                    location.reload();
+                } else {
+                    showNotification(result.message || 'Çıkış yapılamadı', 'error');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showNotification('Çıkış yapılamadı', 'error');
             }
         }
 
@@ -5726,27 +5812,57 @@
             
             const currentPrice = currentLang === 'tr' ? '₺39.90' : '$9.99';
             
-            // Local premium purchase handler
+            // PayTR Premium purchase handler
             window.handlePremiumPurchaseLocal = async function() {
-                if (typeof handlePremiumPurchase === 'function') {
-                    await handlePremiumPurchase();
-                } else {
-                    // Fallback - inline implementation
-                    if (!checkAuth()) {
-                        openAuthModal('login');
-                        showNotification(
-                            currentLang === 'tr' ? 
-                                'Premium üyelik için giriş yapmanız gerekiyor' : 
-                                'You need to login for premium membership',
-                            'warning'
-                        );
-                        return;
-                    }
+                // Giriş kontrolü
+                if (!checkAuth()) {
+                    openAuthModal('login');
                     showNotification(
                         currentLang === 'tr' ? 
-                            'Premium sistem yükleniyor, lütfen tekrar deneyin.' : 
-                            'Premium system is loading, please try again.',
-                        'info'
+                            'Premium üyelik için giriş yapmanız gerekiyor' : 
+                            'You need to login for premium membership',
+                        'warning'
+                    );
+                    return;
+                }
+                
+                try {
+                    // Session oluştur
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                        throw new Error('User not found');
+                    }
+                    
+                    // PHP session oluştur
+                    const sessionResponse = await fetch('session-handler.php', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            action: 'create_session',
+                            user_id: user.id,
+                            user_email: user.email,
+                            user_name: user.user_metadata?.name || user.email.split('@')[0]
+                        })
+                    });
+                    
+                    const sessionData = await sessionResponse.json();
+                    if (!sessionData.success) {
+                        throw new Error('Session creation failed');
+                    }
+                    
+                    // PayTR ödeme sayfasına yönlendir
+                    window.location.href = 'payment-process.php';
+                    
+                } catch (error) {
+                    console.error('Payment error:', error);
+                    showNotification(
+                        currentLang === 'tr' ? 
+                            'Ödeme işlemi başlatılamadı' : 
+                            'Payment could not be initiated',
+                        'error'
                     );
                 }
             };
@@ -15326,6 +15442,10 @@
         // Check auth state on load
         async function checkAuthState() {
             try {
+                // PHP session kontrolü
+                await checkPHPSession();
+                
+                // Supabase session kontrolü
                 const session = await supabaseClient.checkSession();
                 if (session) {
                     const user = await SupabaseAuth.getCurrentUser();
@@ -15340,6 +15460,11 @@
                 console.error('Auth check error:', error);
             }
         }
+
+        // Session kontrolü için interval - her 5 dakikada bir
+        setInterval(async () => {
+            await checkPHPSession();
+        }, 5 * 60 * 1000); // 5 dakika
     </script>
     
     <!-- AI Breeding Modules -->
@@ -15364,7 +15489,7 @@
                         </p>
                         <p class="flex items-center justify-center md:justify-start gap-3">
                             <i class="fas fa-map-marker-alt text-cyan-400"></i>
-                            <span>Eşme Mahallesi Uhut Caddesi No:7 Kartepe / Kocaeli</span>
+                            <span>Kartepe / Kocaeli</span>
                         </p>
                     </div>
                 </div>
@@ -15380,9 +15505,6 @@
                     <div class="flex gap-4 justify-center md:justify-end">
                         <a href="#" onclick="showPricing()" class="text-gray-400 hover:text-cyan-400 transition">
                             <i class="fas fa-tags"></i> Fiyatlandırma
-                        </a>
-                        <a href="#" onclick="showHomepage()" class="text-gray-400 hover:text-cyan-400 transition">
-                            <i class="fas fa-info-circle"></i> Hakkımızda
                         </a>
                     </div>
                 </div>
