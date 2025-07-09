@@ -4187,6 +4187,19 @@
                     body: JSON.stringify({ action: 'check_session' })
                 });
                 
+                // Response kontrolü
+                if (!response.ok) {
+                    console.warn('PHP session check failed (Status: ' + response.status + '), using Supabase only');
+                    return { logged_in: false };
+                }
+                
+                // Content-Type kontrolü
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.warn('Invalid response type from session handler');
+                    return { logged_in: false };
+                }
+                
                 const data = await response.json();
                 
                 if (data.logged_in) {
@@ -4221,8 +4234,21 @@
                     })
                 });
                 
+                // Response kontrolü
+                if (!response.ok) {
+                    console.warn('Failed to create PHP session (Status: ' + response.status + ')');
+                    return false;
+                }
+                
+                // Content-Type kontrolü
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.warn('Invalid response type from session handler');
+                    return false;
+                }
+                
                 const data = await response.json();
-                return data.success;
+                return data.success || false;
             } catch (error) {
                 console.error('Session creation error:', error);
                 return false;
@@ -4239,12 +4265,43 @@
                     body: JSON.stringify({ action: 'destroy_session' })
                 });
                 
+                // Response kontrolü
+                if (!response.ok) {
+                    console.warn('Failed to destroy PHP session (Status: ' + response.status + ')');
+                    return false;
+                }
+                
+                // Content-Type kontrolü
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.warn('Invalid response type from session handler');
+                    return false;
+                }
+                
                 const data = await response.json();
-                return data.success;
+                return data.success || false;
             } catch (error) {
                 console.error('Session destroy error:', error);
                 return false;
             }
+        }
+
+        // PHP dosya varlığı kontrolü
+        async function checkPHPFilesAvailability() {
+            const files = ['session-handler.php', 'payment-process.php', 'bildirim.php'];
+            const availability = {};
+            
+            for (const file of files) {
+                try {
+                    const response = await fetch(file, { method: 'HEAD' });
+                    availability[file] = response.ok;
+                } catch (error) {
+                    availability[file] = false;
+                }
+            }
+            
+            console.log('PHP files availability:', availability);
+            return availability;
         }
 
         // Handle Login
@@ -5833,28 +5890,83 @@
                         throw new Error('User not found');
                     }
                     
-                    // PHP session oluştur
-                    const sessionResponse = await fetch('session-handler.php', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            action: 'create_session',
-                            user_id: user.id,
-                            user_email: user.email,
-                            user_name: user.user_metadata?.name || user.email.split('@')[0]
-                        })
-                    });
-                    
-                    const sessionData = await sessionResponse.json();
-                    if (!sessionData.success) {
-                        throw new Error('Session creation failed');
+                    // PHP session oluştur - hata kontrolü ile
+                    try {
+                        const sessionResponse = await fetch('session-handler.php', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                action: 'create_session',
+                                user_id: user.id,
+                                user_email: user.email,
+                                user_name: user.user_metadata?.name || user.email.split('@')[0]
+                            })
+                        });
+                        
+                        // Response kontrolü
+                        if (!sessionResponse.ok) {
+                            console.warn('Session handler not available (Status: ' + sessionResponse.status + '), proceeding without PHP session');
+                            
+                            // PHP session olmadan alternatif çözüm
+                            showNotification(
+                                currentLang === 'tr' ? 
+                                    'Ödeme sistemi hazırlanıyor. Lütfen daha sonra tekrar deneyin.' : 
+                                    'Payment system is being prepared. Please try again later.',
+                                'warning'
+                            );
+                            
+                            // Geçici olarak ödeme sisteminin hazır olmadığını bildir
+                            setTimeout(() => {
+                                alert(currentLang === 'tr' ? 
+                                    'Ödeme sistemi şu anda bakımda. Lütfen birkaç saat sonra tekrar deneyin veya destek ile iletişime geçin: info@pigeonpedigre.com' : 
+                                    'Payment system is currently under maintenance. Please try again in a few hours or contact support: info@pigeonpedigre.com'
+                                );
+                            }, 1000);
+                            return;
+                        }
+                        
+                        // Content-Type kontrolü
+                        const contentType = sessionResponse.headers.get("content-type");
+                        if (!contentType || !contentType.includes("application/json")) {
+                            throw new Error('Invalid response type from session handler');
+                        }
+                        
+                        const sessionData = await sessionResponse.json();
+                        if (!sessionData.success) {
+                            throw new Error('Session creation failed');
+                        }
+                        
+                        // PayTR ödeme sayfasına yönlendir
+                        window.location.href = 'payment-process.php';
+                        
+                    } catch (sessionError) {
+                        console.error('Session handling error:', sessionError);
+                        
+                        // Session hatası durumunda kullanıcıya bilgi ver
+                        showNotification(
+                            currentLang === 'tr' ? 
+                                'Ödeme sistemi geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.' : 
+                                'Payment system is temporarily unavailable. Please try again later.',
+                            'error'
+                        );
+                        
+                        // Alternatif iletişim bilgisi
+                        setTimeout(() => {
+                            if (confirm(currentLang === 'tr' ? 
+                                'Ödeme sistemi şu anda bakımda. WhatsApp üzerinden iletişime geçmek ister misiniz?' : 
+                                'Payment system is under maintenance. Would you like to contact us via WhatsApp?'
+                            )) {
+                                window.open('https://wa.me/905555555555?text=' + encodeURIComponent(
+                                    currentLang === 'tr' ? 
+                                    'Merhaba, premium üyelik almak istiyorum.' : 
+                                    'Hello, I would like to purchase premium membership.'
+                                ), '_blank');
+                            }
+                        }, 1500);
                     }
-                    
-                    // PayTR ödeme sayfasına yönlendir
-                    window.location.href = 'payment-process.php';
                     
                 } catch (error) {
                     console.error('Payment error:', error);
@@ -15442,8 +15554,21 @@
         // Check auth state on load
         async function checkAuthState() {
             try {
-                // PHP session kontrolü
-                await checkPHPSession();
+                // PHP dosyalarının varlığını kontrol et (sadece bir kez)
+                if (!window.phpFilesChecked) {
+                    window.phpFilesChecked = true;
+                    const phpFiles = await checkPHPFilesAvailability();
+                    window.phpFilesAvailable = Object.values(phpFiles).every(status => status);
+                    
+                    if (!window.phpFilesAvailable) {
+                        console.warn('Some PHP files are not available:', phpFiles);
+                    }
+                }
+                
+                // PHP session kontrolü - sadece PHP dosyaları mevcutsa
+                if (window.phpFilesAvailable) {
+                    await checkPHPSession();
+                }
                 
                 // Supabase session kontrolü
                 const session = await supabaseClient.checkSession();
@@ -15463,7 +15588,10 @@
 
         // Session kontrolü için interval - her 5 dakikada bir
         setInterval(async () => {
-            await checkPHPSession();
+            // Sadece PHP dosyaları mevcutsa kontrol et
+            if (window.phpFilesAvailable) {
+                await checkPHPSession();
+            }
         }, 5 * 60 * 1000); // 5 dakika
     </script>
     
