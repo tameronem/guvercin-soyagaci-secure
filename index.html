@@ -7649,6 +7649,8 @@
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
             
+            const isMobile = window.innerWidth <= 768;
+            
             // Clear existing lines and SVG
             container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
             
@@ -7691,7 +7693,6 @@
             container.appendChild(svg);
             
             const allNodes = container.querySelectorAll('.pigeon-node');
-            const isMobile = window.innerWidth <= 768;
             
             // Draw connections based on parent IDs
             allNodes.forEach(node => {
@@ -11828,30 +11829,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Son 5 Yarış Mini Trend -->
-                                <div class="mt-4">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm text-gray-400 lang-text" data-tr="racing_analytics_last_races">Son Yarışlar</span>
-                                        <span class="text-xs text-gray-500">km/h</span>
-                                    </div>
-                                    <div class="grid grid-cols-5 gap-2">
-                                        ${analyticsData.records.slice(0, 5).reverse().map((r, idx) => {
-                                            const speed = r.performance_data?.speed || 0;
-                                            const heightPercent = speed > 0 ? (speed / analyticsData.maxSpeed) * 100 : 10;
-                                            const isLast = idx === 4;
-                                            return `
-                                                <div class="flex flex-col items-center">
-                                                    <div class="text-xs font-medium mb-1 ${isLast ? 'text-cyan-400' : 'text-gray-400'}">${speed}</div>
-                                                    <div class="w-full h-16 bg-gray-700 rounded relative overflow-hidden">
-                                                        <div class="absolute bottom-0 w-full ${isLast ? 'bg-gradient-to-t from-cyan-400 to-cyan-300' : 'bg-gradient-to-t from-gray-600 to-gray-500'} rounded transition-all duration-500" 
-                                                             style="height: ${heightPercent}%"></div>
-                                                    </div>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                </div>
                             </div>
                             
                             <!-- Sıralama Dağılımı - Medal Sistemi -->
@@ -12167,16 +12144,6 @@
                             backgroundColor: 'rgba(251, 146, 60, 0.8)',
                             borderRadius: 8,
                             yAxisID: 'y'
-                        }, {
-                            label: 'Ort. Hız',
-                            data: months.map(m => data.monthlyData[m].avgSpeed),
-                            type: 'line',
-                            borderColor: 'rgb(34, 211, 238)',
-                            borderWidth: 3,
-                            pointBackgroundColor: 'rgb(34, 211, 238)',
-                            pointRadius: 5,
-                            tension: 0.3,
-                            yAxisID: 'y1'
                         }]
                     },
                     options: {
@@ -12200,13 +12167,6 @@
                                 position: 'left',
                                 title: { display: true, text: 'Yarış Sayısı', color: '#9ca3af' },
                                 grid: { color: '#374151' }
-                            },
-                            y1: {
-                                type: 'linear',
-                                display: true,
-                                position: 'right',
-                                title: { display: true, text: 'Ortalama Hız (km/h)', color: '#9ca3af' },
-                                grid: { drawOnChartArea: false }
                             },
                             x: {
                                 grid: { color: '#374151' }

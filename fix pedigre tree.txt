@@ -1,0 +1,43 @@
+Temel Sorun:
+Uygulamanın SVG bağlantı çizgileri, masaüstü (desktop) görünümünde tamamen doğru ve beklendiği gibi çalışmaktadır. Ancak, tarayıcı penceresi mobil boyutlara getirildiğinde veya doğrudan bir mobil cihazda açıldığında, çizgiler daha ilk yükleme anında bile ciddi şekilde yanlış ve alakasız konumlarda görüntülenmektedir. Sorun, kullanıcı etkileşiminden (kaydırma/yakınlaştırma) bağımsız olarak, sadece mobil yerleşimin aktif olmasıyla ortaya çıkmaktadır.
+Şüphelenilen Kök Neden:
+Bu durum, problemin kaynağının doğrudan CSS Media Query'leri ile JavaScript'in koordinat hesaplama mantığı arasındaki bir çatışma olduğunu göstermektedir.
+Masaüstü Yerleşimi: Masaüstü görünümünde, CSS yerleşimi (layout) muhtemelen daha sabit ve öngörülebilirdir. Bu nedenle, offsetLeft/offsetTop kullanan mevcut JavaScript kodu, tesadüfen de olsa görsel olarak kabul edilebilir sonuçlar üretmektedir.
+Mobil Yerleşimi: Mobil görünüm için kullanılan bir @media sorgusu, büyük olasılıkla sayfa yerleşimini kökten değiştirmektedir (örneğin, flex-direction'ı row'dan column'a çevirmek, eleman genişliklerini yüzdesel yapmak, boşlukları değiştirmek vb.).
+Çatışma Noktası: Çizgileri çizen JavaScript kodu, bu CSS kaynaklı yerleşim değişikliğinden haberdar değildir. offsetLeft/offsetTop ile koordinatları hesaplamaya devam ederken, bu değerler artık mobil ekranda görsel olarak render edilmiş düğümlerin gerçek pozisyonlarını yansıtmamaktadır. JavaScript, hala masaüstü yerleşimine göre hesaplama yaparken, CSS düğümleri bambaşka bir yere koymuştur 
+İstenen Görev:
+Lütfen CSS media query'lerinin neden olduğu bu yerleşim değişikliklerine karşı dayanıklı (resilient), evrensel bir koordinat hesaplama stratejisi geliştirin. Mevcut drawConnectionLines fonksiyonunu, bir elemanın pozisyonunu hesaplarken CSS tarafından nasıl konumlandırıldığından bağımsız olarak çalışan bir yöntem kullanacak şekilde yeniden yazın.
+Bu, neredeyse kesin olarak offsetLeft/offsetTop yerine element.getBoundingClientRect() kullanımını gerektirecektir. Çünkü getBoundingClientRect(), bir elemanın o anki viewport'ta (ekranın görünür alanı) render edildiği nihai ve gerçek pozisyonunu verir. Bu sayede, CSS'in arka planda yaptığı tüm yerleşim değişiklikleri otomatik olarak hesaba katılmış olur.
+Nihai hedef, çizgilerin hem masaüstü hem de mobil görünümlerde, sayfa ilk yüklendiği andan itibaren doğru çizilmesini sağlamaktır.
+Orijinal Kodunuzdaki Temel Hataların Detaylı Analizi
+Kodunuzdaki sorun, tek bir yanlış komuttan ziyade, birbiriyle uyumsuz çalışan birkaç farklı "dünyanın" veya "koordinat sisteminin" bir araya getirilmeye çalışılmasından kaynaklanıyor. Bahsettiğim "CSS ve JavaScript anlaşmazlığı" tam olarak budur.
+İşte sorunların dökümü:
+1. En Kritik Hata: Çatışan Koordinat Sistemleri (getBoundingClientRect vs. offsetLeft)
+Kodunuzun en temel problemi, iki tamamen farklı koordinat hesaplama yöntemini aynı anda kullanmaya çalışıp, sonunda yanlış olanı seçmenizdir.
+offsetLeft / offsetTop Dünyası:
+Ne Yapar? Bir elemanın, position: relative veya absolute olan en yakın atasına (offsetParent) göre olan göreceli (relative) mesafesini verir.
+Kısıtlamaları: Basit ve hızlıdır ama "aptaldır". CSS transform: scale() (yakınlaştırma) özelliğinden, konteynerin kaydırma (scroll) durumundan veya diğer karmaşık CSS yerleşimlerinden haberi yoktur. Sadece ham DOM yapısındaki pozisyonu bilir.
+getBoundingClientRect() Dünyası:
+Ne Yapar? Bir elemanın, o an ekranın görünür alanına (viewport) göre olan mutlak (absolute) pozisyonunu, boyutlarını, sağını, solunu, altını ve üstünü verir.
+Gücü: "Akıllıdır". Bir elemanın tüm CSS kuralları, transformasyonları ve kaydırmalar uygulandıktan sonra ekranda görsel olarak tam olarak nerede durduğunu söyler.
+Kodunuzdaki Çatışma:
+Sizin diff dosyanızda, getBoundingClientRect ile doğru bir başlangıç yapmaya çalıştığınız görülüyor (adjustForScale fonksiyonları). Ancak çizgiyi çizen drawSVGLine fonksiyonunu çağırırken bu yaklaşımı terk edip node.offsetLeft ve node.offsetTop kullanıyorsunuz.
+Analoji: Bu, birine yol tarif ederken hem "Meydandan üç blok aşağıda" (göreceli, offsetLeft) deyip hem de "41.0082° K, 28.9784° D GPS koordinatında" (mutlak, getBoundingClientRect) demeye benzer. Bu iki bilgi birbiriyle uyumlu değildir ve karıştırıldığında sizi tamamen yanlış bir yere götürür.
+2. CSS Yerleşiminin Göz Ardı Edilmesi (Flexbox Etkisi)
+Bu, ilk sorunun doğrudan bir sonucudur. Kodunuz, CSS'in yarattığı görsel yapıyı tamamen görmezden geliyor.
+Problem: Sizin yapınızda .generation adında kolonlar var. Bir düğümün offsetLeft değeri, kendi .generation kolonunun başlangıcına göre hesaplanır.
+Örnek:
+Jenerasyondaki bir düğümün offsetLeft değeri 20px olabilir.
+Jenerasyondaki bir düğümün offsetLeft değeri de 20px olabilir.
+Anlaşmazlık: JavaScript'e göre bu iki düğüm sanki aynı hizada gibi görünür. Ama görsel olarak, 3. jenerasyondaki düğüm yüzlerce piksel daha sağdadır! JavaScript, aradaki diğer jenerasyonların genişliğini veya CSS padding değerlerini hesaba katmaz. Sadece "ben kendi kabımın solundan 20 piksel uzaktayım" der. Bu yüzden çizgiler tamamen alakasız yerlere gider.
+3. Ölçeklendirme (transform: scale) ve Kaydırmanın Hesaplanmaması
+Bu da offsetLeft kullanmanın doğal bir sonucudur ve mobil cihazlarda sorunun neden daha belirgin olduğunu açıklar.
+scale Sorunu: Bir konteynere transform: scale(2) uyguladığınızda, içindeki her şey görsel olarak iki kat büyür. Ancak bir düğümün offsetLeft değeri değişmez. DOM'a göre hala aynı yerdedir. Sizin JavaScript kodunuz, bu görsel büyümeyi bilmediği için, çizgiyi hala "küçük" haldeki pozisyona çizmeye çalışır ve bu da büyük bir kaymaya neden olur.
+scroll Sorunu: Konteyneri sağa doğru 500 piksel kaydırdığınızda, düğümler gözünüzün önünden kaybolur. Ama offsetLeft değerleri yine değişmez. Çizim mantığınız, bu kaydırmayı hesaba katmadığı için yine hatalı çizim yapar.
+Özet
+Kısacası, orijinal kodunuzdaki temel "anlaşmazlık" şudur:
+JavaScript'iniz, CSS'in yarattığı nihai görsel dünyayı değil, DOM'un ham ve göreceli yapısını okumaya çalışıyor. Bu nedenle:
+Farklı kolonlardaki elemanların pozisyonlarını yanlış karşılaştırıyor.
+CSS Flexbox'ın yarattığı boşlukları ve yerleşimi görmezden geliyor.
+Yakınlaştırma (scale) ve kaydırma (scroll) gibi dinamik görsel değişikliklere karşı tamamen kör davranıyor.
+Bu yüzden çizgiler, özellikle de CSS yerleşiminin daha karmaşık olduğu mobil görünümde, daha ilk andan itibaren tamamen yanlış yerlerde
