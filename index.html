@@ -6,19 +6,16 @@
     <title>Güvercin Soyağacı Takip Sistemi</title>
     <!-- Tailwind CSS via CDN - For development only. Replace with production build for deployment -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onerror="this.onerror=null;this.href='libs/icons.css';">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-    <script src="libs/qrcode-loader.js"></script>
-    <script src="libs/jspdf-loader.js"></script>
-    <script src="libs/chart-loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Configuration -->
-    <script src="config.js"></script>
     
     <!-- Supabase Scripts -->
     <script src="js/supabase-client.js"></script>
@@ -1007,6 +1004,9 @@
             background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
+            /* Ensure proper stacking context for SVG */
+            z-index: 0;
+            transform: translateZ(0);
         }
         
         /* Custom scrollbar for pedigree tree */
@@ -1055,7 +1055,7 @@
         }
         
         .pigeon-node {
-            position: relative;
+            position: absolute;
             background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(10px);
             border-radius: 20px;
@@ -1068,6 +1068,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             animation: nodeAppear 0.5s ease-out;
             animation-fill-mode: backwards;
+            z-index: 20; /* Ensure nodes are above connection lines */
         }
         
         .pigeon-node:hover {
@@ -1338,6 +1339,40 @@
             z-index: 1;
         }
         
+        /* SVG Connection styles */
+        .connection-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .connection-svg path {
+            fill: none;
+            stroke-width: 2;
+            opacity: 0.8;
+            animation: lineGlow 3s ease-in-out infinite;
+        }
+        
+        .connection-svg circle {
+            opacity: 0.9;
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% {
+                r: 4;
+                opacity: 0.9;
+            }
+            50% {
+                r: 6;
+                opacity: 1;
+            }
+        }
+        
         @keyframes lineGlow {
             0%, 100% {
                 opacity: 0.6;
@@ -1377,19 +1412,22 @@
             .pedigree-tree {
                 padding: 1rem;
                 min-height: 400px;
-                transform: scale(0.8);
-                transform-origin: left center;
+                /* Removed transform scale - using smaller sizes instead */
+                font-size: 0.85rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
             
             .generation {
-                margin-right: 3rem;
-                gap: 1rem;
+                margin-right: 2rem;
+                gap: 0.75rem;
             }
             
             .pigeon-node {
-                min-width: 180px;
-                max-width: 200px;
-                padding: 0.75rem;
+                min-width: 140px;
+                max-width: 160px;
+                padding: 0.5rem;
+                font-size: 0.8rem;
             }
             
             .pigeon-header {
@@ -1432,21 +1470,90 @@
                 width: 6px;
                 height: 6px;
             }
+            
+            /* Mobile-specific connection line improvements */
+            .connection-line {
+                /* Stronger lines for better visibility on mobile */
+                background: linear-gradient(90deg, rgba(99, 102, 241, 0.6), rgba(168, 85, 247, 0.6)) !important;
+                z-index: 10;
+                min-height: 3px !important;
+                min-width: 3px !important;
+            }
+            
+            /* Keep connection joints for better visual guidance */
+            .connection-joint {
+                width: 10px !important;
+                height: 10px !important;
+                background: radial-gradient(circle, #6366f1, #8b5cf6) !important;
+                z-index: 11;
+            }
+            
+            /* Mobile SVG specific styles */
+            .connection-svg {
+                touch-action: none;
+                will-change: transform;
+            }
+            
+            .connection-svg path {
+                stroke-width: 3 !important;
+                stroke: url(#lineGradient) !important;
+                opacity: 0.9 !important;
+            }
+            
+            .connection-svg circle {
+                r: 5 !important;
+                opacity: 1 !important;
+            }
+            
+            /* Ensure lines are properly positioned relative to viewport */
+            .pedigree-tree {
+                position: relative;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+            
+            /* Adjust line positioning for mobile viewport */
+            .pedigree-connection-line {
+                margin: 0 10px;
+                width: 30px;
+                height: 3px;
+                background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.7), transparent) !important;
+            }
         }
         
         /* Very small screens */
         @media (max-width: 480px) {
             .pedigree-tree {
-                transform: scale(0.65);
+                /* Removed transform scale - using even smaller sizes */
+                font-size: 0.75rem;
+                padding: 0.5rem;
             }
             
             .generation {
-                margin-right: 2rem;
+                margin-right: 1.5rem;
+                gap: 0.5rem;
             }
             
             .pigeon-node {
-                min-width: 150px;
-                max-width: 170px;
+                min-width: 120px;
+                max-width: 140px;
+                padding: 0.4rem;
+                font-size: 0.75rem;
+            }
+            
+            .pigeon-avatar {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .pigeon-image {
+                width: 30px;
+                height: 30px;
+            }
+            
+            .pigeon-detail-item {
+                font-size: 0.65rem;
+                padding: 0.2rem 0.4rem;
             }
         }
         
@@ -2644,34 +2751,31 @@
         <button onclick="toggleMobileMenu()" class="mobile-menu-close">
             <i class="fas fa-times"></i>
         </button>
-        <div id="mobileMenuContent">
-            <!-- User info will be added here dynamically -->
-            <div class="p-4 space-y-2" id="mobileMenuItems">
-                <button onclick="showHomepage(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                    <i class="fas fa-home mr-2"></i> <span class="lang-text" data-tr="nav_home">Anasayfa</span>
-                </button>
-                <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
-                    <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
-                </button>
-                <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
-                    <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
-                </button>
-                <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
-                    <i class="fas fa-notes-medical mr-2"></i> <span class="lang-text" data-tr="nav_health">Sağlık</span>
-                </button>
-                <button onclick="showPerformanceRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
-                    <i class="fas fa-chart-line mr-2"></i> <span class="lang-text" data-tr="nav_performance">Performans</span>
-                </button>
-                <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
-                    <i class="fas fa-flag-checkered mr-2"></i> <span class="lang-text" data-tr="nav_racing">Yarış</span>
-                </button>
-                <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
-                    <i class="fas fa-robot mr-2"></i> <span class="lang-text" data-tr="nav_ai_breeding">AI Eşleştirme</span>
-                </button>
-                <button onclick="showPricing(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
-                    <i class="fas fa-tags mr-2"></i> <span class="lang-text" data-tr="nav_pricing">Fiyatlandırma</span>
-                </button>
-            </div>
+        <div class="p-4 space-y-2" id="mobileMenuItems">
+            <button onclick="showHomepage(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                <i class="fas fa-home mr-2"></i> <span class="lang-text" data-tr="nav_home">Anasayfa</span>
+            </button>
+            <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
+            </button>
+            <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
+            </button>
+            <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                <i class="fas fa-notes-medical mr-2"></i> <span class="lang-text" data-tr="nav_health">Sağlık</span>
+            </button>
+            <button onclick="showPerformanceRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                <i class="fas fa-chart-line mr-2"></i> <span class="lang-text" data-tr="nav_performance">Performans</span>
+            </button>
+            <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                <i class="fas fa-flag-checkered mr-2"></i> <span class="lang-text" data-tr="nav_racing">Yarış</span>
+            </button>
+            <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                <i class="fas fa-robot mr-2"></i> <span class="lang-text" data-tr="nav_ai_breeding">AI Eşleştirme</span>
+            </button>
+            <button onclick="showPricing(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
+                <i class="fas fa-tags mr-2"></i> <span class="lang-text" data-tr="nav_pricing">Fiyatlandırma</span>
+            </button>
         </div>
     </div>
 
@@ -2892,10 +2996,6 @@
                 mother: "Annesi",
                 description: "Açıklama",
                 save: "Kaydet",
-                saving: "Kaydediliyor...",
-                image_added: "Fotoğraf eklendi",
-                image_added_success: "Fotoğraf başarıyla eklendi",
-                band_number_exists: "Bu künye numarası zaten kullanımda! Her güvercinin benzersiz bir künye numarası olmalıdır.",
                 cancel: "İptal",
                 edit: "Düzenle",
                 basic_info: "Temel Bilgiler",
@@ -3238,18 +3338,6 @@
                 comparison: "Karşılaştırma",
                 analysis: "Analiz",
                 system: "Sistemi",
-                
-                // Yarış analiz önerileri
-                suggestion_speed_improvement: "Hız Geliştirme Gerekli",
-                suggestion_speed_improvement_desc: "Güvercinlerinizin ortalama hızı düşük. Antrenman programını gözden geçirin.",
-                suggestion_excellent_speed: "Mükemmel Hız Performansı",
-                suggestion_excellent_speed_desc: "Güvercinleriniz ortalamanın üzerinde hız gösteriyor. Başarılı antrenman!",
-                suggestion_ranking_improvement: "Sıralama İyileştirmesi",
-                suggestion_ranking_improvement_desc: "Daha iyi sıralamalar için yarış stratejinizi gözden geçirin.",
-                suggestion_competitive_power: "Rekabet Gücü",
-                suggestion_competitive_power_desc: "Kazanma oranınızı artırmak için daha deneyimli güvercinlerle yarışın.",
-                suggestion_long_distance: "Uzun Mesafe Uzmanı",
-                suggestion_long_distance_desc: "Güvercinleriniz uzun mesafe yarışlarında başarılı görünüyor.",
                 image_added: "Resim eklendi",
                 image_added_success: "Resim başarıyla eklendi",
                 select_valid_image: "Lütfen geçerli bir resim dosyası seçin",
@@ -3367,10 +3455,6 @@
                 no_hatching: "No upcoming hatching",
                 logout: "Logout",
                 save: "Save",
-                saving: "Saving...",
-                image_added: "Image added",
-                image_added_success: "Image added successfully",
-                band_number_exists: "This band number is already in use! Each pigeon must have a unique band number.",
                 cancel: "Cancel",
                 edit: "Edit",
                 name: "Name",
@@ -3857,18 +3941,6 @@
                 comparison: "Comparison",
                 analysis: "Analysis",
                 system: "System",
-                
-                // Race analysis suggestions
-                suggestion_speed_improvement: "Speed Improvement Needed",
-                suggestion_speed_improvement_desc: "Your pigeons' average speed is low. Review your training program.",
-                suggestion_excellent_speed: "Excellent Speed Performance",
-                suggestion_excellent_speed_desc: "Your pigeons show above average speed. Successful training!",
-                suggestion_ranking_improvement: "Ranking Improvement",
-                suggestion_ranking_improvement_desc: "Review your race strategy for better rankings.",
-                suggestion_competitive_power: "Competitive Power",
-                suggestion_competitive_power_desc: "Race with more experienced pigeons to improve your win rate.",
-                suggestion_long_distance: "Long Distance Specialist",
-                suggestion_long_distance_desc: "Your pigeons appear successful in long distance races.",
                 image_added: "Image added",
                 image_added_success: "Image added successfully",
                 select_valid_image: "Please select a valid image file",
@@ -4582,68 +4654,17 @@
                     
                     // Add user info and logout if not exists
                     if (!authSection.querySelector('.user-info')) {
-                        const isMobile = window.innerWidth < 768;
-                        let userInfoHtml;
-                        
-                        if (isMobile) {
-                            // Mobil için minimal görünüm - sadece ikon ve kısa isim
-                            const firstName = storage.currentUser.name.split(' ')[0];
-                            userInfoHtml = `
-                                <div class="flex items-center gap-2 user-info">
-                                    <i class="fas fa-user-circle text-gray-300 text-lg"></i>
-                                    <span class="text-gray-300 text-sm">${firstName}</span>
-                                </div>
-                            `;
-                        } else {
-                            // Desktop için mevcut görünüm
-                            userInfoHtml = `
-                                <div class="flex items-center gap-4 user-info">
-                                    <span class="text-gray-300 text-sm">${translations[currentLang].welcome || 'Hoş geldiniz'}, ${storage.currentUser.name}!</span>
-                                    <button onclick="logout()" class="px-4 py-2 text-sm bg-red-500 rounded-lg hover:bg-red-600 transition">
-                                        ${translations[currentLang].logout || 'Çıkış'}
-                                    </button>
-                                </div>
-                            `;
-                        }
-                        
+                        const userInfoHtml = `
+                            <span class="text-gray-300 user-info">${translations[currentLang].welcome || 'Hoş geldiniz'}, ${storage.currentUser.name}!</span>
+                            <button onclick="logout()" class="px-4 py-2 text-sm bg-red-500 rounded-lg hover:bg-red-600 transition">
+                                ${translations[currentLang].logout || 'Çıkış'}
+                            </button>
+                        `;
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = userInfoHtml;
                         while (tempDiv.firstChild) {
                             authSection.appendChild(tempDiv.firstChild);
                         }
-                    }
-                }
-                
-                // Update mobile menu with user info
-                const mobileMenuContent = document.getElementById('mobileMenuContent');
-                if (mobileMenuContent && storage.currentUser) {
-                    let userSection = mobileMenuContent.querySelector('.mobile-user-section');
-                    if (!userSection) {
-                        userSection = document.createElement('div');
-                        userSection.className = 'mobile-user-section p-4 border-b border-gray-700 mb-4';
-                        userSection.innerHTML = `
-                            <div class="flex items-center gap-3 mb-4">
-                                <i class="fas fa-user-circle text-3xl text-cyan-400"></i>
-                                <div>
-                                    <div class="font-bold text-white">${storage.currentUser.name}</div>
-                                    <div class="text-sm text-gray-400">${storage.currentUser.email}</div>
-                                </div>
-                            </div>
-                        `;
-                        mobileMenuContent.insertBefore(userSection, mobileMenuContent.firstChild);
-                    }
-                    
-                    // Add logout button at the bottom if not exists
-                    let logoutSection = mobileMenuContent.querySelector('.mobile-logout-section');
-                    if (!logoutSection) {
-                        logoutSection = document.createElement('div');
-                        logoutSection.className = 'mobile-logout-section p-4 mt-4 border-t border-gray-700';
-                        logoutSection.innerHTML = `
-                            <button onclick="logout(); toggleMobileMenu();" class="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition">
-                                <i class="fas fa-sign-out-alt mr-2"></i> ${translations[currentLang].logout || 'Çıkış Yap'}
-                            </button>
-                        `;
-                        mobileMenuContent.appendChild(logoutSection);
                     }
                 }
             } else {
@@ -4668,15 +4689,6 @@
                     if (userInfo) userInfo.remove();
                     const logoutBtn = authSection.querySelector('button[onclick="logout()"]');
                     if (logoutBtn) logoutBtn.remove();
-                }
-                
-                // Remove mobile menu user sections
-                const mobileMenuContent = document.getElementById('mobileMenuContent');
-                if (mobileMenuContent) {
-                    const userSection = mobileMenuContent.querySelector('.mobile-user-section');
-                    if (userSection) userSection.remove();
-                    const logoutSection = mobileMenuContent.querySelector('.mobile-logout-section');
-                    if (logoutSection) logoutSection.remove();
                 }
             }
             
@@ -6826,7 +6838,7 @@
             const isPremium = await checkPremiumStatus(user.id);
             
             // Mevcut güvercin sayısını kontrol et
-            const { count, error: countError } = await supabase
+            const { count, error: countError } = await supabaseClient
                 .from('pigeons')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id);
@@ -7151,13 +7163,7 @@
                 }
             } catch (error) {
                 console.error('Add pigeon error:', error);
-                
-                // Duplicate key hatası kontrolü
-                if (error.message && error.message.includes('pigeons_user_id_band_number_key')) {
-                    showNotification(t.band_number_exists || 'Bu künye numarası zaten kullanımda!', 'warning');
-                } else {
-                    showNotification(error.message || t.error_occurred, 'error');
-                }
+                showNotification(error.message || t.error_occurred, 'error');
             } finally {
                 submitButton.disabled = false;
                 submitButton.innerHTML = '<i class="fas fa-save mr-2"></i> ' + t.save;
@@ -7364,7 +7370,6 @@
 
         // Preview image for add pigeon form
         function previewImage(event) {
-            const t = translations[currentLang];
             const file = event.target.files[0];
             if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
@@ -7439,14 +7444,42 @@
             // Build HTML structure
             let html = '<div class="pedigree-tree">';
             
+            // Calculate parent IDs for each node (parent-to-child approach)
+            const nodeParentMap = {};
             generations.forEach((gen, genIndex) => {
-                html += `<div class="generation" data-generation="${genIndex}">`;
-                
+                if (genIndex < generations.length - 1) { // Son generation'ın çocuğu yok
+                    gen.forEach((parent, parentIndex) => {
+                        if (!parent.empty && parent.id) {
+                            const childGen = generations[genIndex + 1];
+                            const fatherChild = childGen[parentIndex * 2];     // Sol çocuk (father tarafı)
+                            const motherChild = childGen[parentIndex * 2 + 1]; // Sağ çocuk (mother tarafı)
+                            
+                            if (fatherChild && !fatherChild.empty && fatherChild.id) {
+                                // Mevcut bilgiyi koru ve yeni bilgiyi ekle
+                                nodeParentMap[fatherChild.id] = {
+                                    ...(nodeParentMap[fatherChild.id] || {}),
+                                    fatherId: parent.id
+                                };
+                            }
+                            
+                            if (motherChild && !motherChild.empty && motherChild.id) {
+                                // Mevcut bilgiyi koru ve yeni bilgiyi ekle
+                                nodeParentMap[motherChild.id] = {
+                                    ...(nodeParentMap[motherChild.id] || {}),
+                                    motherId: parent.id
+                                };
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Render all nodes directly without generation wrappers
+            generations.forEach((gen, genIndex) => {
                 gen.forEach((pigeon, index) => {
-                    html += renderPigeonNode(pigeon, t, genIndex, index);
+                    const parentInfo = pigeon.id ? (nodeParentMap[pigeon.id] || {}) : {};
+                    html += renderPigeonNode(pigeon, t, genIndex, index, parentInfo);
                 });
-                
-                html += '</div>';
             });
             
             html += '</div>';
@@ -7484,10 +7517,13 @@
         }
         
         // Render individual pigeon node
-        function renderPigeonNode(pigeon, t, genIndex, nodeIndex) {
+        function renderPigeonNode(pigeon, t, genIndex, nodeIndex, parentInfo = {}) {
             if (pigeon.empty) {
                 return `
-                    <div class="pigeon-node empty ${pigeon.gender}" data-gen="${genIndex}" data-index="${nodeIndex}">
+                    <div class="pigeon-node empty ${pigeon.gender}" 
+                         data-generation="${genIndex}" 
+                         data-gen="${genIndex}" 
+                         data-index="${nodeIndex}">
                         <div class="pigeon-header">
                             <div class="pigeon-icon bg-gray-700">
                                 <i class="fas fa-question text-gray-500"></i>
@@ -7507,9 +7543,13 @@
             
             return `
                 <div class="pigeon-node ${genderClass}" 
+                     id="pigeon-${pigeon.id}"
                      data-pigeon-id="${pigeon.id}" 
+                     data-generation="${genIndex}"
                      data-gen="${genIndex}" 
                      data-index="${nodeIndex}"
+                     ${parentInfo.fatherId ? `data-father-id="pigeon-${parentInfo.fatherId}"` : ''}
+                     ${parentInfo.motherId ? `data-mother-id="pigeon-${parentInfo.motherId}"` : ''}
                      onclick="showPedigree('${pigeon.id}')">
                     <div class="pigeon-tooltip">
                         <div class="text-sm font-semibold text-gray-200 mb-2">${t.quick_info || 'Hızlı Bilgi'}</div>
@@ -7553,87 +7593,209 @@
             `;
         }
         
+        // Position nodes with absolute positioning
+        function positionNodes() {
+            const container = document.querySelector('.pedigree-tree');
+            if (!container) return;
+            
+            // Get all nodes directly (no generation wrappers)
+            const allNodes = container.querySelectorAll('.pigeon-node');
+            
+            // Group nodes by generation
+            const nodesByGeneration = {};
+            allNodes.forEach(node => {
+                const gen = node.getAttribute('data-generation') || '0';
+                if (!nodesByGeneration[gen]) {
+                    nodesByGeneration[gen] = [];
+                }
+                nodesByGeneration[gen].push(node);
+            });
+            
+            const isMobile = window.innerWidth <= 768;
+            const nodeWidth = isMobile ? 200 : 280;
+            const nodeHeight = isMobile ? 100 : 120;
+            const horizontalGap = isMobile ? 150 : 200;
+            const verticalGap = isMobile ? 30 : 40;
+            
+            // Position each generation
+            Object.keys(nodesByGeneration).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen, genIndex) => {
+                const nodes = nodesByGeneration[gen];
+                const x = 20 + genIndex * (nodeWidth + horizontalGap);
+                
+                const totalHeight = nodes.length * (nodeHeight + verticalGap) - verticalGap;
+                let y = Math.max(20, (container.offsetHeight - totalHeight) / 2);
+                
+                nodes.forEach(node => {
+                    node.style.left = x + 'px';
+                    node.style.top = y + 'px';
+                    node.style.width = nodeWidth + 'px';
+                    
+                    y += nodeHeight + verticalGap;
+                });
+            });
+            
+            // Update container height if needed
+            const maxY = Math.max(...Array.from(allNodes).map(n => n.offsetTop + n.offsetHeight));
+            if (maxY > container.offsetHeight) {
+                container.style.minHeight = (maxY + 40) + 'px';
+            }
+        }
+        
         // Draw connection lines between nodes
         function drawConnectionLines() {
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
             
-            // Clear existing lines
-            container.querySelectorAll('.connection-line, .vertical-line').forEach(line => line.remove());
+            // Clear existing lines and SVG
+            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
             
-            const generations = container.querySelectorAll('.generation');
+            // Create or get SVG element
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.classList.add('connection-svg');
+            svg.setAttribute('id', 'pedigree-svg');
             
-            generations.forEach((gen, genIndex) => {
-                if (genIndex >= generations.length - 1) return;
+            // Set SVG dimensions to match container's scroll dimensions
+            svg.setAttribute('width', container.scrollWidth);
+            svg.setAttribute('height', container.scrollHeight);
+            svg.style.position = 'absolute';
+            svg.style.top = '0';
+            svg.style.left = '0';
+            svg.style.pointerEvents = 'none';
+            
+            // Create gradient definition
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+            gradient.setAttribute('id', 'lineGradient');
+            gradient.setAttribute('x1', '0%');
+            gradient.setAttribute('y1', '0%');
+            gradient.setAttribute('x2', '100%');
+            gradient.setAttribute('y2', '0%');
+            
+            const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop1.setAttribute('offset', '0%');
+            stop1.setAttribute('stop-color', isMobile ? 'rgba(99, 102, 241, 0.7)' : 'rgba(99, 102, 241, 0.5)');
+            
+            const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop2.setAttribute('offset', '100%');
+            stop2.setAttribute('stop-color', isMobile ? 'rgba(168, 85, 247, 0.7)' : 'rgba(168, 85, 247, 0.5)');
+            
+            gradient.appendChild(stop1);
+            gradient.appendChild(stop2);
+            defs.appendChild(gradient);
+            svg.appendChild(defs);
+            
+            // Append SVG to container first
+            container.appendChild(svg);
+            
+            const allNodes = container.querySelectorAll('.pigeon-node');
+            const isMobile = window.innerWidth <= 768;
+            
+            // Draw connections based on parent IDs
+            allNodes.forEach(node => {
+                const fatherId = node.getAttribute('data-father-id');
+                const motherId = node.getAttribute('data-mother-id');
                 
-                const nodes = gen.querySelectorAll('.pigeon-node');
-                const nextGen = generations[genIndex + 1];
-                const nextNodes = nextGen.querySelectorAll('.pigeon-node');
-                
-                nodes.forEach((node, nodeIndex) => {
-                    const childIndex = nodeIndex * 2;
-                    if (childIndex >= nextNodes.length) return;
+                if (fatherId || motherId) {
+                    // Child node position (left side)
+                    const nodeX = node.offsetLeft;
+                    const nodeY = node.offsetTop + node.offsetHeight / 2;
                     
-                    const nodeRect = node.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
-                    
-                    // Connect to father (top child)
-                    const father = nextNodes[childIndex];
-                    if (father) {
-                        const fatherRect = father.getBoundingClientRect();
-                        drawLine(
-                            nodeRect.right - containerRect.left,
-                            nodeRect.top + nodeRect.height / 2 - containerRect.top,
-                            fatherRect.left - containerRect.left,
-                            fatherRect.top + fatherRect.height / 2 - containerRect.top,
-                            container
-                        );
+                    // Connect to father
+                    if (fatherId) {
+                        const father = container.querySelector(`#${fatherId}`);
+                        if (father) {
+                            const fatherX = father.offsetLeft + father.offsetWidth;
+                            const fatherY = father.offsetTop + father.offsetHeight / 2;
+                            drawSVGLine(svg, fatherX, fatherY, nodeX, nodeY, isMobile);
+                        }
                     }
                     
-                    // Connect to mother (bottom child)
-                    const mother = nextNodes[childIndex + 1];
-                    if (mother) {
-                        const motherRect = mother.getBoundingClientRect();
-                        drawLine(
-                            nodeRect.right - containerRect.left,
-                            nodeRect.top + nodeRect.height / 2 - containerRect.top,
-                            motherRect.left - containerRect.left,
-                            motherRect.top + motherRect.height / 2 - containerRect.top,
-                            container
-                        );
+                    // Connect to mother
+                    if (motherId) {
+                        const mother = container.querySelector(`#${motherId}`);
+                        if (mother) {
+                            const motherX = mother.offsetLeft + mother.offsetWidth;
+                            const motherY = mother.offsetTop + mother.offsetHeight / 2;
+                            drawSVGLine(svg, motherX, motherY, nodeX, nodeY, isMobile);
+                        }
                     }
-                });
+                }
             });
         }
         
-        // Draw a single connection line with 90-degree elbow paths
-        function drawLine(x1, y1, x2, y2, container) {
+        // Draw SVG connection line with 90-degree elbow paths
+        function drawSVGLine(svg, x1, y1, x2, y2, isMobile = false) {
             // Calculate midpoint for the elbow
             const midX = x1 + (x2 - x1) / 2;
+            
+            // Create path element
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            
+            // Create path data with 90-degree angles
+            const pathData = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+            path.setAttribute('d', pathData);
+            path.setAttribute('stroke', 'url(#lineGradient)');
+            path.setAttribute('stroke-width', isMobile ? '3' : '2');
+            path.setAttribute('fill', 'none');
+            
+            // Add animation delay based on position
+            const delay = (x1 / 100) * 0.1;
+            path.style.animationDelay = `${delay}s`;
+            
+            // Add path to SVG
+            svg.appendChild(path);
+            
+            // Create connection joints (circles at corners)
+            const joint1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            joint1.setAttribute('cx', midX);
+            joint1.setAttribute('cy', y1);
+            joint1.setAttribute('r', isMobile ? '5' : '4');
+            joint1.setAttribute('fill', '#6366f1');
+            joint1.style.animationDelay = `${delay + 0.1}s`;
+            
+            const joint2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            joint2.setAttribute('cx', midX);
+            joint2.setAttribute('cy', y2);
+            joint2.setAttribute('r', isMobile ? '5' : '4');
+            joint2.setAttribute('fill', '#8b5cf6');
+            joint2.style.animationDelay = `${delay + 0.2}s`;
+            
+            // Add joints to SVG
+            svg.appendChild(joint1);
+            svg.appendChild(joint2);
+        }
+        
+        // OLD: Draw a single connection line with 90-degree elbow paths (keeping for backwards compatibility)
+        function drawLine(x1, y1, x2, y2, container, isMobile = false) {
+            // Calculate midpoint for the elbow
+            const midX = x1 + (x2 - x1) / 2;
+            
+            // Line thickness based on viewport
+            const lineThickness = isMobile ? '3px' : '2px';
             
             // Create horizontal line from parent node
             const hLine1 = document.createElement('div');
             hLine1.className = 'connection-line';
-            hLine1.style.width = `${midX - x1}px`;
-            hLine1.style.height = '2px';
+            hLine1.style.width = `${Math.max(midX - x1, 0)}px`;
+            hLine1.style.height = lineThickness;
             hLine1.style.left = `${x1}px`;
-            hLine1.style.top = `${y1}px`;
+            hLine1.style.top = `${y1 - (isMobile ? 1.5 : 1)}px`;
             
             // Create vertical line
             const vLine = document.createElement('div');
             vLine.className = 'connection-line';
-            vLine.style.width = '2px';
-            vLine.style.height = `${Math.abs(y2 - y1)}px`;
-            vLine.style.left = `${midX}px`;
+            vLine.style.width = lineThickness;
+            vLine.style.height = `${Math.max(Math.abs(y2 - y1), 0)}px`;
+            vLine.style.left = `${midX - (isMobile ? 1.5 : 1)}px`;
             vLine.style.top = `${Math.min(y1, y2)}px`;
             
             // Create horizontal line to child node
             const hLine2 = document.createElement('div');
             hLine2.className = 'connection-line';
-            hLine2.style.width = `${x2 - midX}px`;
-            hLine2.style.height = '2px';
+            hLine2.style.width = `${Math.max(x2 - midX, 0)}px`;
+            hLine2.style.height = lineThickness;
             hLine2.style.left = `${midX}px`;
-            hLine2.style.top = `${y2}px`;
+            hLine2.style.top = `${y2 - (isMobile ? 1.5 : 1)}px`;
             
             // Add stagger animation based on position
             const delay = (x1 / 100) * 0.1;
@@ -7676,7 +7838,7 @@
             });
             
             // Clean any connection lines, joints and SVG elements
-            const connectionElements = document.querySelectorAll('.connection-line, .vertical-line, .connection-joint, svg');
+            const connectionElements = document.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg');
             connectionElements.forEach(element => element.remove());
             
             // Clean pedigree specific nodes and elements
@@ -8253,9 +8415,64 @@
                     </div>
                 `;
                 
-                // Add connection lines after rendering
+                // Position nodes and add connection lines after rendering
                 if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
-                window.pedigreeTimeout = setTimeout(() => drawConnectionLines(), 100);
+                window.pedigreeTimeout = setTimeout(() => {
+                    positionNodes();
+                    drawConnectionLines();
+                }, 100);
+                
+                // Add resize event handler with debouncing (only once)
+                if (!window.pedigreeResizeHandler) {
+                    window.pedigreeResizeHandler = true;
+                    let resizeTimeout;
+                    window.addEventListener('resize', () => {
+                        clearTimeout(resizeTimeout);
+                        resizeTimeout = setTimeout(() => {
+                            positionNodes();
+                            drawConnectionLines();
+                        }, 150); // Faster response for mobile
+                    });
+                    
+                    // Handle orientation changes for mobile devices
+                    window.addEventListener('orientationchange', () => {
+                        // Clear lines immediately for visual feedback
+                        const container = document.querySelector('.pedigree-tree');
+                        if (container) {
+                            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
+                        }
+                        setTimeout(() => {
+                            positionNodes();
+                            drawConnectionLines();
+                        }, 200);
+                    });
+                }
+                
+                // Redraw lines when container is scrolled (for mobile)
+                const pedigreeContainer = document.querySelector('.pedigree-tree');
+                if (pedigreeContainer) {
+                    let scrollTimeout;
+                    pedigreeContainer.addEventListener('scroll', () => {
+                        clearTimeout(scrollTimeout);
+                        scrollTimeout = setTimeout(() => {
+                            positionNodes();
+                            drawConnectionLines();
+                        }, 100);
+                    });
+                }
+                
+                // Use IntersectionObserver for performance optimization
+                const observer = new IntersectionObserver((entries) => {
+                    if (entries.some(entry => entry.isIntersecting)) {
+                        positionNodes();
+                        drawConnectionLines();
+                    }
+                });
+                
+                // Observe the pedigree container
+                if (pedigreeContainer) {
+                    observer.observe(pedigreeContainer);
+                }
                 
             } catch (error) {
                 console.error('Pedigree error:', error);
@@ -11426,7 +11643,7 @@
                                     const data = race.performance_data || {};
                                     return `
                                         <div class="glass p-4 rounded-xl hover:scale-[1.02] transition-transform">
-                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                            <div class="flex items-center justify-between">
                                                 <div class="flex items-center gap-3">
                                                     <div class="w-12 h-12 rounded-full bg-gradient-to-r from-red-400 to-orange-400 flex items-center justify-center">
                                                         <i class="fas fa-dove text-white"></i>
@@ -11436,18 +11653,20 @@
                                                         <div class="text-sm text-gray-400">${formatDate(race.date)}</div>
                                                     </div>
                                                 </div>
-                                                <div class="flex flex-wrap gap-2 sm:gap-3 justify-start sm:justify-end">
-                                                    <div class="bg-black/30 rounded-lg px-3 py-2 min-w-[85px] text-center">
-                                                        <div class="text-xs text-gray-400">Sıralama</div>
-                                                        <div class="font-bold text-sm sm:text-base">${data.rank || '-'}/${data.totalParticipants || '-'}</div>
-                                                    </div>
-                                                    <div class="bg-black/30 rounded-lg px-3 py-2 min-w-[85px] text-center">
-                                                        <div class="text-xs text-gray-400">Hız</div>
-                                                        <div class="font-bold text-sm sm:text-base">${data.speed || 0} km/h</div>
-                                                    </div>
-                                                    <div class="bg-black/30 rounded-lg px-3 py-2 min-w-[85px] text-center">
-                                                        <div class="text-xs text-gray-400">Mesafe</div>
-                                                        <div class="font-bold text-sm sm:text-base">${data.distance || 0} km</div>
+                                                <div class="text-right">
+                                                    <div class="flex items-center gap-4">
+                                                        <div>
+                                                            <div class="text-sm text-gray-400">Sıralama</div>
+                                                            <div class="font-bold text-lg">${data.rank || '-'}/${data.totalParticipants || '-'}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm text-gray-400">Hız</div>
+                                                            <div class="font-bold text-lg">${data.speed || 0} km/h</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm text-gray-400">Mesafe</div>
+                                                            <div class="font-bold text-lg">${data.distance || 0} km</div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -11464,6 +11683,20 @@
                                 </button>
                             </div>
                         `}
+                    </div>
+                    
+                    <!-- Performans Grafiği Placeholder -->
+                    <div class="glass p-6 rounded-2xl">
+                        <h3 class="text-xl font-bold mb-4">
+                            <i class="fas fa-chart-area text-purple-400 mr-2"></i>
+                            Hız Trend Analizi
+                        </h3>
+                        <div class="h-64 flex items-center justify-center text-gray-500">
+                            <div class="text-center">
+                                <i class="fas fa-chart-line text-6xl mb-3 opacity-30"></i>
+                                <p>Grafik özelliği yakında eklenecek</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -11636,11 +11869,11 @@
                                         const total = analyticsData.totalRaces || 1;
                                         
                                         return [
-                                            { icon: 'fa-medal', color: 'yellow', label: translations[currentLang].racing_analytics_1st_place || "1. Sıra", count: ranks.gold, gradient: 'from-yellow-400 to-amber-500' },
-                                            { icon: 'fa-medal', color: 'gray', label: translations[currentLang].racing_analytics_2nd_place || "2. Sıra", count: ranks.silver, gradient: 'from-gray-300 to-gray-400' },
-                                            { icon: 'fa-medal', color: 'orange', label: translations[currentLang].racing_analytics_3rd_place || "3. Sıra", count: ranks.bronze, gradient: 'from-orange-400 to-orange-600' },
-                                            { icon: 'fa-certificate', color: 'blue', label: translations[currentLang].racing_analytics_top_10 || "İlk 10", count: ranks.top10, gradient: 'from-blue-400 to-blue-600' },
-                                            { icon: 'fa-flag-checkered', color: 'gray', label: translations[currentLang].racing_analytics_other || "Diğer", count: ranks.other, gradient: 'from-gray-500 to-gray-600' }
+                                            { icon: 'fa-medal', color: 'yellow', label: '${translations[currentLang].racing_analytics_1st_place || "1. Sıra"}', count: ranks.gold, gradient: 'from-yellow-400 to-amber-500' },
+                                            { icon: 'fa-medal', color: 'gray', label: '${translations[currentLang].racing_analytics_2nd_place || "2. Sıra"}', count: ranks.silver, gradient: 'from-gray-300 to-gray-400' },
+                                            { icon: 'fa-medal', color: 'orange', label: '${translations[currentLang].racing_analytics_3rd_place || "3. Sıra"}', count: ranks.bronze, gradient: 'from-orange-400 to-orange-600' },
+                                            { icon: 'fa-certificate', color: 'blue', label: '${translations[currentLang].racing_analytics_top_10 || "İlk 10"}', count: ranks.top10, gradient: 'from-blue-400 to-blue-600' },
+                                            { icon: 'fa-flag-checkered', color: 'gray', label: '${translations[currentLang].racing_analytics_other || "Diğer"}', count: ranks.other, gradient: 'from-gray-500 to-gray-600' }
                                         ].map(item => `
                                             <div class="flex items-center gap-3">
                                                 <i class="fas ${item.icon} text-2xl text-${item.color}-400"></i>
@@ -11810,12 +12043,6 @@
                 records: validRecords,
                 pigeons
             };
-        }
-        
-        // Translation helper fonksiyonu
-        function getTranslation(key) {
-            const t = translations[currentLang];
-            return t[key] || key;
         }
         
         // Öneri üretme fonksiyonu
@@ -14262,20 +14489,6 @@
             `;
         }
         
-        // Canvas'ta metin oluşturma fonksiyonu
-        function createTextImage(text, options = {}) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.font = `${options.fontSize || 12}px ${options.fontFamily || 'Arial'}`;
-            const metrics = ctx.measureText(text);
-            canvas.width = metrics.width + 10;
-            canvas.height = (options.fontSize || 12) + 10;
-            ctx.font = `${options.fontSize || 12}px ${options.fontFamily || 'Arial'}`;
-            ctx.fillStyle = options.color || '#000000';
-            ctx.fillText(text, 5, (options.fontSize || 12) + 2);
-            return canvas.toDataURL('image/png');
-        }
-
         // PDF raporu oluştur
         function generatePDFReport() {
             const t = translations[currentLang];
@@ -15049,17 +15262,6 @@
             showHomepage();
             
             console.log('Application initialized successfully!');
-            
-            // Handle window resize to update navigation display
-            let resizeTimeout;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(function() {
-                    if (storage.currentUser) {
-                        updateNavigation();
-                    }
-                }, 250);
-            });
         });
         
         // Check auth state on load
