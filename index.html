@@ -2803,12 +2803,26 @@
                         <option value="en">🇬🇧 EN</option>
                     </select>
                     
-                    <button onclick="openAuthModal('login')" class="block px-2 md:px-4 py-1 md:py-2 text-xs md:text-sm hover:text-cyan-400 transition lang-text" data-tr="btn_login">
-                        Giriş Yap
-                    </button>
-                    <button onclick="openAuthModal('register')" class="hidden sm:block btn-primary text-xs md:text-sm px-2 md:px-4 py-1 md:py-2 lang-text" data-tr="btn_register">
-                        Üye Ol
-                    </button>
+                    <!-- User Display Area (Hidden by default) -->
+                    <div id="userDisplay" class="hidden items-center gap-2">
+                        <span id="userEmail" class="text-sm text-gray-300"></span>
+                        <span id="premiumBadge" class="hidden ml-1 px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs rounded-full">
+                            <i class="fas fa-crown mr-1"></i>Premium
+                        </span>
+                        <button onclick="logout()" class="px-2 md:px-4 py-1 md:py-2 text-xs md:text-sm hover:text-red-400 transition">
+                            <i class="fas fa-sign-out-alt"></i> <span class="hidden sm:inline lang-text" data-tr="btn_logout">Çıkış</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Auth Buttons (Shown when logged out) -->
+                    <div id="authButtons" class="flex items-center gap-2">
+                        <button onclick="openAuthModal('login')" class="block px-2 md:px-4 py-1 md:py-2 text-xs md:text-sm hover:text-cyan-400 transition lang-text" data-tr="btn_login">
+                            Giriş Yap
+                        </button>
+                        <button onclick="openAuthModal('register')" class="hidden sm:block btn-primary text-xs md:text-sm px-2 md:px-4 py-1 md:py-2 lang-text" data-tr="btn_register">
+                            Üye Ol
+                        </button>
+                    </div>
                     
                     <!-- Mobile Menu Button -->
                     <button onclick="toggleMobileMenu()" class="md:hidden text-2xl p-3 hover:bg-white/10 rounded-lg transition z-50 relative">
@@ -4859,7 +4873,12 @@
         }
 
         // Update navigation based on login state
-        function updateNavigation() {
+        async function updateNavigation() {
+            // Call the new updateAuthUI function which handles everything
+            await updateAuthUI();
+            return;
+            
+            // Legacy code below (kept for reference but not executed)
             const authSection = document.getElementById('authSection');
             const mobileMenuItems = document.getElementById('mobileMenuItems');
             const authRequiredButtons = document.querySelectorAll('.nav-auth-required');
@@ -5012,6 +5031,129 @@
         }
 
 
+        // Update authentication UI
+        async function updateAuthUI() {
+            const userDisplay = document.getElementById('userDisplay');
+            const authButtons = document.getElementById('authButtons');
+            const navAuthRequired = document.querySelectorAll('.nav-auth-required');
+            const mobileUserInfo = document.getElementById('mobileUserInfo');
+            
+            if (storage.currentUser) {
+                // User is logged in
+                if (userDisplay) {
+                    userDisplay.classList.remove('hidden');
+                    userDisplay.classList.add('flex');
+                }
+                if (authButtons) {
+                    authButtons.classList.add('hidden');
+                }
+                
+                // Update user email display
+                const userEmailElement = document.getElementById('userEmail');
+                if (userEmailElement) {
+                    userEmailElement.textContent = storage.currentUser.email || '';
+                }
+                
+                // Check and update premium status
+                try {
+                    const isPremium = await checkPremiumStatus(storage.currentUser.id);
+                    const premiumBadge = document.getElementById('premiumBadge');
+                    if (premiumBadge) {
+                        if (isPremium) {
+                            premiumBadge.classList.remove('hidden');
+                        } else {
+                            premiumBadge.classList.add('hidden');
+                        }
+                    }
+                    
+                    // Update mobile user info
+                    if (mobileUserInfo) {
+                        mobileUserInfo.innerHTML = `
+                            <div class="text-center p-4 bg-white/5 rounded-lg">
+                                <p class="text-sm text-gray-300">${storage.currentUser.email}</p>
+                                ${isPremium ? '<span class="mt-2 inline-block px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs rounded-full"><i class="fas fa-crown mr-1"></i>Premium</span>' : ''}
+                            </div>
+                        `;
+                        mobileUserInfo.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error checking premium status:', error);
+                }
+                
+                // Show auth-required navigation items
+                navAuthRequired.forEach(item => {
+                    item.style.display = '';
+                });
+                
+                // Show mobile logout button
+                const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+                if (mobileLogoutBtn) {
+                    mobileLogoutBtn.classList.remove('hidden');
+                }
+            } else {
+                // User is logged out
+                if (userDisplay) {
+                    userDisplay.classList.add('hidden');
+                    userDisplay.classList.remove('flex');
+                }
+                if (authButtons) {
+                    authButtons.classList.remove('hidden');
+                }
+                
+                // Hide auth-required navigation items
+                navAuthRequired.forEach(item => {
+                    item.style.display = 'none';
+                });
+                
+                // Hide mobile user info
+                if (mobileUserInfo) {
+                    mobileUserInfo.classList.add('hidden');
+                }
+                
+                // Hide mobile logout button
+                const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+                if (mobileLogoutBtn) {
+                    mobileLogoutBtn.classList.add('hidden');
+                }
+            }
+        }
+        
+        // Logout function
+        async function logout() {
+            try {
+                // Sign out from Supabase
+                if (window.supabase) {
+                    await window.supabase.auth.signOut();
+                }
+                
+                // Clear storage
+                storage.currentUser = null;
+                localStorage.removeItem('currentUser');
+                
+                // Update UI
+                await updateAuthUI();
+                
+                // Show notification
+                showNotification(
+                    (window.currentLang || 'tr') === 'tr' ? 
+                        'Başarıyla çıkış yapıldı' : 
+                        'Successfully logged out',
+                    'success'
+                );
+                
+                // Redirect to homepage
+                showHomepage();
+            } catch (error) {
+                console.error('Logout error:', error);
+                showNotification(
+                    (window.currentLang || 'tr') === 'tr' ? 
+                        'Çıkış yapılırken hata oluştu' : 
+                        'Error during logout',
+                    'error'
+                );
+            }
+        }
+        
         // Check authentication and redirect if needed
         function checkAuth() {
             if (!storage.currentUser) {
@@ -6103,9 +6245,6 @@
                                 <i class="fas fa-credit-card mr-2"></i>
                                 ${t.btn_upgrade || 'Yükselt'}
                             </button>
-                                    ${t.btn_paytr_payment || 'PayTR ile Öde'}
-                                </button>
-                            </div>
                         </div>
                     </div>
                     

@@ -50,7 +50,7 @@ export default {
       const email = user_email;
       const payment_amount = '3990'; // Kuruş
       const currency = 'TL';
-      const test_mode = '1'; // Canlıda 0, testte 1 - ŞU AN TEST MODUNDA
+      const test_mode = '0'; // Canlıda 0, testte 1 - GERÇEK MOD AKTİF
       const user_basket = btoa(JSON.stringify([["Premium Üyelik", "39.90", 1]]));
       const merchant_notify_url = 'https://pigeonpedigre-paytr-notification.tamer-nem.workers.dev';
 
