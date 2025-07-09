@@ -164,6 +164,8 @@ function showPaymentFailureModal() {
 // Siparişi Supabase'e kaydet
 async function saveOrderToSupabase(userId, merchantOid) {
     try {
+        console.log('Saving order to Supabase:', { userId, merchantOid });
+        
         const { data, error } = await window.supabase
             .from('orders')
             .insert({
@@ -171,14 +173,19 @@ async function saveOrderToSupabase(userId, merchantOid) {
                 merchant_oid: merchantOid,
                 amount: 39.90,
                 currency: 'TRY',
-                status: 'pending'
+                status: 'pending',
+                created_at: new Date().toISOString()
             });
             
         if (error) {
             console.error('Order save error:', error);
+            showError('Sipariş kaydedilemedi: ' + error.message);
+        } else {
+            console.log('Order saved successfully:', data);
         }
     } catch (error) {
         console.error('Supabase error:', error);
+        showError('Veritabanı hatası');
     }
 }
 

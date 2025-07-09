@@ -2,9 +2,27 @@ export default {
   async fetch(request, env) {
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*', // Production'da 'https://pigeonpedigre.com' yapın
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     };
+
+    // Health check endpoint
+    if (request.method === 'GET') {
+      return new Response(JSON.stringify({
+        status: 'ok',
+        service: 'paytr-payment-worker',
+        timestamp: new Date().toISOString(),
+        environment_check: {
+          has_merchant_id: !!env.MERCHANT_ID,
+          has_merchant_key: !!env.MERCHANT_KEY,
+          has_merchant_salt: !!env.MERCHANT_SALT,
+          notification_url: 'https://pigeonpedigre-paytr-notification.tamer-nem.workers.dev'
+        }
+      }, null, 2), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
@@ -32,7 +50,7 @@ export default {
       const email = user_email;
       const payment_amount = '3990'; // Kuruş
       const currency = 'TL';
-      const test_mode = '0'; // Canlıda 0, testte 1
+      const test_mode = '1'; // Canlıda 0, testte 1 - ŞU AN TEST MODUNDA
       const user_basket = btoa(JSON.stringify([["Premium Üyelik", "39.90", 1]]));
       const merchant_notify_url = 'https://pigeonpedigre-paytr-notification.tamer-nem.workers.dev';
 
