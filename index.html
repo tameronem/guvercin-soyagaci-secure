@@ -5869,7 +5869,7 @@
             
             const currentPrice = currentLang === 'tr' ? '₺39.90' : '$9.99';
             
-            // PayTR Premium purchase handler
+            // PayTR Premium purchase handler - Cloudflare Worker
             window.handlePremiumPurchaseLocal = async function() {
                 // Giriş kontrolü
                 if (!checkAuth()) {
@@ -5884,98 +5884,90 @@
                 }
                 
                 try {
-                    // Session oluştur
                     const { data: { user } } = await supabase.auth.getUser();
                     if (!user) {
                         throw new Error('User not found');
                     }
                     
-                    // PHP session oluştur - hata kontrolü ile
-                    try {
-                        const sessionResponse = await fetch('session-handler.php', {
-                            method: 'POST',
-                            credentials: 'include',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                action: 'create_session',
-                                user_id: user.id,
-                                user_email: user.email,
-                                user_name: user.user_metadata?.name || user.email.split('@')[0]
-                            })
-                        });
-                        
-                        // Response kontrolü
-                        if (!sessionResponse.ok) {
-                            console.warn('Session handler not available (Status: ' + sessionResponse.status + '), proceeding without PHP session');
-                            
-                            // PHP session olmadan alternatif çözüm
-                            showNotification(
-                                currentLang === 'tr' ? 
-                                    'Ödeme sistemi hazırlanıyor. Lütfen daha sonra tekrar deneyin.' : 
-                                    'Payment system is being prepared. Please try again later.',
-                                'warning'
-                            );
-                            
-                            // Geçici olarak ödeme sisteminin hazır olmadığını bildir
-                            setTimeout(() => {
-                                alert(currentLang === 'tr' ? 
-                                    'Ödeme sistemi şu anda bakımda. Lütfen birkaç saat sonra tekrar deneyin veya destek ile iletişime geçin: info@pigeonpedigre.com' : 
-                                    'Payment system is currently under maintenance. Please try again in a few hours or contact support: info@pigeonpedigre.com'
-                                );
-                            }, 1000);
-                            return;
-                        }
-                        
-                        // Content-Type kontrolü
-                        const contentType = sessionResponse.headers.get("content-type");
-                        if (!contentType || !contentType.includes("application/json")) {
-                            throw new Error('Invalid response type from session handler');
-                        }
-                        
-                        const sessionData = await sessionResponse.json();
-                        if (!sessionData.success) {
-                            throw new Error('Session creation failed');
-                        }
+                    showNotification(
+                        currentLang === 'tr' ? 
+                            'Ödeme sayfası hazırlanıyor...' : 
+                            'Preparing payment page...',
+                        'info'
+                    );
+                    
+                    // Cloudflare Worker URL - deployment sonrası güncellenecek
+                    const WORKER_URL = 'https://pigeonpedigre-paytr.tamer-nem.workers.dev';
+                    
+                    // Cloudflare Worker'a istek at
+                    const response = await fetch(WORKER_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            user_id: user.id,
+                            user_email: user.email,
+                            user_name: user.user_metadata?.name || user.user_metadata?.first_name + ' ' + user.user_metadata?.last_name || user.email.split('@')[0]
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Ödeme bilgilerini localStorage'a kaydet
+                        localStorage.setItem('pendingPayment', JSON.stringify({
+                            merchant_oid: data.merchant_oid,
+                            user_id: user.id,
+                            user_email: user.email,
+                            timestamp: Date.now()
+                        }));
                         
                         // PayTR ödeme sayfasına yönlendir
-                        window.location.href = 'payment-process.php';
-                        
-                    } catch (sessionError) {
-                        console.error('Session handling error:', sessionError);
-                        
-                        // Session hatası durumunda kullanıcıya bilgi ver
                         showNotification(
                             currentLang === 'tr' ? 
-                                'Ödeme sistemi geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.' : 
-                                'Payment system is temporarily unavailable. Please try again later.',
-                            'error'
+                                'PayTR ödeme sayfasına yönlendiriliyorsunuz...' : 
+                                'Redirecting to PayTR payment page...',
+                            'success'
                         );
                         
-                        // Alternatif iletişim bilgisi
                         setTimeout(() => {
-                            if (confirm(currentLang === 'tr' ? 
-                                'Ödeme sistemi şu anda bakımda. WhatsApp üzerinden iletişime geçmek ister misiniz?' : 
-                                'Payment system is under maintenance. Would you like to contact us via WhatsApp?'
-                            )) {
-                                window.open('https://wa.me/905555555555?text=' + encodeURIComponent(
-                                    currentLang === 'tr' ? 
-                                    'Merhaba, premium üyelik almak istiyorum.' : 
-                                    'Hello, I would like to purchase premium membership.'
-                                ), '_blank');
-                            }
+                            window.location.href = data.payment_url;
                         }, 1500);
+                        
+                    } else {
+                        throw new Error(data.error || 'Payment initialization failed');
                     }
                     
                 } catch (error) {
                     console.error('Payment error:', error);
-                    showNotification(
-                        currentLang === 'tr' ? 
-                            'Ödeme işlemi başlatılamadı' : 
-                            'Payment could not be initiated',
-                        'error'
-                    );
+                    
+                    // Worker çalışmıyorsa alternatif çözüm
+                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                        showNotification(
+                            currentLang === 'tr' ? 
+                                'Ödeme sistemi şu anda bakımda. PayTR link ile ödeme yapabilirsiniz.' : 
+                                'Payment system is under maintenance. You can pay via PayTR link.',
+                            'warning'
+                        );
+                        
+                        // 2 saniye bekle ve PayTR link'e yönlendir
+                        setTimeout(() => {
+                            if (confirm(currentLang === 'tr' ? 
+                                'PayTR ödeme sayfasına yönlendirilmek ister misiniz? E-posta adresinizi doğru girdiğinizden emin olun.' : 
+                                'Would you like to be redirected to PayTR payment page? Make sure to enter your email correctly.'
+                            )) {
+                                window.open('https://www.paytr.com/link/26UUdO1', '_blank');
+                            }
+                        }, 2000);
+                    } else {
+                        showNotification(
+                            currentLang === 'tr' ? 
+                                'Ödeme işlemi başlatılamadı. Lütfen daha sonra tekrar deneyin.' : 
+                                'Payment could not be initiated. Please try again later.',
+                            'error'
+                        );
+                    }
                 }
             };
             
@@ -15542,6 +15534,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Initializing application...');
             
+            // Payment return kontrolü
+            checkPaymentReturn();
+            
             // Initialize auth state
             checkAuthState();
             
@@ -15593,6 +15588,49 @@
                 await checkPHPSession();
             }
         }, 5 * 60 * 1000); // 5 dakika
+        
+        // Payment return kontrolü
+        function checkPaymentReturn() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentStatus = urlParams.get('payment');
+            
+            if (paymentStatus) {
+                // URL'den parametreyi temizle
+                const newUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+                
+                if (paymentStatus === 'success') {
+                    showNotification(
+                        '✅ Ödemeniz alındı! Premium üyeliğiniz 24 saat içinde aktif olacak. E-posta adresinizi kontrol edin.',
+                        'success'
+                    );
+                    
+                    // Pending payment bilgisini al
+                    const pendingPayment = JSON.parse(localStorage.getItem('pendingPayment') || '{}');
+                    
+                    if (pendingPayment.user_id) {
+                        // Supabase'e payment_notifications tablosu yoksa users tablosuna not ekle
+                        supabase.from('users').update({
+                            notes: `Payment received - ${new Date().toISOString()} - MerchantOID: ${pendingPayment.merchant_oid}`,
+                            payment_pending: true
+                        }).eq('id', pendingPayment.user_id).then(({ error }) => {
+                            if (!error) {
+                                localStorage.removeItem('pendingPayment');
+                                console.log('Payment notification saved');
+                            } else {
+                                console.error('Failed to save payment notification:', error);
+                            }
+                        });
+                    }
+                } else if (paymentStatus === 'fail') {
+                    showNotification(
+                        '❌ Ödeme başarısız. Lütfen tekrar deneyin veya destek ile iletişime geçin.',
+                        'error'
+                    );
+                    localStorage.removeItem('pendingPayment');
+                }
+            }
+        }
     </script>
     
     <!-- AI Breeding Modules -->

@@ -1,0 +1,11 @@
+name = "pigeonpedigre-paytr"
+main = "paytr-payment.js"
+compatibility_date = "2023-12-01"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# Secrets ayrıca eklenecek:
+# wrangler secret put MERCHANT_ID
+# wrangler secret put MERCHANT_KEY  
+# wrangler secret put MERCHANT_SALT
