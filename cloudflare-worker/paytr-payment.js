@@ -1,8 +1,8 @@
 export default {
   async fetch(request, env) {
-    // CORS headers
+    // CORS headers - Development için geçici olarak * kullanılıyor
     const corsHeaders = {
-      'Access-Control-Allow-Origin': 'https://pigeonpedigre.com',
+      'Access-Control-Allow-Origin': '*', // Production'da 'https://pigeonpedigre.com' yap
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     };
@@ -26,24 +26,47 @@ export default {
       const { user_id, user_email, user_name } = data;
 
       // PayTR parametreleri - Environment variables'dan al
-      const merchant_id = env.MERCHANT_ID || '593847';
-      const merchant_key = env.MERCHANT_KEY || 'GHFnc6n26sKMBr18';
-      const merchant_salt = env.MERCHANT_SALT || 'k7177bzk3sRHrGT8';
+      const merchant_id = env.MERCHANT_ID;
+      const merchant_key = env.MERCHANT_KEY;
+      const merchant_salt = env.MERCHANT_SALT;
       
-      const merchant_oid = 'PREMIUM_' + user_id.substring(0, 8) + '_' + Date.now();
+      // Environment variables kontrolü
+      if (!merchant_id || !merchant_key || !merchant_salt) {
+        console.error('Missing PayTR configuration');
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Configuration error - Missing PayTR credentials'
+        }), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+      
+      // Sadece alfanumerik karakterler kullan - Max 64 karakter
+      const cleanUserId = user_id.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6);
+      const timestamp = Date.now().toString().slice(-8); // Son 8 rakam
+      const merchant_oid = 'PR' + cleanUserId + timestamp; // Max 16 karakter
+      
+      // Debug log
+      console.log('Generated merchant_oid:', merchant_oid, 'Length:', merchant_oid.length);
       const email = user_email;
       const payment_amount = '3990'; // 39.90 TL (kuruş cinsinden)
-      const user_basket = btoa(JSON.stringify([['Premium Üyelik', '39.90', 1]]));
+      const user_basket = btoa(JSON.stringify([['Premium Uyelik', '39.90', 1]])); // Türkçe karakterler kaldırıldı
       const no_installment = '1';
       const max_installment = '0';
       const user_ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+      const user_phone = '5555555555'; // PayTR için geçerli telefon formatı
+      const user_address = 'Turkiye'; // Türkçe karakter kullanmadan
       
       // URL'ler
       const merchant_ok_url = 'https://pigeonpedigre.com/?payment=success';
       const merchant_fail_url = 'https://pigeonpedigre.com/?payment=fail';
       
       // Hash oluştur - PayTR dokümantasyonuna göre
-      const hashSTR = `${merchant_id}${user_ip}${merchant_oid}${email}${payment_amount}${user_basket}${no_installment}${max_installment}TL090${merchant_ok_url}${merchant_fail_url}0${user_name}${user_name}0000000000${merchant_salt}`;
+      const hashSTR = `${merchant_id}${user_ip}${merchant_oid}${email}${payment_amount}${user_basket}${no_installment}${max_installment}TL090${merchant_ok_url}${merchant_fail_url}0${user_name}${user_address}${user_phone}${merchant_salt}`;
       
       // SHA256 hash ve base64 encode
       const encoder = new TextEncoder();
@@ -64,8 +87,8 @@ export default {
       formData.append('paytr_token', paytr_token);
       formData.append('user_basket', user_basket);
       formData.append('user_name', user_name);
-      formData.append('user_address', user_name);
-      formData.append('user_phone', '0000000000');
+      formData.append('user_address', user_address);
+      formData.append('user_phone', user_phone);
       formData.append('merchant_ok_url', merchant_ok_url);
       formData.append('merchant_fail_url', merchant_fail_url);
       formData.append('timeout_limit', '90');
