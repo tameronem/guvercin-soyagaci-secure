@@ -54,8 +54,8 @@ async function startPayTRPayment() {
             // PayTR iframe'i göster
             showPayTRModal(result.token, result.merchant_oid);
             
-            // Sipariş bilgisini kaydet
-            await saveOrderToSupabase(user.id, result.merchant_oid);
+            // Ödeme bilgisini kaydet
+            await saveOrderToSupabase(user.id, result.merchant_oid, user.email);
         } else {
             showError('Ödeme başlatılamadı: ' + result.error);
         }
@@ -161,16 +161,18 @@ function showPaymentFailureModal() {
     document.body.appendChild(modal);
 }
 
-// Siparişi Supabase'e kaydet
-async function saveOrderToSupabase(userId, merchantOid) {
+// Ödeme bilgisini Supabase'e kaydet
+async function saveOrderToSupabase(userId, merchantOid, userEmail) {
     try {
-        console.log('Saving order to Supabase:', { userId, merchantOid });
+        console.log('Saving payment to Supabase:', { userId, merchantOid, userEmail });
         
         const { data, error } = await window.supabase
-            .from('orders')
+            .from('payment_tracking')
             .insert({
                 user_id: userId,
                 merchant_oid: merchantOid,
+                tracking_code: merchantOid, // Eski sistem ile uyumluluk için
+                email: userEmail,
                 amount: 39.90,
                 currency: 'TRY',
                 status: 'pending',
@@ -178,10 +180,10 @@ async function saveOrderToSupabase(userId, merchantOid) {
             });
             
         if (error) {
-            console.error('Order save error:', error);
-            showError('Sipariş kaydedilemedi: ' + error.message);
+            console.error('Payment save error:', error);
+            showError('Ödeme kaydedilemedi: ' + error.message);
         } else {
-            console.log('Order saved successfully:', data);
+            console.log('Payment saved successfully:', data);
         }
     } catch (error) {
         console.error('Supabase error:', error);

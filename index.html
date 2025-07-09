@@ -5555,17 +5555,10 @@
                                         </li>
                                     </ul>
                                     
-                                    <button onclick="handlePremiumPurchaseLocal()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full transition">
+                                    <button onclick="openPayTRIframe()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full transition">
+                                        <i class="fas fa-credit-card mr-2"></i>
                                         <span class="lang-text" data-tr="btn_upgrade">Yükselt</span>
                                     </button>
-                                    
-                                    <!-- PayTR Iframe Option -->
-                                    <div class="mt-4">
-                                        <button onclick="openPayTRIframe()" class="w-full py-3 px-6 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-full transition">
-                                            <i class="fas fa-credit-card mr-2"></i>
-                                            <span class="lang-text" data-tr="btn_paytr_payment">PayTR ile Öde</span>
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                             
@@ -5950,19 +5943,27 @@
                             timestamp: Date.now()
                         }));
                         
-                        // PayTR ödeme sayfasına yönlendir
-                        showNotification(
-                            currentLang === 'tr' ? 
-                                'PayTR ödeme sayfasına yönlendiriliyorsunuz...' : 
-                                'Redirecting to PayTR payment page...',
-                            'success'
-                        );
-                        
-                        console.log('Redirecting to:', data.payment_url);
-                        
-                        setTimeout(() => {
-                            window.location.href = data.payment_url;
-                        }, 1500);
+                        // PayTR iframe'i aç
+                        if (typeof window.showPayTRModal === 'function') {
+                            // Ödeme bilgisini kaydet
+                            if (typeof window.saveOrderToSupabase === 'function') {
+                                await window.saveOrderToSupabase(user.id, data.merchant_oid, user.email);
+                            }
+                            // PayTR modal'ını göster
+                            window.showPayTRModal(data.token, data.merchant_oid);
+                            showNotification(
+                                currentLang === 'tr' ? 
+                                    'Güvenli ödeme ekranı açıldı' : 
+                                    'Secure payment screen opened',
+                                'success'
+                            );
+                        } else {
+                            // Fallback: iframe fonksiyonu yoksa yönlendir
+                            console.log('showPayTRModal not found, redirecting to:', data.payment_url);
+                            setTimeout(() => {
+                                window.location.href = data.payment_url;
+                            }, 1500);
+                        }
                         
                     } else {
                         throw new Error(data.error || 'Payment initialization failed');
@@ -6098,14 +6099,10 @@
                                 </li>
                             </ul>
                             
-                            <button onclick="handlePremiumPurchaseLocal()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full transition">
+                            <button onclick="openPayTRIframe()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full transition">
+                                <i class="fas fa-credit-card mr-2"></i>
                                 ${t.btn_upgrade || 'Yükselt'}
                             </button>
-                            
-                            <!-- PayTR Iframe Option -->
-                            <div class="mt-4">
-                                <button onclick="openPayTRIframe()" class="w-full py-3 px-6 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-full transition">
-                                    <i class="fas fa-credit-card mr-2"></i>
                                     ${t.btn_paytr_payment || 'PayTR ile Öde'}
                                 </button>
                             </div>

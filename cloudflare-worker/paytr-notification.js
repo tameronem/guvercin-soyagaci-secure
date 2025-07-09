@@ -40,7 +40,7 @@ export default {
         
         try {
           const testResponse = await fetch(
-            `${env.SUPABASE_URL}/rest/v1/orders?limit=1`,
+            `${env.SUPABASE_URL}/rest/v1/payment_tracking?limit=1`,
             {
               headers: {
                 'apikey': env.SUPABASE_SERVICE_KEY,
@@ -169,10 +169,10 @@ export default {
         return new Response('OK'); // PayTR'ye OK dön
       }
 
-      // Siparişi sorgula
-      console.log('Querying order:', post.merchant_oid);
+      // Ödeme kaydını sorgula
+      console.log('Querying payment:', post.merchant_oid);
       const orderResponse = await fetch(
-        `${supabaseUrl}/rest/v1/orders?merchant_oid=eq.${post.merchant_oid}`,
+        `${supabaseUrl}/rest/v1/payment_tracking?merchant_oid=eq.${post.merchant_oid}`,
         {
           headers: {
             'apikey': supabaseServiceKey,
@@ -187,48 +187,48 @@ export default {
           status: orderResponse.status,
           statusText: orderResponse.statusText,
           body: errorBody,
-          url: `${supabaseUrl}/rest/v1/orders?merchant_oid=eq.${post.merchant_oid}`
+          url: `${supabaseUrl}/rest/v1/payment_tracking?merchant_oid=eq.${post.merchant_oid}`
         });
         return new Response('OK'); // PayTR'ye OK dön
       }
 
-      const orders = await orderResponse.json();
-      console.log('Orders found:', orders.length);
+      const payments = await orderResponse.json();
+      console.log('Payments found:', payments.length);
       
-      const order = orders[0];
+      const payment = payments[0];
 
-      if (!order) {
-        console.error('Order not found:', post.merchant_oid);
-        // Sipariş bulunamadı, belki payment worker'dan eklenmemiş
+      if (!payment) {
+        console.error('Payment not found:', post.merchant_oid);
+        // Ödeme kaydı bulunamadı, belki payment worker'dan eklenmemiş
         // Yine de OK dönelim
         return new Response('OK');
       }
 
-      console.log('Order details:', {
-        id: order.id,
-        user_id: order.user_id,
-        status: order.status
+      console.log('Payment details:', {
+        id: payment.id,
+        user_id: payment.user_id,
+        status: payment.status
       });
 
       // Mükerrer işlem kontrolü
-      if (order.status !== 'pending') {
-        console.log('Order already processed:', {
+      if (payment.status !== 'pending') {
+        console.log('Payment already processed:', {
           merchant_oid: post.merchant_oid,
-          current_status: order.status
+          current_status: payment.status
         });
         return new Response('OK');
       }
 
-      const user_id = order.user_id;
+      const user_id = payment.user_id;
 
       // 3. ÖDEME DURUMUNA GÖRE İŞLEM
       if (post.status === 'success') {
         // BAŞARILI ÖDEME
         console.log('Processing successful payment...');
 
-        // Orders tablosunu güncelle
+        // Payment tracking tablosunu güncelle
         const updateOrderResponse = await fetch(
-          `${supabaseUrl}/rest/v1/orders?merchant_oid=eq.${post.merchant_oid}`,
+          `${supabaseUrl}/rest/v1/payment_tracking?merchant_oid=eq.${post.merchant_oid}`,
           {
             method: 'PATCH',
             headers: {
@@ -242,20 +242,21 @@ export default {
               paid_amount: parseFloat(post.total_amount) / 100,
               payment_date: new Date().toISOString(),
               payment_type: post.payment_type || 'card',
-              payment_hash: post.hash
+              paytr_hash: post.hash,
+              updated_at: new Date().toISOString()
             })
           }
         );
 
         if (!updateOrderResponse.ok) {
           const errorBody = await updateOrderResponse.text();
-          console.error('Failed to update order:', {
+          console.error('Failed to update payment:', {
             status: updateOrderResponse.status,
             body: errorBody
           });
           // Hata olsa bile OK dön
         } else {
-          console.log('Order updated successfully');
+          console.log('Payment updated successfully');
         }
 
         // Profiles tablosunu güncelle - Premium yap
@@ -307,7 +308,7 @@ export default {
         console.log('Processing failed payment...');
 
         const updateOrderResponse = await fetch(
-          `${supabaseUrl}/rest/v1/orders?merchant_oid=eq.${post.merchant_oid}`,
+          `${supabaseUrl}/rest/v1/payment_tracking?merchant_oid=eq.${post.merchant_oid}`,
           {
             method: 'PATCH',
             headers: {
@@ -319,14 +320,15 @@ export default {
             body: JSON.stringify({
               status: 'failed',
               failed_reason: post.failed_reason_msg || 'Unknown error',
-              failed_at: new Date().toISOString()
+              failed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             })
           }
         );
 
         if (!updateOrderResponse.ok) {
           const errorBody = await updateOrderResponse.text();
-          console.error('Failed to update failed order:', {
+          console.error('Failed to update failed payment:', {
             status: updateOrderResponse.status,
             body: errorBody
           });

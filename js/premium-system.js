@@ -170,7 +170,7 @@ function checkConfirmation() {
     }
 }
 
-// Premium satın alma başlangıcı
+// Premium satın alma - PayTR iframe'i aç
 async function handlePremiumPurchase() {
     // Giriş kontrolü
     if (typeof window.checkAuth !== 'function' || !window.checkAuth()) {
@@ -200,8 +200,18 @@ async function handlePremiumPurchase() {
         return;
     }
     
-    // Ödeme formunu göster
-    showPaymentForm();
+    // PayTR iframe'i aç
+    if (typeof window.startPayTRPayment === 'function') {
+        window.startPayTRPayment();
+    } else {
+        console.error('PayTR integration not loaded');
+        window.showNotification(
+            (window.currentLang || 'tr') === 'tr' ? 
+                'Ödeme sistemi yüklenmedi. Lütfen sayfayı yenileyin.' : 
+                'Payment system not loaded. Please refresh the page.',
+            'error'
+        );
+    }
 }
 
 // Ödeme formu modalı
