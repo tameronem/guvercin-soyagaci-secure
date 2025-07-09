@@ -1,0 +1,17 @@
+name = "pigeonpedigre-paytr-notification"
+main = "paytr-notification.js"
+compatibility_date = "2023-12-01"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# Notification worker için gerekli secret'lar:
+# wrangler secret put MERCHANT_KEY --config wrangler-notification.toml
+# wrangler secret put MERCHANT_SALT --config wrangler-notification.toml
+# wrangler secret put SUPABASE_URL --config wrangler-notification.toml
+# wrangler secret put SUPABASE_SERVICE_KEY --config wrangler-notification.toml
+
+# Route tanımlaması (opsiyonel)
+# routes = [
+#   { pattern = "paytr-notification.your-domain.com/*", zone_name = "your-domain.com" }
+# ]

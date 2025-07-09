@@ -34,6 +34,7 @@ export default {
       const currency = 'TL';
       const test_mode = '0'; // Canlıda 0, testte 1
       const user_basket = btoa(JSON.stringify([["Premium Üyelik", "39.90", 1]]));
+      const merchant_notify_url = 'https://pigeonpedigre-paytr-notification.tamer-nem.workers.dev';
 
       console.log('Generated merchant_oid:', merchant_oid);
 
@@ -77,6 +78,7 @@ export default {
       formData.append('user_phone', '5555555555');
       formData.append('merchant_ok_url', 'https://pigeonpedigre.com/?payment=success');
       formData.append('merchant_fail_url', 'https://pigeonpedigre.com/?payment=fail');
+      formData.append('merchant_notify_url', merchant_notify_url); // Notification URL
       formData.append('timeout_limit', '30');
       formData.append('currency', currency);
       formData.append('test_mode', test_mode);

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayTR Test Araçları</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>PayTR Test Araçları</h1>
+
+    <div class="grid">
+        <!-- Payment Worker Test -->
+        <div class="container">
+            <h2>1. Payment Worker Test</h2>
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label>Worker URL:</label>
+                    <input type="text" id="workerUrl" value="https://pigeonpedigre-paytr.tamer-nem.workers.dev" required>
+                </div>
+                <div class="form-group">
+                    <label>User ID:</label>
+                    <input type="text" id="userId" value="test-user-123" required>
+                </div>
+                <div class="form-group">
+                    <label>User Email:</label>
+                    <input type="email" id="userEmail" value="test@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>User Name:</label>
+                    <input type="text" id="userName" value="Test User" required>
+                </div>
+                <button type="submit">Payment Worker'ı Test Et</button>
+            </form>
+            <div id="paymentResult"></div>
+        </div>
+
+        <!-- Hash Calculator -->
+        <div class="container">
+            <h2>2. Hash Hesaplayıcı</h2>
+            <form id="hashForm">
+                <div class="form-group">
+                    <label>Merchant Key:</label>
+                    <input type="text" id="merchantKey" placeholder="PayTR Merchant Key" required>
+                </div>
+                <div class="form-group">
+                    <label>Merchant Salt:</label>
+                    <input type="text" id="merchantSalt" placeholder="PayTR Merchant Salt" required>
+                </div>
+                <div class="form-group">
+                    <label>Merchant OID:</label>
+                    <input type="text" id="merchantOid" value="PRM1234567890" required>
+                </div>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select id="status">
+                        <option value="success">success</option>
+                        <option value="failed">failed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Total Amount (kuruş):</label>
+                    <input type="text" id="totalAmount" value="3990" required>
+                </div>
+                <button type="submit">Hash Hesapla</button>
+            </form>
+            <div id="hashResult"></div>
+        </div>
+
+        <!-- Notification Test -->
+        <div class="container">
+            <h2>3. Notification Worker Test</h2>
+            <form id="notificationForm">
+                <div class="form-group">
+                    <label>Notification URL:</label>
+                    <input type="text" id="notificationUrl" value="https://pigeonpedigre-paytr-notification.tamer-nem.workers.dev" required>
+                </div>
+                <div class="form-group">
+                    <label>Test Data (Form Data):</label>
+                    <textarea id="notificationData" rows="10">merchant_oid=PRM1234567890
+status=success
+total_amount=3990
+hash=CALCULATED_HASH
+payment_type=card
+payment_hash=test_hash</textarea>
+                </div>
+                <button type="submit">Notification Test Et</button>
+            </form>
+            <div id="notificationResult"></div>
+        </div>
+
+        <!-- Supabase Connection Test -->
+        <div class="container">
+            <h2>4. Supabase Bağlantı Testi</h2>
+            <form id="supabaseForm">
+                <div class="form-group">
+                    <label>Supabase URL:</label>
+                    <input type="text" id="supabaseUrl" placeholder="https://xxxxx.supabase.co" required>
+                </div>
+                <div class="form-group">
+                    <label>Service Key:</label>
+                    <input type="password" id="serviceKey" placeholder="Service Role Key" required>
+                </div>
+                <div class="form-group">
+                    <label>Test Table:</label>
+                    <select id="testTable">
+                        <option value="orders">orders</option>
+                        <option value="profiles">profiles</option>
+                    </select>
+                </div>
+                <button type="submit">Bağlantıyı Test Et</button>
+            </form>
+            <div id="supabaseResult"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Test Kartları</h2>
+        <p><strong>Başarılı Ödeme:</strong> 4355084355084358</p>
+        <p><strong>Başarısız Ödeme:</strong> 4355084355084366</p>
+        <p><strong>CVV:</strong> 000</p>
+        <p><strong>Son Kullanma:</strong> 12/26</p>
+    </div>
+
+    <script>
+        // Payment Worker Test
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('paymentResult');
+            resultDiv.innerHTML = '<div class="result">İstek gönderiliyor...</div>';
+            
+            try {
+                const response = await fetch(document.getElementById('workerUrl').value, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: document.getElementById('userId').value,
+                        user_email: document.getElementById('userEmail').value,
+                        user_name: document.getElementById('userName').value
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `<div class="result ${response.ok ? 'success' : 'error'}">Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Hata: ${error.message}</div>`;
+            }
+        });
+
+        // Hash Calculator
+        document.getElementById('hashForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('hashResult');
+            
+            try {
+                const key = document.getElementById('merchantKey').value;
+                const salt = document.getElementById('merchantSalt').value;
+                const oid = document.getElementById('merchantOid').value;
+                const status = document.getElementById('status').value;
+                const amount = document.getElementById('totalAmount').value;
+                
+                // Hash string oluştur
+                const hashStr = oid + salt + status + amount;
+                
+                // HMAC-SHA256 hesapla
+                const encoder = new TextEncoder();
+                const keyData = encoder.encode(key);
+                const message = encoder.encode(hashStr);
+                
+                const cryptoKey = await crypto.subtle.importKey(
+                    'raw',
+                    keyData,
+                    { name: 'HMAC', hash: 'SHA-256' },
+                    false,
+                    ['sign']
+                );
+                
+                const signature = await crypto.subtle.sign('HMAC', cryptoKey, message);
+                const hash = btoa(String.fromCharCode(...new Uint8Array(signature)));
+                
+                resultDiv.innerHTML = `<div class="result success">Hash String: ${hashStr}\n\nHash: ${hash}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Hata: ${error.message}</div>`;
+            }
+        });
+
+        // Notification Test
+        document.getElementById('notificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('notificationResult');
+            resultDiv.innerHTML = '<div class="result">İstek gönderiliyor...</div>';
+            
+            try {
+                const formData = new FormData();
+                const data = document.getElementById('notificationData').value.split('\n');
+                
+                data.forEach(line => {
+                    const [key, value] = line.split('=');
+                    if (key && value) {
+                        formData.append(key.trim(), value.trim());
+                    }
+                });
+                
+                const response = await fetch(document.getElementById('notificationUrl').value, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const text = await response.text();
+                resultDiv.innerHTML = `<div class="result ${response.ok ? 'success' : 'error'}">Status: ${response.status}\n\nResponse: ${text}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Hata: ${error.message}</div>`;
+            }
+        });
+
+        // Supabase Test
+        document.getElementById('supabaseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('supabaseResult');
+            resultDiv.innerHTML = '<div class="result">Test ediliyor...</div>';
+            
+            try {
+                const url = document.getElementById('supabaseUrl').value;
+                const key = document.getElementById('serviceKey').value;
+                const table = document.getElementById('testTable').value;
+                
+                const response = await fetch(`${url}/rest/v1/${table}?limit=1`, {
+                    headers: {
+                        'apikey': key,
+                        'Authorization': `Bearer ${key}`
+                    }
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `<div class="result ${response.ok ? 'success' : 'error'}">Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Hata: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
