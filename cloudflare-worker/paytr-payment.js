@@ -1,104 +1,90 @@
 export default {
   async fetch(request, env) {
-    // CORS headers - Development için geçici olarak * kullanılıyor
     const corsHeaders = {
-      'Access-Control-Allow-Origin': '*', // Production'da 'https://pigeonpedigre.com' yap
+      'Access-Control-Allow-Origin': '*', // Production'da 'https://pigeonpedigre.com' yapın
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     };
 
-    // OPTIONS request için
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Sadece POST kabul et
     if (request.method !== 'POST') {
-      return new Response('Method not allowed', { 
-        status: 405,
-        headers: corsHeaders 
-      });
+      return new Response('Method not allowed', { status: 405, headers: corsHeaders });
     }
 
     try {
-      // Frontend'den gelen data
       const data = await request.json();
       const { user_id, user_email, user_name } = data;
 
-      // PayTR parametreleri - Environment variables'dan al
+      // --- 1. PAYTR BİLGİLERİNİ VE PARAMETRELERİ HAZIRLA ---
       const merchant_id = env.MERCHANT_ID;
       const merchant_key = env.MERCHANT_KEY;
       const merchant_salt = env.MERCHANT_SALT;
       
-      // Environment variables kontrolü
       if (!merchant_id || !merchant_key || !merchant_salt) {
-        console.error('Missing PayTR configuration');
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Configuration error - Missing PayTR credentials'
-        }), {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        throw new Error('Configuration error - Missing PayTR credentials');
       }
       
-      // Sadece alfanumerik karakterler kullan - Max 64 karakter
-      const cleanUserId = user_id.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6);
-      const timestamp = Date.now().toString().slice(-8); // Son 8 rakam
-      const merchant_oid = 'PR' + cleanUserId + timestamp; // Max 16 karakter
-      
-      // Debug log
-      console.log('Generated merchant_oid:', merchant_oid, 'Length:', merchant_oid.length);
-      const email = user_email;
-      const payment_amount = '3990'; // 39.90 TL (kuruş cinsinden)
-      const user_basket = btoa(JSON.stringify([['Premium Uyelik', '39.90', 1]])); // Türkçe karakterler kaldırıldı
-      const no_installment = '1';
-      const max_installment = '0';
       const user_ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
-      const user_phone = '5555555555'; // PayTR için geçerli telefon formatı
-      const user_address = 'Turkiye'; // Türkçe karakter kullanmadan
-      
-      // URL'ler
-      const merchant_ok_url = 'https://pigeonpedigre.com/?payment=success';
-      const merchant_fail_url = 'https://pigeonpedigre.com/?payment=fail';
-      
-      // Hash oluştur - PayTR dokümantasyonuna göre
-      const hashSTR = `${merchant_id}${user_ip}${merchant_oid}${email}${payment_amount}${user_basket}${no_installment}${max_installment}TL090${merchant_ok_url}${merchant_fail_url}0${user_name}${user_address}${user_phone}${merchant_salt}`;
-      
-      // SHA256 hash ve base64 encode
-      const encoder = new TextEncoder();
-      const data_encoded = encoder.encode(hashSTR);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data_encoded);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashBase64 = btoa(String.fromCharCode.apply(null, hashArray));
-      const paytr_token = hashBase64;
+      const merchant_oid = 'PRM' + Date.now();
+      const email = user_email;
+      const payment_amount = '3990'; // Kuruş
+      const currency = 'TL';
+      const test_mode = '0'; // Canlıda 0, testte 1
+      const user_basket = btoa(JSON.stringify([["Premium Üyelik", "39.90", 1]]));
 
-      // PayTR'a gönderilecek form data
+      console.log('Generated merchant_oid:', merchant_oid);
+
+      // --- 2. DOĞRU HASH_STR OLUŞTUR ---
+      // SADECE BU ALANLAR VE BU SIRAYLA!
+      const hashStr = merchant_id + user_ip + merchant_oid + email + payment_amount + user_basket + "1" + "0" + currency + test_mode;
+
+      console.log('Hash String:', hashStr);
+
+      // --- 3. DOĞRU HMAC-SHA256 HESAPLAMA ---
+      const key = await crypto.subtle.importKey(
+        'raw', 
+        new TextEncoder().encode(merchant_key), 
+        { name: 'HMAC', hash: 'SHA-256' }, 
+        false, 
+        ['sign']
+      );
+      const signature = await crypto.subtle.sign(
+        'HMAC', 
+        key, 
+        new TextEncoder().encode(hashStr + merchant_salt)
+      );
+      const paytr_token = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+      console.log('Generated Token (first 10 chars):', paytr_token.substring(0, 10) + '...');
+
+      // --- 4. PAYTR'A GÖNDERİLECEK FORM VERİSİNİ HAZIRLA ---
       const formData = new URLSearchParams();
       formData.append('merchant_id', merchant_id);
-      formData.append('merchant_key', merchant_key);
       formData.append('user_ip', user_ip);
       formData.append('merchant_oid', merchant_oid);
       formData.append('email', email);
       formData.append('payment_amount', payment_amount);
       formData.append('paytr_token', paytr_token);
       formData.append('user_basket', user_basket);
+      formData.append('debug_on', '1'); // Hata ayıklama için açık
+      formData.append('no_installment', '1'); // Taksit yok
+      formData.append('max_installment', '0');
       formData.append('user_name', user_name);
-      formData.append('user_address', user_address);
-      formData.append('user_phone', user_phone);
-      formData.append('merchant_ok_url', merchant_ok_url);
-      formData.append('merchant_fail_url', merchant_fail_url);
-      formData.append('timeout_limit', '90');
-      formData.append('currency', 'TL');
-      formData.append('test_mode', '0');
-      formData.append('no_installment', no_installment);
-      formData.append('max_installment', max_installment);
+      formData.append('user_address', 'Türkiye');
+      formData.append('user_phone', '5555555555');
+      formData.append('merchant_ok_url', 'https://pigeonpedigre.com/?payment=success');
+      formData.append('merchant_fail_url', 'https://pigeonpedigre.com/?payment=fail');
+      formData.append('timeout_limit', '30');
+      formData.append('currency', currency);
+      formData.append('test_mode', test_mode);
       formData.append('lang', 'tr');
 
-      // PayTR API'ye istek
+      console.log('Sending request to PayTR...');
+
+      // --- 5. PAYTR API'YE İSTEK AT ---
       const paytrResponse = await fetch('https://www.paytr.com/odeme/api/get-token', {
         method: 'POST',
         headers: {
@@ -108,13 +94,13 @@ export default {
       });
 
       const paytrText = await paytrResponse.text();
-      
-      // PayTR JSON response veya text response dönebilir
+      console.log('PayTR Response:', paytrText);
+
       let paytrData;
       try {
         paytrData = JSON.parse(paytrText);
       } catch (e) {
-        // Text response ise parse et
+        // JSON değilse text response olarak işle
         if (paytrText.includes('status:success')) {
           const tokenMatch = paytrText.match(/token:([a-zA-Z0-9]+)/);
           if (tokenMatch) {
@@ -127,44 +113,36 @@ export default {
         }
       }
 
+      // --- 6. YANITI İŞLE ---
       if (paytrData.status === 'success') {
-        // Başarılı - iframe token döndür
         return new Response(JSON.stringify({
           success: true,
           token: paytrData.token,
           payment_url: `https://www.paytr.com/odeme/guvenli/${paytrData.token}`,
           merchant_oid: merchant_oid
         }), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
         });
       } else {
-        // Hata
+        // Hata durumunda PayTR'dan gelen sebebi logla ve döndür
+        console.error('PayTR Error:', paytrData.reason);
         return new Response(JSON.stringify({
           success: false,
-          error: paytrData.reason || 'PayTR error'
+          error: 'PayTR Error: ' + paytrData.reason
         }), {
           status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
         });
       }
 
     } catch (error) {
-      console.error('Worker error:', error);
+      console.error('Worker Error:', error.stack || error);
       return new Response(JSON.stringify({
         success: false,
         error: error.message
       }), {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
   }

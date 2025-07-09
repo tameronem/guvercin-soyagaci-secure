@@ -5899,6 +5899,13 @@
                     // Cloudflare Worker URL - deployment sonrası güncellenecek
                     const WORKER_URL = 'https://pigeonpedigre-paytr.tamer-nem.workers.dev';
                     
+                    console.log('Sending request to Worker:', WORKER_URL);
+                    console.log('User data:', {
+                        user_id: user.id,
+                        user_email: user.email,
+                        user_name: user.user_metadata?.name || user.user_metadata?.first_name + ' ' + user.user_metadata?.last_name || user.email.split('@')[0]
+                    });
+                    
                     // Cloudflare Worker'a istek at
                     const response = await fetch(WORKER_URL, {
                         method: 'POST',
@@ -5912,12 +5919,24 @@
                         })
                     });
                     
+                    console.log('Worker response status:', response.status);
                     const data = await response.json();
+                    console.log('Worker response data:', data);
                     
                     if (data.success) {
+                        // Payment URL kontrolü
+                        if (!data.payment_url && data.token) {
+                            data.payment_url = `https://www.paytr.com/odeme/guvenli/${data.token}`;
+                            console.log('Payment URL generated from token:', data.payment_url);
+                        }
+                        
+                        if (!data.payment_url) {
+                            throw new Error('Payment URL not found in response');
+                        }
+                        
                         // Ödeme bilgilerini localStorage'a kaydet
                         localStorage.setItem('pendingPayment', JSON.stringify({
-                            merchant_oid: data.merchant_oid,
+                            merchant_oid: data.merchant_oid || 'PRM' + Date.now(),
                             user_id: user.id,
                             user_email: user.email,
                             timestamp: Date.now()
@@ -5930,6 +5949,8 @@
                                 'Redirecting to PayTR payment page...',
                             'success'
                         );
+                        
+                        console.log('Redirecting to:', data.payment_url);
                         
                         setTimeout(() => {
                             window.location.href = data.payment_url;
