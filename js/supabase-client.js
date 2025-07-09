@@ -97,3 +97,6 @@ window.supabaseClient = {
     checkPremiumStatus,
     logDebug
 };
+
+// Also export supabase directly for backward compatibility
+window.supabase = supabase;
