@@ -135,6 +135,45 @@ export default {
 
       // --- 6. YANITI İŞLE ---
       if (paytrData.status === 'success') {
+        // PayTR token başarılı oluştu, şimdi payment_tracking kaydı ekle
+        if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+          try {
+            const trackingResponse = await fetch(
+              `${env.SUPABASE_URL}/rest/v1/payment_tracking`,
+              {
+                method: 'POST',
+                headers: {
+                  'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+                  'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                  user_id: user_id,
+                  merchant_oid: merchant_oid,
+                  tracking_code: merchant_oid, // Eski sistem ile uyumluluk
+                  email: email,
+                  amount: 39.90,
+                  currency: 'TRY',
+                  status: 'pending',
+                  created_at: new Date().toISOString()
+                })
+              }
+            );
+
+            if (!trackingResponse.ok) {
+              const errorText = await trackingResponse.text();
+              console.error('Payment tracking save error:', errorText);
+              // Hata olsa bile token'ı döndür, frontend'de yedek kayıt var
+            } else {
+              console.log('Payment tracking saved successfully in worker');
+            }
+          } catch (trackingError) {
+            console.error('Failed to save payment tracking:', trackingError);
+            // Hata olsa bile devam et, frontend'de yedek var
+          }
+        }
+
         return new Response(JSON.stringify({
           success: true,
           token: paytrData.token,

@@ -2865,22 +2865,22 @@
             <button onclick="showHomepage(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
                 <i class="fas fa-home mr-2"></i> <span class="lang-text" data-tr="nav_home">Anasayfa</span>
             </button>
-            <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
+            <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
             </button>
-            <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
+            <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
             </button>
-            <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
+            <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-notes-medical mr-2"></i> <span class="lang-text" data-tr="nav_health">Sağlık</span>
             </button>
-            <button onclick="showPerformanceRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
+            <button onclick="showPerformanceRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-chart-line mr-2"></i> <span class="lang-text" data-tr="nav_performance">Performans</span>
             </button>
-            <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
+            <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-flag-checkered mr-2"></i> <span class="lang-text" data-tr="nav_racing">Yarış</span>
             </button>
-            <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required">
+            <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-robot mr-2"></i> <span class="lang-text" data-tr="nav_ai_breeding">AI Eşleştirme</span>
             </button>
             <button onclick="showPricing(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
@@ -5057,9 +5057,13 @@
                     console.error('Error checking premium status:', error);
                 }
                 
-                // Show auth-required navigation items
+                // Show auth-required navigation items (including mobile menu items)
                 navAuthRequired.forEach(item => {
                     item.style.display = '';
+                    // For block-level elements in mobile menu
+                    if (item.classList.contains('w-full')) {
+                        item.style.display = 'block';
+                    }
                 });
                 
                 // Show mobile logout container
@@ -5077,7 +5081,7 @@
                     authButtons.classList.remove('hidden');
                 }
                 
-                // Hide auth-required navigation items
+                // Hide auth-required navigation items (including mobile menu items)
                 navAuthRequired.forEach(item => {
                     item.style.display = 'none';
                 });

@@ -223,6 +223,15 @@ function handleSignOut() {
     if (typeof window.storage !== 'undefined') {
         window.storage.currentUser = null;
     }
+    // Tüm async işlemleri iptal et
+    if (window.currentAsyncOperations) {
+        window.currentAsyncOperations.forEach(op => {
+            if (op && typeof op.cancel === 'function') {
+                op.cancel();
+            }
+        });
+        window.currentAsyncOperations = [];
+    }
     // Biraz bekle ve sonra homepage'i göster
     setTimeout(() => {
         if (typeof showHomepage === 'function') {
