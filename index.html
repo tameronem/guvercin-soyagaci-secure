@@ -2813,8 +2813,9 @@
                     <button onclick="showRacingPerformance()" class="nav-auth-required tab-btn px-4 py-2 rounded-full transition" style="display: none;">
                         <i class="fas fa-flag-checkered mr-2"></i> <span class="lang-text" data-tr="nav_racing">Yarış</span>
                     </button>
-                    <button onclick="showAIBreeding()" class="nav-auth-required tab-btn px-4 py-2 rounded-full transition" style="display: none;">
+                    <button onclick="showAIBreeding()" class="nav-auth-required tab-btn px-4 py-2 rounded-full transition relative" style="display: none;">
                         <i class="fas fa-robot mr-2"></i> <span class="lang-text" data-tr="nav_ai_breeding">AI Eşleştirme</span>
+                        <i class="fas fa-crown text-yellow-400 text-xs absolute -top-1 -right-1"></i>
                     </button>
                     <button onclick="showPricing()" class="tab-btn px-4 py-2 rounded-full transition">
                         <i class="fas fa-tags mr-2"></i> <span class="lang-text" data-tr="nav_pricing">Fiyatlandırma</span>
@@ -2887,8 +2888,9 @@
             <button onclick="showRacingPerformance(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-flag-checkered mr-2"></i> <span class="lang-text" data-tr="nav_racing">Yarış</span>
             </button>
-            <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+            <button onclick="showAIBreeding(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required relative" style="display: none;">
                 <i class="fas fa-robot mr-2"></i> <span class="lang-text" data-tr="nav_ai_breeding">AI Eşleştirme</span>
+                <i class="fas fa-crown text-yellow-400 text-xs absolute top-4 right-4"></i>
             </button>
             <button onclick="showPricing(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left">
                 <i class="fas fa-tags mr-2"></i> <span class="lang-text" data-tr="nav_pricing">Fiyatlandırma</span>
@@ -3388,6 +3390,18 @@
                 trial_info: "Tüm planlar 3 günlük ücretsiz deneme içerir.",
                 no_cc_required: "İstediğiniz zaman iptal edebilirsiniz.",
                 
+                // AI Premium Required
+                premium_feature_title: "Premium Özellik",
+                ai_breeding_premium_desc: "AI Eşleştirme özelliği sadece Premium üyeler için kullanılabilir.",
+                ai_breeding_features_title: "AI Eşleştirme ile neler yapabilirsiniz?",
+                ai_feature_1: "Genetik uyumluluk analizi",
+                ai_feature_2: "Optimal eşleştirme önerileri",
+                ai_feature_3: "Yavru renk tahminleri",
+                ai_feature_4: "Akrabalık derecesi kontrolü",
+                upgrade_to_premium: "Premium'a Yükselt",
+                go_back: "Geri Dön",
+                premium_price_info: "Premium üyelik sadece ₺39.90/ay",
+                
                 // FAQ
                 faq_title: "Sıkça Sorulan Sorular",
                 faq_q1: "Sistem nasıl çalışır?",
@@ -3772,6 +3786,18 @@
                 badge_popular: "MOST POPULAR",
                 trial_info: "All plans include a 3-day free trial.",
                 no_cc_required: "Cancel anytime.",
+                
+                // AI Premium Required
+                premium_feature_title: "Premium Feature",
+                ai_breeding_premium_desc: "AI Breeding feature is only available for Premium members.",
+                ai_breeding_features_title: "What can you do with AI Breeding?",
+                ai_feature_1: "Genetic compatibility analysis",
+                ai_feature_2: "Optimal pairing suggestions",
+                ai_feature_3: "Offspring color predictions",
+                ai_feature_4: "Inbreeding coefficient check",
+                upgrade_to_premium: "Upgrade to Premium",
+                go_back: "Go Back",
+                premium_price_info: "Premium membership only $9.99/month",
                 
                 // FAQ
                 faq_title: "Frequently Asked Questions",
@@ -12827,6 +12853,14 @@
         // AI Güvercin Eşleştirme Sistemi
         async function showAIBreeding() {
             if (!checkAuth()) return;
+            
+            // Premium kontrolü
+            const isPremium = await checkPremiumStatus(storage.currentUser.id);
+            if (!isPremium) {
+                showPremiumRequiredForAI();
+                return;
+            }
+            
             cleanupPreviousViews();
             updateActiveTab(6);
             
@@ -15890,6 +15924,74 @@
                     localStorage.removeItem('pendingPayment');
                 }
             }
+        }
+        
+        // Premium Required for AI Breeding
+        function showPremiumRequiredForAI() {
+            const t = translations[currentLang];
+            document.getElementById('content').innerHTML = `
+                <div class="container mx-auto max-w-4xl">
+                    <div class="glass p-8 rounded-3xl text-center">
+                        <!-- Kilit İkonu -->
+                        <div class="mb-6">
+                            <i class="fas fa-lock text-6xl text-yellow-400 opacity-50"></i>
+                        </div>
+                        
+                        <!-- Başlık -->
+                        <h2 class="text-3xl font-bold mb-4">
+                            <span class="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                                ${t.premium_feature_title || 'Premium Özellik'}
+                            </span>
+                        </h2>
+                        
+                        <!-- Açıklama -->
+                        <p class="text-xl text-gray-300 mb-8">
+                            ${t.ai_breeding_premium_desc || 'AI Eşleştirme özelliği sadece Premium üyeler için kullanılabilir.'}
+                        </p>
+                        
+                        <!-- Özellikler -->
+                        <div class="bg-black/30 p-6 rounded-2xl mb-8">
+                            <h3 class="text-lg font-bold mb-4 text-purple-400">
+                                ${t.ai_breeding_features_title || 'AI Eşleştirme ile neler yapabilirsiniz?'}
+                            </h3>
+                            <ul class="text-left max-w-2xl mx-auto space-y-3">
+                                <li class="flex items-start gap-3">
+                                    <i class="fas fa-check text-green-400 mt-1"></i>
+                                    <span>${t.ai_feature_1 || 'Genetik uyumluluk analizi'}</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <i class="fas fa-check text-green-400 mt-1"></i>
+                                    <span>${t.ai_feature_2 || 'Optimal eşleştirme önerileri'}</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <i class="fas fa-check text-green-400 mt-1"></i>
+                                    <span>${t.ai_feature_3 || 'Yavru renk tahminleri'}</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <i class="fas fa-check text-green-400 mt-1"></i>
+                                    <span>${t.ai_feature_4 || 'Akrabalık derecesi kontrolü'}</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- CTA Butonları -->
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                            <button onclick="showPricing()" class="px-8 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full font-bold hover:from-yellow-300 hover:to-orange-400 transition">
+                                <i class="fas fa-crown mr-2"></i>
+                                ${t.upgrade_to_premium || 'Premium\'a Yükselt'}
+                            </button>
+                            <button onclick="showHomepage()" class="px-8 py-3 bg-gray-600 hover:bg-gray-700 rounded-full transition">
+                                ${t.go_back || 'Geri Dön'}
+                            </button>
+                        </div>
+                        
+                        <!-- Fiyat Bilgisi -->
+                        <p class="mt-6 text-sm text-gray-400">
+                            ${t.premium_price_info || 'Premium üyelik sadece ₺39.90/ay'}
+                        </p>
+                    </div>
+                </div>
+            `;
         }
     </script>
     
