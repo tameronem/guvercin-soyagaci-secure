@@ -5045,25 +5045,6 @@
                         `;
                         
                         mobileUserInfo.classList.remove('hidden');
-                                            <span class="inline-block px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs rounded-full">
-                                                <i class="fas fa-crown mr-1"></i>${(window.currentLang || 'tr') === 'tr' ? 'Premium Üye' : 'Premium Member'}
-                                            </span>
-                                            ${premiumInfo && premiumInfo.expiryDate ? `
-                                                <p class="text-xs text-gray-400 mt-2">
-                                                    <i class="fas fa-calendar-alt mr-1"></i>
-                                                    ${(window.currentLang || 'tr') === 'tr' ? 'Bitiş' : 'Expires'}: ${formatDate(premiumInfo.expiryDate)}
-                                                </p>
-                                            ` : ''}
-                                        </div>
-                                    ` : `
-                                        <button onclick="showPricing(); toggleMobileMenu();" class="mt-3 text-xs text-cyan-400 hover:text-cyan-300 transition">
-                                            <i class="fas fa-arrow-up mr-1"></i>${(window.currentLang || 'tr') === 'tr' ? 'Premium\'a Yükselt' : 'Upgrade to Premium'}
-                                        </button>
-                                    `}
-                                </div>
-                            </div>
-                        `;
-                        mobileUserInfo.classList.remove('hidden');
                     }
                 } catch (error) {
                     console.error('Error checking premium status:', error);
