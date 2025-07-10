@@ -4210,116 +4210,6 @@
         }
         window.closeAuthModal = window._closeAuthModalImpl;
 
-        // PHP Session Management Functions
-        async function checkPHPSession() {
-            try {
-                const response = await fetch('session-handler.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ action: 'check_session' })
-                });
-                
-                // Response kontrolü
-                if (!response.ok) {
-                    console.warn('PHP session check failed (Status: ' + response.status + '), using Supabase only');
-                    return { logged_in: false };
-                }
-                
-                // Content-Type kontrolü
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    console.warn('Invalid response type from session handler');
-                    return { logged_in: false };
-                }
-                
-                const data = await response.json();
-                
-                if (data.logged_in) {
-                    // Session varsa kullanıcı bilgilerini güncelle
-                    storage.currentUser = {
-                        id: data.user_id,
-                        email: data.user_email,
-                        name: data.user_name
-                    };
-                    updateNavigation();
-                }
-                
-                return data;
-            } catch (error) {
-                console.error('Session check error:', error);
-                return { logged_in: false };
-            }
-        }
-
-        async function createPHPSession(user) {
-            try {
-                const response = await fetch('session-handler.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        action: 'create_session',
-                        user_id: user.id,
-                        user_email: user.email,
-                        user_name: user.name || user.firstName + ' ' + user.lastName
-                    })
-                });
-                
-                // Response kontrolü
-                if (!response.ok) {
-                    console.warn('Failed to create PHP session (Status: ' + response.status + ')');
-                    return false;
-                }
-                
-                // Content-Type kontrolü
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    console.warn('Invalid response type from session handler');
-                    return false;
-                }
-                
-                const data = await response.json();
-                return data.success || false;
-            } catch (error) {
-                console.error('Session creation error:', error);
-                return false;
-            }
-        }
-
-        async function destroyPHPSession() {
-            try {
-                const response = await fetch('session-handler.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ action: 'destroy_session' })
-                });
-                
-                // Response kontrolü
-                if (!response.ok) {
-                    console.warn('Failed to destroy PHP session (Status: ' + response.status + ')');
-                    return false;
-                }
-                
-                // Content-Type kontrolü
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    console.warn('Invalid response type from session handler');
-                    return false;
-                }
-                
-                const data = await response.json();
-                return data.success || false;
-            } catch (error) {
-                console.error('Session destroy error:', error);
-                return false;
-            }
-        }
-
         // PHP dosya varlığı kontrolü
         async function checkPHPFilesAvailability() {
             const files = ['session-handler.php', 'payment-process.php', 'bildirim.php'];
@@ -4372,10 +4262,23 @@
         async function handleRegister(event) {
             event.preventDefault();
             
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
+            // Null kontrolü ile element'leri al
+            const firstNameEl = document.getElementById('firstName');
+            const lastNameEl = document.getElementById('lastName');
+            const emailEl = document.getElementById('registerEmail');
+            const passwordEl = document.getElementById('registerPassword');
+            
+            // Element'lerin varlığını kontrol et
+            if (!firstNameEl || !lastNameEl || !emailEl || !passwordEl) {
+                showNotification('Form elementleri yüklenemedi. Lütfen sayfayı yenileyin.', 'error');
+                return;
+            }
+            
+            // Değerleri al
+            const firstName = firstNameEl.value;
+            const lastName = lastNameEl.value;
+            const email = emailEl.value;
+            const password = passwordEl.value;
             
             // Check captcha
             const captchaInput = document.getElementById('captchaInput');
@@ -5031,9 +4934,6 @@
         // Logout
         async function logout() {
             try {
-                // PHP session sil
-                await destroyPHPSession();
-                
                 // Supabase logout
                 const result = await SupabaseAuth.logout();
                 
@@ -15791,6 +15691,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Initializing application...');
             
+            // Initialize captcha system
+            if (typeof ElderlyFriendlyCaptcha !== 'undefined') {
+                ElderlyFriendlyCaptcha.init();
+                console.log('Captcha system initialized');
+            }
+            
             // Payment return kontrolü
             checkPaymentReturn();
             
@@ -15817,11 +15723,6 @@
                     }
                 }
                 
-                // PHP session kontrolü - sadece PHP dosyaları mevcutsa
-                if (window.phpFilesAvailable) {
-                    await checkPHPSession();
-                }
-                
                 // Supabase session kontrolü
                 const session = await supabaseClient.checkSession();
                 if (session) {
@@ -15840,10 +15741,6 @@
 
         // Session kontrolü için interval - her 5 dakikada bir
         setInterval(async () => {
-            // Sadece PHP dosyaları mevcutsa kontrol et
-            if (window.phpFilesAvailable) {
-                await checkPHPSession();
-            }
         }, 5 * 60 * 1000); // 5 dakika
         
         // Payment return kontrolü
