@@ -109,14 +109,20 @@ const ElderlyFriendlyCaptcha = {
 
     // Yenile butonu için
     refresh() {
-        // Wrapper'ı direkt bul
-        const captchaWrapper = document.querySelector('.captcha-wrapper');
-        if (captchaWrapper) {
-            captchaWrapper.innerHTML = this.createHTML();
+        // Her iki container'ı da kontrol et
+        const captchaContainer = document.getElementById('captcha-container') || 
+                               document.querySelector('.captcha-wrapper');
+        if (captchaContainer) {
+            captchaContainer.innerHTML = this.createHTML();
             console.log('[Captcha] Yenilendi');
         } else {
-            console.error('[Captcha] Wrapper bulunamadı!');
+            console.error('[Captcha] Container bulunamadı!');
         }
+    },
+
+    // Init fonksiyonu ekle
+    init() {
+        console.log('[Captcha] System ready');
     }
 };
 

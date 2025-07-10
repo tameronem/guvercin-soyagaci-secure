@@ -4193,11 +4193,25 @@
             
             modal.style.display = 'block';
             
+            // Modal içeriği oluşturulduktan sonra çevirileri güncelle
+            setTimeout(() => {
+                document.querySelectorAll('.lang-text').forEach(element => {
+                    const key = element.getAttribute('data-tr');
+                    if (translations[currentLang] && translations[currentLang][key]) {
+                        element.textContent = translations[currentLang][key];
+                    }
+                });
+            }, 0);
+            
             // Register formuna captcha ekle
             if (type === 'register') {
-                setTimeout(() => {
-                    ElderlyFriendlyCaptcha.refresh();
-                }, 100);
+                // DOM güncellemesini bekle
+                requestAnimationFrame(() => {
+                    const captchaContainer = document.getElementById('captcha-container');
+                    if (captchaContainer && typeof ElderlyFriendlyCaptcha !== 'undefined') {
+                        captchaContainer.innerHTML = ElderlyFriendlyCaptcha.createHTML();
+                    }
+                });
             }
         }
         
@@ -4783,11 +4797,25 @@
             
             modal.style.display = 'block';
             
+            // Modal içeriği oluşturulduktan sonra çevirileri güncelle
+            setTimeout(() => {
+                document.querySelectorAll('.lang-text').forEach(element => {
+                    const key = element.getAttribute('data-tr');
+                    if (translations[currentLang] && translations[currentLang][key]) {
+                        element.textContent = translations[currentLang][key];
+                    }
+                });
+            }, 0);
+            
             // Register formuna captcha ekle
             if (type === 'register') {
-                setTimeout(() => {
-                    ElderlyFriendlyCaptcha.refresh();
-                }, 100);
+                // DOM güncellemesini bekle
+                requestAnimationFrame(() => {
+                    const captchaContainer = document.getElementById('captcha-container');
+                    if (captchaContainer && typeof ElderlyFriendlyCaptcha !== 'undefined') {
+                        captchaContainer.innerHTML = ElderlyFriendlyCaptcha.createHTML();
+                    }
+                });
             }
         }
 
@@ -15611,7 +15639,7 @@
         
         
         // Make all functions globally accessible immediately
-        window.openAuthModal = openAuthModal;
+        // window.openAuthModal = openAuthModal; // Zaten window._openAuthModalImpl ile tanımlı
         window.closeAuthModal = closeAuthModal;
         window.handleLogin = handleLogin;
         window.handleRegister = handleRegister;
