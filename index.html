@@ -3179,6 +3179,7 @@
                 last_name: "Soyad",
                 already_member: "Zaten hesabınız var mı?",
                 no_account: "Hesabınız yok mu?",
+                have_account: "Zaten hesabınız var mı?",
                 login_title: "Giriş Yap",
                 register_title: "Üye Ol",
                 success: "Başarılı",
@@ -3603,6 +3604,7 @@
                 password: "Password",
                 already_member: "Already have an account?",
                 no_account: "Don't have an account?",
+                have_account: "Already have an account?",
                 rotation_direction: "Rotation Direction",
                 right_wing: "Right Wing",
                 left_wing: "Left Wing", 
@@ -4160,9 +4162,15 @@
                         ${translations[currentLang].register_title}
                     </h3>
                     <form onsubmit="handleRegister(event)">
-                        <div class="mb-4">
-                            <label class="block text-gray-300 mb-2">${translations[currentLang].name}</label>
-                            <input type="text" id="registerName" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-gray-300 mb-2">${translations[currentLang].first_name}</label>
+                                <input type="text" id="firstName" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 mb-2">${translations[currentLang].last_name}</label>
+                                <input type="text" id="lastName" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                            </div>
                         </div>
                         <div class="mb-4">
                             <label class="block text-gray-300 mb-2">${translations[currentLang].email}</label>
