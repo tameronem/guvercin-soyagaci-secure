@@ -4879,8 +4879,12 @@
                     }
                 }
             } else {
-                // Hide auth-required navigation buttons
-                authRequiredButtons.forEach(btn => {
+                // Define missing variables
+                const authSection = document.getElementById('authSection');
+                const mobileMenuItems = document.getElementById('mobileMenuItems');
+                
+                // Hide auth-required navigation buttons - Fixed: use navAuthRequired instead of authRequiredButtons
+                navAuthRequired.forEach(btn => {
                     btn.style.display = 'none';
                 });
                 
@@ -4892,9 +4896,9 @@
                 
                 // Hide mobile user info and logout button
                 const mobileUserInfo = document.getElementById('mobileUserInfo');
-                const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+                const mobileLogoutContainer = document.getElementById('mobileLogoutContainer');
                 if (mobileUserInfo) mobileUserInfo.classList.add('hidden');
-                if (mobileLogoutBtn) mobileLogoutBtn.classList.add('hidden');
+                if (mobileLogoutContainer) mobileLogoutContainer.classList.add('hidden');
                 
                 // Show login/register buttons
                 if (authSection) {
@@ -4981,12 +4985,13 @@
 
         // Update authentication UI
         async function updateAuthUI() {
-            const userDisplay = document.getElementById('userDisplay');
-            const authButtons = document.getElementById('authButtons');
-            const navAuthRequired = document.querySelectorAll('.nav-auth-required');
-            const mobileUserInfo = document.getElementById('mobileUserInfo');
-            
-            if (storage.currentUser) {
+            try {
+                const userDisplay = document.getElementById('userDisplay');
+                const authButtons = document.getElementById('authButtons');
+                const navAuthRequired = document.querySelectorAll('.nav-auth-required');
+                const mobileUserInfo = document.getElementById('mobileUserInfo');
+                
+                if (storage.currentUser) {
                 // User is logged in
                 if (userDisplay) {
                     userDisplay.classList.remove('hidden');
@@ -5103,6 +5108,9 @@
                 if (mobileLogoutContainer) {
                     mobileLogoutContainer.classList.add('hidden');
                 }
+            }
+            } catch (error) {
+                console.error('updateAuthUI error:', error);
             }
         }
         
@@ -15766,6 +15774,22 @@
                 ElderlyFriendlyCaptcha.init();
                 console.log('Captcha system initialized');
             }
+            
+            // Make sure all functions are properly attached to window
+            window.showHomepage = showHomepage;
+            window.showPigeons = showPigeons;
+            window.showMatings = showMatings;
+            window.showHealthRecords = showHealthRecords;
+            window.showPerformanceRecords = showPerformanceRecords;
+            window.showRacingPerformance = showRacingPerformance;
+            window.showAIBreeding = showAIBreeding;
+            window.showPricing = showPricing;
+            window.openAuthModal = openAuthModal;
+            window.closeAuthModal = closeAuthModal;
+            window.toggleMobileMenu = toggleMobileMenu;
+            window.changeLanguage = changeLanguage;
+            window.logout = logout;
+            window.updateAuthUI = updateAuthUI;
             
             // Payment return kontrolü
             checkPaymentReturn();
