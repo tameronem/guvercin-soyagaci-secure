@@ -5211,8 +5211,9 @@
             contentDiv.innerHTML = '<div class="text-center py-20"><i class="fas fa-spinner fa-spin text-4xl text-cyan-400"></i><p class="mt-4">Yükleniyor...</p></div>';
             
             try {
-                cleanupPreviousViews();
-                updateActiveTab(0);
+                // Tanımsız fonksiyonları kaldırdık - cleanupPreviousViews ve updateActiveTab mevcut değil
+                // cleanupPreviousViews();
+                // updateActiveTab(0);
             
             // If not logged in, show landing page
             if (!storage.currentUser) {
@@ -15797,8 +15798,21 @@
             // Initialize auth state
             checkAuthState();
             
-            // Show homepage by default
-            showHomepage();
+            // Show homepage by default - with error handling
+            try {
+                if (typeof showHomepage === 'function') {
+                    showHomepage();
+                } else {
+                    console.error('showHomepage function not found');
+                    // Fallback - doğrudan içeriği göster
+                    const contentDiv = document.getElementById('content');
+                    if (contentDiv) {
+                        contentDiv.innerHTML = '<div class="text-center py-20"><p>Yükleniyor...</p></div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error calling showHomepage:', error);
+            }
             
             console.log('Application initialized successfully!');
         });
