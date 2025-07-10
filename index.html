@@ -3357,8 +3357,8 @@
                 pricing_title: "Size Uygun Planı Seçin",
                 pricing_monthly: "Aylık",
                 pricing_yearly: "Yıllık (2 ay ücretsiz)",
-                plan_free: "Ücretsiz",
-                plan_premium: "Premium",
+                plan_free: "Ücretsiz Plan",
+                plan_premium: "Premium Plan",
                 plan_price_free: "0₺",
                 plan_price_premium: "₺39.90",
                 plan_period: "/ay",
@@ -3367,24 +3367,26 @@
                 btn_upgrade: "Yükselt",
                 
                 // Free Plan Features
-                free_feature1: "7 güvercin kaydı",
-                free_feature2: "Temel soyağacı takibi",
-                free_feature3: "Sağlık kayıtları",
-                free_feature4: "QR kod paylaşımı",
+                free_feature1: "5 güvercin kaydı",
+                free_feature2: "Temel soy ağacı takibi",
+                free_feature3: "Sağlık kayıtları takibi",
+                free_feature4: "Sınırlı özellikler",
                 
                 // Premium Plan Features
                 premium_feature1: "Sınırsız güvercin kaydı",
                 premium_feature2: "Gelişmiş 10 nesil soyağacı takibi",
-                premium_feature3: "Yapay zeka eşleştirme ve genetik renk analizi",
-                premium_feature4: "Yarış ve performans takibi",
-                premium_feature5: "Excel dışa aktarım",
-                premium_feature6: "Topluluk erişimi",
-                premium_feature7: "7/24 destek",
+                premium_feature3: "Pedigree PDF indirme",
+                premium_feature4: "Yapay zeka eşleştirme ve genetik renk analizi",
+                premium_feature5: "Yarış ve performans takibi",
+                premium_feature6: "Excel dışa aktarım",
+                premium_feature7: "Topluluk erişimi",
+                premium_feature8: "7/24 destek",
+                premium_feature9: "Verileriniz sınırsız süreyle güvenli şekilde saklanır",
                 
                 // Pricing Additional
                 badge_popular: "EN POPÜLER",
-                trial_info: "Tüm planlar 7 günlük ücretsiz deneme süresi içerir",
-                no_cc_required: "Kredi kartı gerekmez • İstediğiniz zaman iptal edebilirsiniz",
+                trial_info: "Tüm planlar 3 günlük ücretsiz deneme içerir.",
+                no_cc_required: "İstediğiniz zaman iptal edebilirsiniz.",
                 
                 // FAQ
                 faq_title: "Sıkça Sorulan Sorular",
@@ -3740,8 +3742,8 @@
                 pricing_title: "Choose Your Plan",
                 pricing_monthly: "Monthly",
                 pricing_yearly: "Yearly (2 months free)",
-                plan_free: "Free",
-                plan_premium: "Premium",
+                plan_free: "Free Plan",
+                plan_premium: "Premium Plan",
                 plan_price_free: "$0",
                 plan_price_premium: "$9.99",
                 plan_period: "/month",
@@ -3750,24 +3752,26 @@
                 btn_upgrade: "Upgrade",
                 
                 // Free Plan Features
-                free_feature1: "7 pigeon records",
+                free_feature1: "5 pigeon records",
                 free_feature2: "Basic pedigree tracking",
-                free_feature3: "Health records",
-                free_feature4: "QR code sharing",
+                free_feature3: "Health records tracking",
+                free_feature4: "Limited features",
                 
                 // Premium Plan Features
                 premium_feature1: "Unlimited pigeon records",
                 premium_feature2: "Advanced 10 generation pedigree tracking",
-                premium_feature3: "AI matching and genetic color analysis",
-                premium_feature4: "Racing and performance tracking",
-                premium_feature5: "Excel export",
-                premium_feature6: "Community access",
-                premium_feature7: "24/7 support",
+                premium_feature3: "Pedigree PDF download",
+                premium_feature4: "AI matching and genetic color analysis",
+                premium_feature5: "Racing and performance tracking",
+                premium_feature6: "Excel export",
+                premium_feature7: "Community access",
+                premium_feature8: "24/7 support",
+                premium_feature9: "Your data is stored securely for unlimited time",
                 
                 // Pricing Additional
                 badge_popular: "MOST POPULAR",
-                trial_info: "All plans include a 7-day free trial",
-                no_cc_required: "No credit card required • Cancel anytime",
+                trial_info: "All plans include a 3-day free trial.",
+                no_cc_required: "Cancel anytime.",
                 
                 // FAQ
                 faq_title: "Frequently Asked Questions",
@@ -5723,7 +5727,7 @@
                                         </li>
                                     </ul>
                                     
-                                    <button onclick="openPayTRIframe()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full transition">
+                                    <button onclick="handlePremiumPurchaseLocal()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full transition">
                                         <i class="fas fa-credit-card mr-2"></i>
                                         <span class="lang-text" data-tr="btn_upgrade">Yükselt</span>
                                     </button>
@@ -6286,9 +6290,17 @@
                                     <i class="fas fa-check text-purple-400 mt-1"></i>
                                     <span class="text-gray-300">${t.premium_feature7}</span>
                                 </li>
+                                <li class="flex items-start gap-3">
+                                    <i class="fas fa-check text-purple-400 mt-1"></i>
+                                    <span class="text-gray-300">${t.premium_feature8}</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <i class="fas fa-check text-purple-400 mt-1"></i>
+                                    <span class="text-gray-300">${t.premium_feature9}</span>
+                                </li>
                             </ul>
                             
-                            <button onclick="openPayTRIframe()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full transition">
+                            <button onclick="handlePremiumPurchaseLocal()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full transition">
                                 <i class="fas fa-credit-card mr-2"></i>
                                 ${t.btn_upgrade || 'Yükselt'}
                             </button>
@@ -6298,14 +6310,10 @@
                     <!-- Additional Info -->
                     <div class="mt-16 text-center">
                         <p class="text-gray-400 mb-4">
-                            ${currentLang === 'tr' ? 
-                                'Tüm planlar 7 günlük ücretsiz deneme süresi içerir' : 
-                                'All plans include a 7-day free trial'}
+                            ${t.trial_info}
                         </p>
                         <p class="text-sm text-gray-500">
-                            ${currentLang === 'tr' ? 
-                                'Kredi kartı gerekmez • İstediğiniz zaman iptal edebilirsiniz' : 
-                                'No credit card required • Cancel anytime'}
+                            ${t.no_cc_required}
                         </p>
                     </div>
                 </div>
