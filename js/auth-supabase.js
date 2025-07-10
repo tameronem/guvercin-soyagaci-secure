@@ -219,10 +219,16 @@ function handleSignIn(session) {
 
 function handleSignOut() {
     console.log('User signed out');
-    // Ana sayfaya yönlendir
-    if (typeof showHomepage === 'function') {
-        showHomepage();
+    // Storage'ı temizle
+    if (typeof window.storage !== 'undefined') {
+        window.storage.currentUser = null;
     }
+    // Biraz bekle ve sonra homepage'i göster
+    setTimeout(() => {
+        if (typeof showHomepage === 'function') {
+            showHomepage();
+        }
+    }, 100);
 }
 
 function handleUserUpdate(session) {

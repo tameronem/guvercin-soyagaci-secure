@@ -4263,9 +4263,6 @@
                 const result = await SupabaseAuth.login(email, password);
                 
                 if (result.success) {
-                    // PHP session oluştur
-                    await createPHPSession(result.user);
-                    
                     storage.currentUser = result.user;
                     closeAuthModal();
                     showNotification(result.message, 'success');
@@ -4323,9 +4320,6 @@
                     // Auto login after registration
                     const loginResult = await SupabaseAuth.login(email, password);
                     if (loginResult.success) {
-                        // PHP session oluştur
-                        await createPHPSession(loginResult.user);
-                        
                         storage.currentUser = loginResult.user;
                         closeAuthModal();
                         updateNavigation();
@@ -5844,6 +5838,12 @@
                 }
                 
                 // Supabase'den verileri çek
+                // Tekrar kontrol et - async işlem sırasında user null olabilir
+                if (!storage.currentUser || !storage.currentUser.id) {
+                    console.log('User became null during async operation');
+                    return;
+                }
+                
                 const pigeonsResult = await SupabaseDB.getPigeons(storage.currentUser.id);
                 const userPigeons = pigeonsResult.success ? pigeonsResult.data : [];
                 
