@@ -51,11 +51,18 @@ async function startPayTRPayment() {
         const result = await response.json();
         
         if (result.success) {
-            // PayTR iframe'i göster
-            showPayTRModal(result.token, result.merchant_oid);
+            // ÖNCELİK 1: Önce ödeme bilgisini kaydet
+            const saveResult = await saveOrderToSupabase(user.id, result.merchant_oid, user.email);
             
-            // Ödeme bilgisini kaydet
-            await saveOrderToSupabase(user.id, result.merchant_oid, user.email);
+            // Kayıt başarılıysa iframe'i göster
+            if (saveResult && saveResult.success) {
+                // ÖNCELİK 2: PayTR iframe'i göster
+                showPayTRModal(result.token, result.merchant_oid);
+            } else {
+                // Kayıt başarısız oldu, kullanıcıyı bilgilendir
+                showError('Ödeme kaydı oluşturulamadı. Lütfen tekrar deneyin.');
+                console.error('Payment save failed for merchant_oid:', result.merchant_oid);
+            }
         } else {
             showError('Ödeme başlatılamadı: ' + result.error);
         }
@@ -181,13 +188,18 @@ async function saveOrderToSupabase(userId, merchantOid, userEmail) {
             
         if (error) {
             console.error('Payment save error:', error);
-            showError('Ödeme kaydedilemedi: ' + error.message);
+            // Merchant OID'yi kullanıcıya göster - destek için gerekebilir
+            showError(`Ödeme kaydedilemedi. Sipariş No: ${merchantOid} - Hata: ${error.message}`);
+            return { success: false, error };
         } else {
             console.log('Payment saved successfully:', data);
+            return { success: true, data };
         }
     } catch (error) {
         console.error('Supabase error:', error);
-        showError('Veritabanı hatası');
+        // Kritik hata durumunda merchant_oid'yi kullanıcıya göster
+        showError(`Veritabanı hatası. Sipariş No: ${merchantOid} - Lütfen bu numarayı saklayın.`);
+        return { success: false, error };
     }
 }
 
