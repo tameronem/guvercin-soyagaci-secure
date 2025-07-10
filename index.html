@@ -995,13 +995,20 @@
         
         /* Mobile menu user welcome */
         .user-welcome {
-            padding: 1.5rem;
-            background: rgba(102, 126, 234, 0.15);
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
-            text-align: center;
-            font-weight: 600;
-            border: 1px solid rgba(102, 126, 234, 0.3);
+            margin-bottom: 1rem;
+        }
+        
+        #mobileUserInfo {
+            max-width: 100%;
+            overflow: hidden;
+        }
+        
+        #mobileUserInfo .truncate {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
         }
         
         /* Logout button in mobile menu */
@@ -4845,19 +4852,10 @@
                 // Show mobile menu items
                 if (mobileMenuItems) mobileMenuItems.style.display = 'block';
                 
-                // Update mobile menu user info
-                const mobileUserInfo = document.getElementById('mobileUserInfo');
-                const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-                if (mobileUserInfo) {
-                    mobileUserInfo.innerHTML = `
-                        <i class="fas fa-user-circle text-2xl mb-2"></i>
-                        <p class="font-semibold">${translations[currentLang].welcome || 'Hoş geldiniz'},</p>
-                        <p class="text-lg">${storage.currentUser.name}!</p>
-                    `;
-                    mobileUserInfo.classList.remove('hidden');
-                }
-                if (mobileLogoutBtn) {
-                    mobileLogoutBtn.classList.remove('hidden');
+                // Show mobile logout container
+                const mobileLogoutContainer = document.getElementById('mobileLogoutContainer');
+                if (mobileLogoutContainer) {
+                    mobileLogoutContainer.classList.remove('hidden');
                 }
                 
                 // Update auth buttons to show user info and logout (desktop only)
@@ -5025,14 +5023,23 @@
                         }
                         
                         mobileUserInfo.innerHTML = `
-                            <div class="p-4 bg-gradient-to-r from-purple-900/50 to-cyan-900/50 rounded-lg mb-4">
-                                <div class="text-center">
-                                    <i class="fas fa-user-circle text-4xl mb-2 text-gray-300"></i>
-                                    <div class="max-w-full overflow-hidden">
-                                        <p class="text-sm text-gray-300 truncate px-2">${storage.currentUser.email}</p>
+                            <div class="p-4 bg-gradient-to-r from-purple-900/50 to-cyan-900/50 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-user-circle text-3xl text-gray-300"></i>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-gray-300 truncate">${storage.currentUser.email}</p>
+                                        ${isPremium ? `
+                                            <div class="flex items-center gap-1 mt-1">
+                                                <i class="fas fa-crown text-yellow-400 text-xs"></i>
+                                                <span class="text-xs text-yellow-400">Premium</span>
+                                            </div>
+                                        ` : ''}
                                     </div>
-                                    ${isPremium ? `
-                                        <div class="mt-3">
+                                </div>
+                            </div>
+                        `;
+                        
+                        mobileUserInfo.classList.remove('hidden');
                                             <span class="inline-block px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs rounded-full">
                                                 <i class="fas fa-crown mr-1"></i>${(window.currentLang || 'tr') === 'tr' ? 'Premium Üye' : 'Premium Member'}
                                             </span>
