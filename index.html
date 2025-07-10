@@ -5180,6 +5180,14 @@
         async function showHomepage() {
             const contentDiv = document.getElementById('content');
             
+            // Async operation tracking
+            window.currentAsyncOperations = window.currentAsyncOperations || [];
+            const operation = {
+                cancelled: false,
+                cancel() { this.cancelled = true; }
+            };
+            window.currentAsyncOperations.push(operation);
+            
             // Önce loading göster
             contentDiv.innerHTML = '<div class="text-center py-20"><i class="fas fa-spinner fa-spin text-4xl text-cyan-400"></i><p class="mt-4">Yükleniyor...</p></div>';
             
@@ -5844,8 +5852,17 @@
                     return;
                 }
                 
+                // Operation cancelled kontrolü
+                if (operation.cancelled) {
+                    console.log('Operation cancelled, stopping execution');
+                    return;
+                }
+                
                 const pigeonsResult = await SupabaseDB.getPigeons(storage.currentUser.id);
                 const userPigeons = pigeonsResult.success ? pigeonsResult.data : [];
+                
+                // Operation cancelled kontrolü
+                if (operation.cancelled) return;
                 
                 const matingsResult = await SupabaseDB.getMatings(storage.currentUser.id);
                 const userMatings = matingsResult.success ? matingsResult.data : [];
@@ -7669,17 +7686,23 @@
                     description: document.getElementById('description').value
                 };
                 
-                // Handle image upload if present
-                const imageFile = document.getElementById('pigeonImage').files[0];
-                if (imageFile) {
-                    const uploadResult = await SupabaseStorage.uploadPigeonImage(imageFile);
-                    if (uploadResult.success) {
-                        pigeonData.imageUrl = uploadResult.url;
-                    }
+                // First add pigeon to database
+                const result = await SupabaseDB.addPigeon(pigeonData);
+                
+                if (!result.success) {
+                    throw new Error(result.error);
                 }
                 
-                // Add pigeon to database
-                const result = await SupabaseDB.addPigeon(pigeonData);
+                // Then handle image upload if present
+                const imageFile = document.getElementById('pigeonImage').files[0];
+                if (imageFile && result.data && result.data.id) {
+                    const uploadResult = await SupabaseStorage.uploadPigeonImage(imageFile, result.data.id);
+                    if (!uploadResult.success) {
+                        console.error('Resim yükleme hatası:', uploadResult.error);
+                        // Resim yüklenemese bile güvercin eklendi, sadece uyarı göster
+                        showNotification('Güvercin eklendi ancak resim yüklenemedi', 'warning');
+                    }
+                }
                 
                 if (result.success) {
                     showNotification(t.pigeon_added_success || 'Güvercin başarıyla eklendi!', 'success');
