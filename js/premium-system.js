@@ -68,20 +68,31 @@ async function checkPremiumStatus(userId = null) {
         }
         const targetUserId = userId || (await window.SupabaseAuth.getCurrentUser()).id;
         
-        // RPC yerine direkt sorgu kullan
-        const { data, error } = await getSupabase()
-            .from('premium_subscriptions')
-            .select('*')
-            .eq('user_id', targetUserId)
-            .eq('status', 'active')
-            .gte('end_date', new Date().toISOString());
+        // Profiles tablosundan premium durumunu kontrol et
+        const { data: profile, error } = await getSupabase()
+            .from('profiles')
+            .select('is_premium, premium_expires_at, subscription_plan')
+            .eq('id', targetUserId)
+            .single();
         
-        if (error) {
-            throw error;
+        if (error || !profile) {
+            console.error('Premium check error:', error);
+            return false;
         }
         
-        // Data artık bir array, eğer boşsa false, doluysa true döndür
-        return data && data.length > 0;
+        // Premium durumunu kontrol et
+        if (profile.is_premium && profile.premium_expires_at) {
+            const expiryDate = new Date(profile.premium_expires_at);
+            const now = new Date();
+            console.log('Premium status:', {
+                is_premium: profile.is_premium,
+                expires_at: profile.premium_expires_at,
+                is_valid: expiryDate > now
+            });
+            return expiryDate > now;
+        }
+        
+        return false;
     } catch (error) {
         console.error('Premium status check error:', error);
         return false;
@@ -640,21 +651,27 @@ async function activatePremium(trackingCode, userId) {
             return false;
         }
         
-        // 3. Premium subscription oluştur
-        const { error: subError } = await supabase
-            .from('premium_subscriptions')
-            .insert({
-                user_id: userId,
-                tracking_code: trackingCode,
-                status: 'active',
-                start_date: new Date().toISOString(),
-                end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-            });
+        // 3. Profiles tablosunu güncelle - Premium yap
+        const premiumExpiresAt = new Date();
+        premiumExpiresAt.setMonth(premiumExpiresAt.getMonth() + 1); // 1 ay ekle
         
-        if (subError) {
-            console.error('Failed to create subscription:', subError);
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+                is_premium: true,
+                premium_expires_at: premiumExpiresAt.toISOString(),
+                subscription_plan: 'premium',
+                pigeon_limit: 9999,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+        
+        if (profileError) {
+            console.error('Failed to update profile to premium:', profileError);
             return false;
         }
+        
+        console.log('Premium activated successfully for user:', userId);
         
         return true;
         

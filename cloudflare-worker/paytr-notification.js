@@ -199,8 +199,49 @@ export default {
 
       if (!payment) {
         console.error('Payment not found:', post.merchant_oid);
-        // Ödeme kaydı bulunamadı, belki payment worker'dan eklenmemiş
-        // Yine de OK dönelim
+        
+        // Yedek mekanizma: Payment kaydı yoksa oluştur
+        // Bu durumda user_id bilgisini alamayacağız, bu yüzden bu kayıt
+        // admin panel üzerinden manuel inceleme gerektirecek
+        console.log('Creating missing payment record as fallback...');
+        
+        try {
+          const fallbackResponse = await fetch(
+            `${supabaseUrl}/rest/v1/payment_tracking`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseServiceKey,
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify({
+                merchant_oid: post.merchant_oid,
+                tracking_code: post.merchant_oid,
+                amount: parseFloat(post.total_amount) / 100,
+                currency: 'TRY',
+                status: 'requires_manual_review',
+                email: post.user_email || 'unknown',
+                paytr_notification_data: JSON.stringify(post),
+                created_at: new Date().toISOString(),
+                notes: 'Created by notification worker - missing initial payment record'
+              })
+            }
+          );
+          
+          if (fallbackResponse.ok) {
+            console.log('Fallback payment record created');
+            // Admin'e bildirim gönderilebilir
+            return new Response('OK');
+          } else {
+            const errorText = await fallbackResponse.text();
+            console.error('Failed to create fallback payment:', errorText);
+          }
+        } catch (fallbackError) {
+          console.error('Fallback creation error:', fallbackError);
+        }
+        
         return new Response('OK');
       }
 
@@ -262,7 +303,7 @@ export default {
         // Profiles tablosunu güncelle - Premium yap
         console.log('Updating user profile to premium...');
         const premiumExpiresAt = new Date();
-        premiumExpiresAt.setFullYear(premiumExpiresAt.getFullYear() + 1);
+        premiumExpiresAt.setMonth(premiumExpiresAt.getMonth() + 1); // 1 ay ekle
 
         const updateProfileResponse = await fetch(
           `${supabaseUrl}/rest/v1/profiles?id=eq.${user_id}`,
