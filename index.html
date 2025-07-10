@@ -4994,8 +4994,9 @@
                 if (storage.currentUser) {
                 // User is logged in
                 if (userDisplay) {
-                    userDisplay.classList.remove('hidden');
-                    // Note: md:flex is already in the HTML, so we don't add flex class here
+                    // Mobilde gizli kalması için hidden class'ını kaldırmıyoruz
+                    // HTML'de zaten "hidden md:flex" var, bu mobilde gizli desktop'ta görünür demek
+                    // Hiçbir şey yapmaya gerek yok
                 }
                 if (authButtons) {
                     authButtons.classList.add('hidden');
@@ -5029,17 +5030,25 @@
                         
                         mobileUserInfo.innerHTML = `
                             <div class="p-4 bg-gradient-to-r from-purple-900/50 to-cyan-900/50 rounded-lg">
-                                <div class="flex items-center gap-3">
-                                    <i class="fas fa-user-circle text-3xl text-gray-300"></i>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm text-gray-300 truncate">${storage.currentUser.email}</p>
-                                        ${isPremium ? `
-                                            <div class="flex items-center gap-1 mt-1">
-                                                <i class="fas fa-crown text-yellow-400 text-xs"></i>
-                                                <span class="text-xs text-yellow-400">Premium</span>
-                                            </div>
-                                        ` : ''}
-                                    </div>
+                                <div class="text-center">
+                                    <!-- Kullanıcı ikonu -->
+                                    <i class="fas fa-user-circle text-5xl text-gray-300 mb-3"></i>
+                                    
+                                    <!-- Email adresi -->
+                                    <p class="text-base font-medium text-gray-200 truncate px-2 mb-2">${storage.currentUser.email}</p>
+                                    
+                                    <!-- Premium durumu -->
+                                    ${isPremium ? `
+                                        <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full">
+                                            <i class="fas fa-crown text-white"></i>
+                                            <span class="text-sm font-bold text-white">Premium Üye</span>
+                                        </div>
+                                    ` : `
+                                        <button onclick="showPricing(); toggleMobileMenu();" class="inline-flex items-center gap-2 px-4 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-full transition">
+                                            <i class="fas fa-arrow-up text-cyan-400"></i>
+                                            <span class="text-sm text-cyan-400">Premium'a Yükselt</span>
+                                        </button>
+                                    `}
                                 </div>
                             </div>
                         `;
