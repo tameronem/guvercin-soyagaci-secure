@@ -2,17 +2,34 @@
 
 export default {
   async fetch(request, env) {
-    // CORS headers
+    // Get the origin from request headers
+    const origin = request.headers.get('origin');
+    
+    // Allowed origins list
+    const allowedOrigins = [
+      'https://pigeonpedigre.com',
+      'https://www.pigeonpedigre.com',
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173'
+    ];
+    
+    // CORS headers with dynamic origin
     const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : 'https://pigeonpedigre.com',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400',
       'Content-Type': 'application/json'
     };
 
     // Handle preflight requests
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+      return new Response(null, { 
+        status: 200,
+        headers: corsHeaders 
+      });
     }
 
     // Only accept POST requests
