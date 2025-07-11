@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Test</title>
+</head>
+<body>
+    <h1>Cloudflare Worker Test</h1>
+    <button onclick="testWorker()">Test Worker</button>
+    <div id="result"></div>
+
+    <script>
+        async function testWorker() {
+            const resultDiv = document.getElementById('result');
+            const workerUrl = 'https://pigeonpedigre-refund.tamer-nem.workers.dev';
+            
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                // Test OPTIONS (preflight)
+                console.log('Testing OPTIONS request...');
+                const optionsResponse = await fetch(workerUrl, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                console.log('OPTIONS Status:', optionsResponse.status);
+                console.log('OPTIONS Headers:', Object.fromEntries(optionsResponse.headers.entries()));
+                
+                // Test POST
+                console.log('Testing POST request...');
+                const postResponse = await fetch(workerUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: 'test-user-id',
+                        merchant_oid: 'test-merchant-oid'
+                    })
+                });
+                
+                const result = await postResponse.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Test Results:</h3>
+                    <p>OPTIONS Status: ${optionsResponse.status}</p>
+                    <p>POST Status: ${postResponse.status}</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>Error:</h3>
+                    <p style="color: red;">${error.message}</p>
+                    <p>Check console for details</p>
+                `;
+                console.error('Worker test error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

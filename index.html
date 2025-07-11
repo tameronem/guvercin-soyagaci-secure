@@ -5149,25 +5149,67 @@ Teşekkürler.`);
                 // Cloudflare Worker URL
                 const REFUND_WORKER_URL = 'https://pigeonpedigre-refund.tamer-nem.workers.dev';
                 
+                // Detaylı debug logging
+                console.log('=== REFUND DEBUG START ===');
                 console.log('Refund Worker URL:', REFUND_WORKER_URL);
-                console.log('Sending refund request with:', {
+                console.log('Current User:', storage.currentUser);
+                console.log('User ID:', storage.currentUser.id);
+                console.log('Merchant OID:', merchant_oid);
+                
+                // Request body hazırla
+                const requestBody = {
                     user_id: storage.currentUser.id,
                     merchant_oid: merchant_oid
-                });
+                };
+                
+                console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+                
+                // Değerlerin valid olduğunu kontrol et
+                if (!requestBody.user_id || !requestBody.merchant_oid) {
+                    console.error('Missing required fields!', {
+                        user_id: requestBody.user_id,
+                        merchant_oid: requestBody.merchant_oid
+                    });
+                    throw new Error('Gerekli alanlar eksik');
+                }
 
-                // İade isteği gönder
-                const response = await fetch(REFUND_WORKER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        user_id: storage.currentUser.id,
-                        merchant_oid: merchant_oid
-                    })
-                });
+                let response;
+                try {
+                    // İade isteği gönder
+                    console.log('Sending fetch request...');
+                    response = await fetch(REFUND_WORKER_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+                    
+                    console.log('Response received:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Object.fromEntries(response.headers.entries())
+                    });
+                } catch (fetchError) {
+                    console.error('Fetch error:', fetchError);
+                    throw fetchError;
+                }
 
-                const result = await response.json();
+                // Response'u parse et
+                let result;
+                const responseText = await response.text();
+                console.log('Raw response text:', responseText);
+                
+                try {
+                    result = responseText ? JSON.parse(responseText) : { success: false, error: 'Empty response' };
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    console.log('Response was:', responseText);
+                    result = { success: false, error: 'Invalid response format' };
+                }
+                
+                console.log('Parsed result:', result);
+                console.log('=== REFUND DEBUG END ===');
 
                 if (result.success) {
                     showNotification(

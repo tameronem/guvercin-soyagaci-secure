@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refund Worker Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Refund Worker Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Basic Connection Test</h2>
+        <button onclick="testBasicConnection()">Test Basic Connection</button>
+        <div id="test1-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: OPTIONS Preflight Test</h2>
+        <button onclick="testPreflight()">Test Preflight</button>
+        <div id="test2-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: POST with Empty Body</h2>
+        <button onclick="testEmptyBody()">Test Empty Body</button>
+        <div id="test3-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 4: POST with Valid Data</h2>
+        <input type="text" id="user_id" placeholder="User ID" value="test-user-123">
+        <input type="text" id="merchant_oid" placeholder="Merchant OID" value="test-merchant-123">
+        <button onclick="testValidData()">Test Valid Data</button>
+        <div id="test4-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 5: Direct Fetch (No CORS)</h2>
+        <button onclick="testDirectFetch()">Test Direct Fetch</button>
+        <div id="test5-result"></div>
+    </div>
+
+    <script>
+        const WORKER_URL = 'https://pigeonpedigre-refund.tamer-nem.workers.dev';
+
+        function showResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<pre class="${isError ? 'error' : 'success'}">${content}</pre>`;
+        }
+
+        async function testBasicConnection() {
+            try {
+                console.log('Testing basic connection to:', WORKER_URL);
+                const response = await fetch(WORKER_URL, {
+                    method: 'GET'
+                });
+                showResult('test1-result', `Status: ${response.status}\nStatus Text: ${response.statusText}`);
+            } catch (error) {
+                showResult('test1-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testPreflight() {
+            try {
+                console.log('Testing OPTIONS preflight...');
+                const response = await fetch(WORKER_URL, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'content-type'
+                    }
+                });
+                
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+                
+                showResult('test2-result', `Status: ${response.status}\nHeaders: ${JSON.stringify(headers, null, 2)}`);
+            } catch (error) {
+                showResult('test2-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testEmptyBody() {
+            try {
+                console.log('Testing POST with empty body...');
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+                
+                const text = await response.text();
+                showResult('test3-result', `Status: ${response.status}\nResponse: ${text}`);
+            } catch (error) {
+                showResult('test3-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testValidData() {
+            try {
+                const user_id = document.getElementById('user_id').value;
+                const merchant_oid = document.getElementById('merchant_oid').value;
+                
+                console.log('Testing POST with valid data...');
+                const body = JSON.stringify({ user_id, merchant_oid });
+                console.log('Request body:', body);
+                
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: body
+                });
+                
+                const text = await response.text();
+                console.log('Response text:', text);
+                
+                let parsed;
+                try {
+                    parsed = JSON.parse(text);
+                } catch (e) {
+                    parsed = text;
+                }
+                
+                showResult('test4-result', `Status: ${response.status}\nResponse: ${typeof parsed === 'object' ? JSON.stringify(parsed, null, 2) : parsed}`);
+            } catch (error) {
+                console.error('Test error:', error);
+                showResult('test4-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testDirectFetch() {
+            try {
+                console.log('Testing direct fetch without CORS mode...');
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: 'direct-test-user',
+                        merchant_oid: 'direct-test-merchant'
+                    }),
+                    mode: 'no-cors' // This will make an opaque response
+                });
+                
+                showResult('test5-result', `Status: ${response.status}\nType: ${response.type}\nNote: no-cors mode returns opaque response`);
+            } catch (error) {
+                showResult('test5-result', `Error: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>
