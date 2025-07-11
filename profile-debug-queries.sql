@@ -1,20 +1,23 @@
 -- Profil Sayfası Debug SQL Sorguları
 -- ==================================
+-- NOT: profiles tablosunda email alanı YOK! auth.users tablosu ile JOIN gerekli.
 
 -- 1. Kullanıcının profil bilgilerini kontrol et
 SELECT 
-    id,
-    email,
-    first_name,
-    last_name,
-    is_premium,
-    premium_expires_at,
-    created_at,
-    updated_at
-FROM profiles
-WHERE email = 'KULLANICI_EMAIL_BURAYA';  -- Email adresini değiştirin
+    p.id,
+    u.email,
+    p.first_name,
+    p.last_name,
+    p.is_premium,
+    p.premium_expires_at,
+    p.created_at,
+    p.updated_at
+FROM profiles p
+JOIN auth.users u ON u.id = p.id
+WHERE u.email = 'KULLANICI_EMAIL_BURAYA';  -- Email adresini değiştirin
 
 -- 2. Payment tracking kayıtlarını kontrol et
+-- NOT: payment_tracking tablosunda email VAR, JOIN gerekmiyor
 SELECT 
     id,
     user_id,
@@ -33,10 +36,11 @@ ORDER BY created_at DESC;
 -- 3. Premium subscription durumunu kontrol et
 SELECT 
     ps.*,
-    p.email
+    u.email
 FROM premium_subscriptions ps
 JOIN profiles p ON p.id = ps.user_id
-WHERE p.email = 'KULLANICI_EMAIL_BURAYA';  -- Email adresini değiştirin
+JOIN auth.users u ON u.id = p.id
+WHERE u.email = 'KULLANICI_EMAIL_BURAYA';  -- Email adresini değiştirin
 
 -- 4. Tüm payment status değerlerini görüntüle
 SELECT DISTINCT status, COUNT(*) as count
@@ -61,7 +65,7 @@ ORDER BY pt.created_at DESC;
 -- 6. Premium kullanıcıların ödeme durumunu kontrol et
 SELECT 
     p.id,
-    p.email,
+    u.email,
     p.is_premium,
     p.premium_expires_at,
     pt.tracking_code,
@@ -69,20 +73,34 @@ SELECT
     pt.created_at as payment_date,
     pt.verified_at
 FROM profiles p
+JOIN auth.users u ON u.id = p.id
 LEFT JOIN payment_tracking pt ON pt.user_id = p.id
 WHERE p.is_premium = true
-ORDER BY p.email;
+ORDER BY u.email;
 
--- 7. Manuel premium üyelik ekleme (TEST İÇİN)
--- NOT: USER_ID'yi gerçek kullanıcı ID'si ile değiştirin
+-- 7. User ID'yi email'den bulmak için
+SELECT 
+    u.id as user_id,
+    u.email,
+    p.is_premium,
+    p.premium_expires_at
+FROM auth.users u
+LEFT JOIN profiles p ON p.id = u.id
+WHERE u.email = 'KULLANICI_EMAIL_BURAYA';
+
+-- 8. Manuel premium üyelik ekleme (TEST İÇİN)
+-- NOT: Önce yukarıdaki 7. sorgudan USER_ID'yi alın
 /*
+-- Önce user_id'yi bulun (7. sorguyu çalıştırın)
+
+-- Profiles tablosunu güncelleyin
 UPDATE profiles 
 SET 
     is_premium = true,
     premium_expires_at = NOW() + INTERVAL '30 days'
 WHERE id = 'USER_ID_BURAYA';
 
--- Test payment kaydı ekleme
+-- Test payment kaydı ekleyin
 INSERT INTO payment_tracking (
     user_id,
     tracking_code,

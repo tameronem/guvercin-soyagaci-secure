@@ -6500,20 +6500,31 @@
                 // Son ödeme bilgisini al (sadece premium kullanıcılar için)
                 let lastPayment = null;
                 if (profile?.is_premium) {
-                    // SQL sorgusunu genişlet - farklı status değerlerini kabul et
+                    console.log('Payment query - user_id:', user.id);
+                    console.log('Profile premium status:', profile?.is_premium);
+                    console.log('Profile premium expires:', profile?.premium_expires_at);
+                    
+                    // SQL sorgusunu genişlet - STATUS KONTROLÜ YOK
                     const { data: paymentData, error: paymentError } = await supabase
                         .from('payment_tracking')
                         .select('*')  // Tüm alanları çek
                         .eq('user_id', user.id)
-                        .in('status', ['verified', 'completed', 'success', 'paid'])  // Farklı status değerleri
+                        // STATUS KONTROLÜ KALDIRILDI - tüm kayıtları getir
                         .order('created_at', { ascending: false })
-                        .limit(1);
+                        .limit(5);  // Son 5 kaydı al
                     
-                    console.log('Payment query result:', paymentData, 'Error:', paymentError);
+                    console.log('Payment query - full response:', { data: paymentData, error: paymentError });
                     
                     if (paymentData && paymentData.length > 0) {
-                        lastPayment = paymentData[0];
+                        // En uygun payment'ı bul (verified/completed öncelikli)
+                        const verifiedPayment = paymentData.find(p => 
+                            ['verified', 'completed', 'success', 'paid'].includes(p.status)
+                        );
+                        lastPayment = verifiedPayment || paymentData[0];
                         console.log('Last payment found:', lastPayment);
+                        console.log('Payment status:', lastPayment?.status);
+                    } else {
+                        console.log('NO PAYMENT RECORDS FOUND for user_id:', user.id);
                     }
                 }
                 
@@ -6543,6 +6554,16 @@
                         isRefundEligible = daysSincePurchase <= 3;
                         
                         console.log('Purchase date:', purchaseDate, 'Days since:', daysSincePurchase, 'Eligible:', isRefundEligible);
+                    } else if (!lastPayment && profile?.is_premium && profile?.premium_expires_at) {
+                        // Payment kaydı yok ama premium varsa, tahmini başlangıç tarihinden hesapla
+                        const estimatedStartDate = new Date(profile.premium_expires_at);
+                        estimatedStartDate.setDate(estimatedStartDate.getDate() - 30); // 30 gün öncesi
+                        
+                        daysSincePurchase = Math.ceil((today - estimatedStartDate) / (1000 * 60 * 60 * 24));
+                        isRefundEligible = daysSincePurchase <= 3;
+                        
+                        console.log('No payment record - estimated start date:', estimatedStartDate);
+                        console.log('Estimated days since purchase:', daysSincePurchase, 'Eligible:', isRefundEligible);
                     } else if (isDevelopment) {
                         // Development modda her zaman iade hakkı ver
                         isRefundEligible = true;
@@ -6605,7 +6626,13 @@
                                         <p class="text-xl font-semibold">
                                             ${lastPayment ? 
                                                 new Date(lastPayment.verified_at || lastPayment.created_at).toLocaleDateString('tr-TR') : 
-                                                '-'
+                                                profile?.premium_expires_at ? 
+                                                    (() => {
+                                                        const estimatedDate = new Date(profile.premium_expires_at);
+                                                        estimatedDate.setDate(estimatedDate.getDate() - 30);
+                                                        return '~' + estimatedDate.toLocaleDateString('tr-TR') + ' (tahmini)';
+                                                    })() :
+                                                    '-'
                                             }
                                         </p>
                                     </div>
@@ -6638,12 +6665,13 @@
                                 ` : ''}
                                 
                                 <!-- İade Durumu -->
-                                ${lastPayment || isDevelopment ? (
+                                ${profile?.is_premium ? (
                                     isRefundEligible ? `
                                         <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-4">
                                             <p class="text-green-400 flex items-center gap-2">
                                                 <i class="fas fa-check-circle"></i>
                                                 İade hakkınız bulunmaktadır ${daysSincePurchase !== null ? `(${3 - daysSincePurchase} gün kaldı)` : '(3 gün içinde)'}
+                                                ${!lastPayment ? ' - Tahmini süre' : ''}
                                             </p>
                                         </div>
                                     ` : `
@@ -6651,6 +6679,7 @@
                                             <p class="text-gray-400 flex items-center gap-2">
                                                 <i class="fas fa-times-circle"></i>
                                                 İade hakkı süresi dolmuştur ${daysSincePurchase !== null ? `(${daysSincePurchase} gün geçti)` : ''}
+                                                ${!lastPayment ? ' - Tahmini süre' : ''}
                                             </p>
                                         </div>
                                     `
@@ -6679,7 +6708,7 @@
                         
                         <!-- Butonlar -->
                         <div class="flex flex-wrap gap-4 justify-center">
-                            ${profile?.is_premium && isRefundEligible ? `
+                            ${profile?.is_premium && (isRefundEligible || !lastPayment) ? `
                                 <button onclick="requestRefund()" 
                                     class="px-6 py-3 bg-orange-500 hover:bg-orange-600 rounded-full transition flex items-center gap-2">
                                     <i class="fas fa-undo"></i>
