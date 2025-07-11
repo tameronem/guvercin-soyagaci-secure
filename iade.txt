@@ -1,0 +1,188 @@
+Sen, Cloudflare Workers, Supabase ve PayTR ödeme entegrasyonlarında uzman bir backend geliştiricisin.
+
+Bizim mevcut sistemimiz şu şekilde çalışıyor:
+
+✅ Sistem Mimarisi
+Frontend: Cloudflare Pages üzerinde barındırılıyor.
+
+Cloudflare Workers:
+
+PayTR API çağrıları ile ödeme token’ı oluşturuyor.
+
+PayTR’den gelen ödeme bildirimlerini (notification) alıyor.
+
+Supabase:
+
+Auth (kullanıcı yönetimi) → auth.users tablosu
+
+Ödeme kayıtları → payment_tracking tablosu
+
+Premium üyelik bilgisi → profiles tablosu
+
+✅ Şu Anki Ödeme Akışı
+Kullanıcı frontend’de “Premium Satın Al” butonuna tıklar.
+
+Frontend, Cloudflare Payment Worker’a istek gönderir.
+
+Worker, PayTR API’sine gidip ödeme token’ı alır.
+
+Worker, ödeme kaydını Supabase’de payment_tracking tablosuna ekler.
+
+Frontend de yedek olarak Supabase’e kayıt atar.
+
+Kullanıcı, PayTR iframe üzerinden ödemeyi tamamlar.
+
+PayTR, Cloudflare Notification Worker’a notification gönderir.
+
+Notification Worker, Supabase’de payment_tracking kaydını günceller.
+
+Kullanıcının profiles tablosundaki premium alanı true yapılır.
+
+✅ Güncellenen İş Kuralları
+Premium üyelik ücreti → ₺39,90
+
+Kullanıcı, premium satın aldıktan sonra:
+
+3 gün içinde iade talebinde bulunabilir.
+
+3 gün geçtiyse iade yapılamaz.
+
+İade edilmese bile kullanıcı, ödediği sürenin sonuna kadar premium özellikleri kullanmaya devam eder.
+
+Yani, üyelik iptal edilse bile bir sonraki ayın aynı gününe kadar premium yetkileri açık kalır.
+
+Örnek:
+
+Kullanıcı 10 Temmuz’da satın aldı → iade için 13 Temmuz gece 23:59’a kadar süresi var.
+
+14 Temmuz’da iptal ederse:
+
+İade yapılmaz.
+
+Premium 10 Ağustos’a kadar aktif kalır.
+
+✅ İade Süreci Nasıl Çalışacak?
+Kullanıcı frontend’de “İptal Et / İade Talep Et” butonuna tıklar.
+
+Frontend, Cloudflare Worker üzerinde yeni bir route’a (ör. /api/refund) POST isteği gönderir.
+Gönderilen JSON örneği:
+
+json
+Kopyala
+Düzenle
+{
+  "merchant_oid": "PRM_123456",
+  "refund_amount": "39.90"
+}
+Cloudflare Worker şu adımları uygular:
+
+merchant_oid üzerinden Supabase payment_tracking tablosundan ödeme kaydını çeker.
+
+Kayıt bulunamazsa hata döner.
+
+Kayıt bulunursa:
+
+created_at ile bugünkü tarih arasındaki fark hesaplanır.
+
+Eğer fark 3 günden küçük veya eşitse:
+
+PayTR iade API’sine istek gönderilir.
+
+PayTR’den success cevabı gelirse:
+
+payment_tracking.status → “refunded” yapılır.
+
+profiles.premium → false yapılır.
+
+Frontend’e başarı mesajı dönülür.
+
+PayTR’den hata gelirse:
+
+Hata loglanır.
+
+Frontend’e anlamlı hata mesajı dönülür.
+
+Eğer 3 gün geçmişse:
+
+İade yapılmaz.
+
+Premium kapatılmaz.
+
+Ancak premium yetkileri kullanıcının üyelik bitiş tarihine kadar devam eder.
+
+Frontend’e:
+
+json
+Kopyala
+Düzenle
+{
+  "success": false,
+  "message": "İade süresi geçti. Premium üyeliğiniz iptal edildi, ancak kalan süreniz boyunca özellikleri kullanabilirsiniz."
+}
+şeklinde bilgi dönülür.
+
+✅ Frontend’de Kullanıcıya Verilmesi Gereken Bilgiler
+Satın alma ve iade ekranlarında kullanıcıya açıkça şu bilgiler verilmelidir:
+
+Premium üyelik ücreti → ₺39,90 / ay
+
+Kullanıcı, satın aldığı günden itibaren 3 gün içinde iade talep edebilir.
+
+3 günü geçtiyse iade yapılamaz.
+
+İptal edilse bile, premium yetkileri üyelik bitiş tarihine kadar devam eder.
+
+Örnek metin:
+
+“Premium üyelik ₺39,90/ay’dır. Satın alımdan itibaren 3 gün içinde koşulsuz iade hakkınız vardır. 3 günü geçtiyseniz iade yapılamaz ancak mevcut üyelik süreniz bitene kadar premium özelliklerden yararlanmaya devam edersiniz.”
+
+✅ Supabase’de Güncellenecek Tablolar
+payment_tracking
+
+status alanı → “refunded” yapılacak (eğer iade gerçekleştiyse).
+
+İstenirse notes alanına PayTR iade cevabı JSON olarak kaydedilebilir.
+
+profiles
+
+Premium false yapılacak (eğer iade yapıldıysa).
+
+3 günü geçmişse premium false yapılmaz → bitiş tarihine kadar devam eder.
+
+✅ Cloudflare Worker Ortam Değişkenleri
+Refund süreci için aşağıdaki environment variable’lar gerekiyor:
+
+MERCHANT_ID
+
+MERCHANT_KEY
+
+MERCHANT_SALT
+
+SUPABASE_URL
+
+SUPABASE_SERVICE_ROLE_KEY
+
+✅ Hata Yönetimi
+Şu hatalar yakalanmalı:
+
+PayTR API hataları (ör. token hatası, fazla iade tutarı, bağlantı hatası).
+
+Supabase güncelleme hataları.
+
+3 gün limitini geçen talepler.
+
+Kullanıcıya anlamlı mesaj dönmeli:
+
+“İade başarılı.”
+
+“İade süresi geçti. Premium üyeliğiniz iptal edildi, ancak kalan sürede kullanmaya devam edebilirsiniz.”
+
+“İade başarısız: PayTR’den hata alındı: …”
+
+✅ Sınırlamalar
+Şimdilik tam iade yapılacak. Kısmi iade planlanmıyor.
+
+3 gün kuralı kesin → backend’de mutlaka kontrol edilmeli.
+
+Refund işlemi asenkron olmalı → frontend’i uzun süre bekletmemeli.
+

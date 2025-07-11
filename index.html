@@ -5024,6 +5024,111 @@
             }
         }
 
+        // Request Refund
+        async function requestRefund() {
+            if (!storage.currentUser) {
+                showNotification('Giriş yapmanız gerekiyor', 'error');
+                return;
+            }
+
+            // İade onay modal'ı
+            const confirmRefund = confirm(
+                'Premium üyeliğinizi iptal etmek istediğinizden emin misiniz?\n\n' +
+                '⚠️ Bu işlem geri alınamaz!\n' +
+                '• Premium erişiminiz hemen sonlandırılacaktır\n' +
+                '• Ödemeniz 5-10 iş günü içinde iade edilecektir\n' +
+                '• Tüm premium özelliklerinizi kaybedeceksiniz'
+            );
+
+            if (!confirmRefund) {
+                return;
+            }
+
+            // Loading göster
+            const contentDiv = document.getElementById('content');
+            const previousContent = contentDiv.innerHTML;
+            
+            contentDiv.innerHTML = `
+                <div class="container mx-auto">
+                    <div class="glass p-8 rounded-3xl text-center">
+                        <i class="fas fa-spinner fa-spin text-4xl text-cyan-400 mb-4"></i>
+                        <p class="text-xl">İade işlemi yapılıyor...</p>
+                        <p class="text-sm text-gray-400 mt-2">Lütfen bekleyin, bu işlem birkaç saniye sürebilir.</p>
+                    </div>
+                </div>
+            `;
+
+            try {
+                // Son ödeme bilgisini al
+                const { data: paymentData, error: paymentError } = await supabase
+                    .from('payment_tracking')
+                    .select('tracking_code, created_at, verified_at')
+                    .eq('user_id', storage.currentUser.id)
+                    .eq('status', 'verified')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (paymentError || !paymentData || paymentData.length === 0) {
+                    throw new Error('Ödeme kaydı bulunamadı');
+                }
+
+                const merchant_oid = paymentData[0].tracking_code;
+
+                // Cloudflare Worker URL
+                const REFUND_WORKER_URL = 'https://pigeonpedigre-refund.tamer-nem.workers.dev';
+
+                // İade isteği gönder
+                const response = await fetch(REFUND_WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: storage.currentUser.id,
+                        merchant_oid: merchant_oid
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(
+                        'İade işleminiz başarıyla tamamlandı! Premium erişiminiz sonlandırıldı. Ödemeniz 5-10 iş günü içinde hesabınıza yansıyacaktır.',
+                        'success'
+                    );
+
+                    // 2 saniye bekle ve sayfayı yenile
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+
+                } else {
+                    // Hata durumunda önceki içeriği geri yükle
+                    contentDiv.innerHTML = previousContent;
+                    
+                    if (result.error.includes('3 gün')) {
+                        showNotification(
+                            'İade süresi dolmuş. Premium üyelik satın alımından itibaren 3 gün içinde iade yapabilirsiniz.',
+                            'warning'
+                        );
+                    } else {
+                        showNotification(
+                            result.error || 'İade işlemi sırasında bir hata oluştu',
+                            'error'
+                        );
+                    }
+                }
+
+            } catch (error) {
+                console.error('Refund error:', error);
+                contentDiv.innerHTML = previousContent;
+                
+                showNotification(
+                    'İade işlemi başarısız oldu. Lütfen destek@guvercinsoyagaci.com adresine mail atın.',
+                    'error'
+                );
+            }
+        }
 
         // Update authentication UI
         async function updateAuthUI() {
@@ -6535,7 +6640,7 @@
                         <!-- Butonlar -->
                         <div class="flex flex-wrap gap-4 justify-center">
                             ${profile?.is_premium && isRefundEligible ? `
-                                <button onclick="alert('İade işlemi için destek@guvercinsoyagaci.com adresine mail atabilirsiniz.')" 
+                                <button onclick="requestRefund()" 
                                     class="px-6 py-3 bg-orange-500 hover:bg-orange-600 rounded-full transition flex items-center gap-2">
                                     <i class="fas fa-undo"></i>
                                     <span>Üyeliği İptal Et</span>
@@ -11168,6 +11273,7 @@
         window.printPedigree = printPedigree;
         window.cleanupPreviousViews = cleanupPreviousViews;
         window.logout = logout;
+        window.requestRefund = requestRefund;
         window.updateNavigation = updateNavigation;
         
         // Performans fonksiyonları
@@ -15981,6 +16087,7 @@
         window.updateNavigation = updateNavigation;
         window.showNotification = showNotification;
         window.logout = logout;
+        window.requestRefund = requestRefund;
         
         // Initialize application when DOM is ready
         // Global premium purchase handler
@@ -16053,6 +16160,7 @@
             window.toggleMobileMenu = toggleMobileMenu;
             window.changeLanguage = changeLanguage;
             window.logout = logout;
+            window.requestRefund = requestRefund;
             window.updateAuthUI = updateAuthUI;
             
             // Payment return kontrolü

@@ -1,0 +1,125 @@
+ TÜRKÇE DETAYLI PROMPT – PROFİL SAYFASI TASARIMI (GÜNCELLENMİŞ)
+Sen, Cloudflare Pages (frontend), Supabase (backend + auth) ve PayTR ödeme altyapısı kullanan bir SaaS platformu için çalışan bir frontend geliştiricisi veya UI/UX tasarımcısısın.
+
+Bizim sistemimiz aşağıdaki şekilde çalışıyor:
+
+✅ SİSTEM MİMARİSİ
+Frontend: Cloudflare Pages üzerinde barındırılıyor.
+
+Backend: Supabase kullanıyoruz (auth, veritabanı).
+
+Ödeme: PayTR iframe ile yapılıyor.
+
+Premium üyelik satın alındığında:
+
+payment_tracking tablosuna kayıt atılıyor.
+
+profiles tablosunda premium alanı true oluyor.
+
+Premium üyelik ücreti: ₺39,90 / ay
+
+✅ PROFİL SAYFASI TASARLAMAKTAKİ AMAÇ
+Kullanıcı, kendi üyelik bilgilerini şeffaf şekilde görebilmeli.
+
+Kafa karışıklığı olmamalı (özellikle üyelik tarihleri vs.).
+
+Kullanıcı:
+
+Premium mu değil mi?
+
+Ne zaman premium satın aldı?
+
+Üyelik ne zaman bitecek?
+
+Kaç günü kaldı?
+
+İade hakkı var mı?
+
+bunları tek bakışta anlamalı.
+
+✅ PROFİL SAYFASINDA GÖSTERİLMESİ GEREKEN BİLGİLER
+🧑 Kullanıcı Bilgileri
+E-posta adresi (auth.users’den)
+
+(Kayıt tarihi gösterilmeyecek → kafa karışıklığı yaratıyor.)
+
+💎 Premium Üyelik Bilgileri
+Üyelik durumu → Premium / Ücretsiz
+
+Premium satın alma tarihi → payment_tracking.created_at
+
+Premium bitiş tarihi → satın alma tarihi + 30 gün
+
+Kalan gün → bitiş tarihi - bugünkü tarih
+
+İade hakkı durumu →
+
+“İade edilebilir” (ilk 3 gün içindeyse)
+
+“İade süresi geçti” (3 gün dolmuşsa)
+
+🛠 Kullanıcıya Gösterilecek Bilgi Metni (Örnek)
+“Premium üyeliğiniz ₺39,90/ay’dır. Satın alma tarihiniz: 10 Temmuz 2025.
+İade için son gün: 13 Temmuz 2025 23:59.
+Üyelik iptal edilse bile 10 Ağustos 2025'e kadar tüm premium özellikleri kullanabilirsiniz.”
+
+✅ PROFİL SAYFASINDA BULUNMASI GEREKEN BUTONLAR
+🔴 Üyeliğimi İptal Et
+Aktif mi / pasif mi olacağı iade hakkına bağlı:
+
+3 gün dolmamışsa → aktif olmalı
+
+3 gün dolmuşsa → pasif olabilir veya gizlenebilir
+
+Şimdilik:
+
+Sadece tasarımda butonun yeri ve görünümü planlansın.
+
+Henüz iade backend entegrasyonuna girilmeyecek.
+
+🚪 Çıkış Yap
+Supabase auth oturumunu kapatır.
+
+✅ FRONTEND GÖRSEL TASARIM ÖNERİLERİ
+Sayfa başlığı: “Profilim”
+
+Kart yapısı:
+
+Üyelik durumu
+
+Kalan gün
+
+İade durumu
+
+Bilgiler net, minimalist şekilde sunulmalı.
+
+Mobil uyumlu, responsive olmalı.
+
+Üyelik durumu renkli etiketlerle gösterilebilir:
+
+Premium → yeşil etiket
+
+Ücretsiz → gri etiket
+
+“Üyeliğimi iptal et” butonunun durumu (aktif/pasif) net görünsün.
+
+✅ TASARIM İÇİN DİĞER NOTLAR
+Kafa karışıklığı olmaması için:
+
+Kayıt tarihi gösterilmeyecek.
+
+Sadece premium üyelik başlangıç ve bitiş tarihleri ekranda yer alacak.
+
+Tüm metinler kullanıcı dostu, Türkçe ve kısa tutulmalı.
+
+Kullanıcı:
+
+Ne zaman ödediğini
+
+Ne zamana kadar premium olduğunu
+
+İade hakkı olup olmadığını
+net şekilde görebilmeli.
+
+✅ HEDEF
+Profil sayfası, kullanıcıya kendi üyelik durumunu şeffaf biçimde gösteren, üyelik iptaline imkan veren, modern ve kullanıcı dostu bir ekran olmalıdır. Kod entegrasyonu ayrı olarak yapılacaktır. Şu an sadece tasarım ve bilgi akışı oluşturulacaktır.

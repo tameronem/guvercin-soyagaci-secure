@@ -1,0 +1,16 @@
+name = "pigeonpedigre-paytr-refund"
+main = "paytr-refund.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[[env.production.routes]]
+pattern = "pigeonpedigre-refund.tamer-nem.workers.dev/*"
+
+# Environment variables to be set via dashboard:
+# - MERCHANT_ID
+# - MERCHANT_KEY
+# - MERCHANT_SALT
+# - SUPABASE_URL
+# - SUPABASE_SERVICE_ROLE_KEY
