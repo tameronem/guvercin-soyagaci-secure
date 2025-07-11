@@ -5059,23 +5059,101 @@
             `;
 
             try {
-                // Son ödeme bilgisini al
+                let merchant_oid;
+                
+                // Son ödeme bilgisini al - STATUS KONTROLÜ YOK
                 const { data: paymentData, error: paymentError } = await supabase
                     .from('payment_tracking')
-                    .select('tracking_code, created_at, verified_at')
+                    .select('tracking_code, created_at, verified_at, status')
                     .eq('user_id', storage.currentUser.id)
-                    .eq('status', 'verified')
+                    // STATUS KONTROLÜ KALDIRILDI
                     .order('created_at', { ascending: false })
-                    .limit(1);
+                    .limit(5);  // Son 5 kaydı al
 
-                if (paymentError || !paymentData || paymentData.length === 0) {
-                    throw new Error('Ödeme kaydı bulunamadı');
+                console.log('Refund - Payment query result:', paymentData, 'Error:', paymentError);
+
+                if (!paymentData || paymentData.length === 0) {
+                    console.log('No payment record found, checking if user is premium...');
+                    
+                    // Premium kullanıcı mı kontrol et
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('is_premium, premium_expires_at')
+                        .eq('id', storage.currentUser.id)
+                        .single();
+                    
+                    if (profile?.is_premium) {
+                        // Premium ama payment yok - manuel işlem
+                        merchant_oid = 'MANUAL_' + storage.currentUser.id.substr(0, 8) + '_' + Date.now();
+                        console.log('Premium user without payment, using manual process');
+                        
+                        // Manuel iade onayı
+                        const manualConfirm = confirm(
+                            'Ödeme kaydınız sistemde bulunamadı.\n\n' +
+                            'Premium üyeliğiniz manuel olarak iptal edilecek ve destek ekibimiz sizinle iletişime geçecek.\n\n' +
+                            'Devam etmek istiyor musunuz?'
+                        );
+                        
+                        if (!manualConfirm) {
+                            contentDiv.innerHTML = previousContent;
+                            return;
+                        }
+                    } else {
+                        throw new Error('Premium üyelik bulunamadı');
+                    }
+                } else {
+                    // En uygun payment'ı bul
+                    const verifiedPayment = paymentData.find(p => 
+                        ['verified', 'completed', 'success', 'paid'].includes(p.status)
+                    );
+                    const payment = verifiedPayment || paymentData[0];
+                    merchant_oid = payment.tracking_code;
+                    console.log('Using payment record:', payment);
                 }
 
-                const merchant_oid = paymentData[0].tracking_code;
+                // Manuel iade için özel işlem
+                if (merchant_oid.startsWith('MANUAL_')) {
+                    console.log('Processing manual refund...');
+                    
+                    // Email template oluştur
+                    const subject = encodeURIComponent('Premium Üyelik İade Talebi');
+                    const body = encodeURIComponent(`Merhaba,
+
+Premium üyeliğimi iptal etmek istiyorum.
+
+Kullanıcı Bilgileri:
+- Email: ${storage.currentUser.email}
+- User ID: ${storage.currentUser.id}
+- İade Kodu: ${merchant_oid}
+- Tarih: ${new Date().toLocaleDateString('tr-TR')}
+- Durum: Ödeme kaydı sistemde bulunamadı, manuel işlem gerekli
+
+Teşekkürler.`);
+                    
+                    // Email gönder
+                    window.location.href = `mailto:destek@guvercinsoyagaci.com?subject=${subject}&body=${body}`;
+                    
+                    showNotification(
+                        'İade talebiniz için email hazırlandı. Lütfen gönderin ve 24 saat içinde dönüş bekleyin.',
+                        'info'
+                    );
+                    
+                    // 3 saniye bekle ve önceki içeriği geri yükle
+                    setTimeout(() => {
+                        contentDiv.innerHTML = previousContent;
+                    }, 3000);
+                    
+                    return;
+                }
 
                 // Cloudflare Worker URL
                 const REFUND_WORKER_URL = 'https://pigeonpedigre-refund.tamer-nem.workers.dev';
+                
+                console.log('Refund Worker URL:', REFUND_WORKER_URL);
+                console.log('Sending refund request with:', {
+                    user_id: storage.currentUser.id,
+                    merchant_oid: merchant_oid
+                });
 
                 // İade isteği gönder
                 const response = await fetch(REFUND_WORKER_URL, {
@@ -5120,13 +5198,73 @@
                 }
 
             } catch (error) {
-                console.error('Refund error:', error);
+                console.error('Refund error details:', {
+                    error: error,
+                    message: error.message,
+                    stack: error.stack,
+                    user_id: storage.currentUser?.id
+                });
+                
+                // Önceki içeriği geri yükle
                 contentDiv.innerHTML = previousContent;
                 
-                showNotification(
-                    'İade işlemi başarısız oldu. Lütfen destek@guvercinsoyagaci.com adresine mail atın.',
-                    'error'
-                );
+                // Kullanıcı dostu hata mesajları
+                if (error.message.includes('Premium üyelik bulunamadı')) {
+                    showNotification(
+                        'Premium üyeliğiniz bulunamadı. İade işlemi yapabilmek için premium üye olmalısınız.',
+                        'warning'
+                    );
+                } else if (error.message.includes('Network') || error.message.includes('Failed to fetch')) {
+                    showNotification(
+                        'Bağlantı hatası oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
+                        'error'
+                    );
+                    
+                    // Bağlantı hatası durumunda da email seçeneği sun
+                    setTimeout(() => {
+                        if (confirm('Bağlantı sorunu devam ediyor. Destek ekibine email göndermek ister misiniz?')) {
+                            const subject = encodeURIComponent('Premium İade Talebi - Bağlantı Hatası');
+                            const body = encodeURIComponent(`Merhaba,
+
+İade işlemi sırasında bağlantı hatası aldım.
+
+Kullanıcı Bilgileri:
+- Email: ${storage.currentUser.email}
+- Hata: ${error.message}
+- Tarih: ${new Date().toLocaleDateString('tr-TR')}
+
+Lütfen yardımcı olun.`);
+                            
+                            window.location.href = `mailto:destek@guvercinsoyagaci.com?subject=${subject}&body=${body}`;
+                        }
+                    }, 1000);
+                } else {
+                    // Genel hata durumu
+                    showNotification(
+                        'İade işlemi şu anda gerçekleştirilemiyor. Lütfen daha sonra tekrar deneyin.',
+                        'error'
+                    );
+                    
+                    // Email seçeneği sun
+                    setTimeout(() => {
+                        if (confirm('İade işleminiz için destek ekibine email göndermek ister misiniz?')) {
+                            const subject = encodeURIComponent('Premium İade Talebi');
+                            const body = encodeURIComponent(`Merhaba,
+
+Premium üyeliğimi iptal etmek istiyorum ancak sistem üzerinden yapamadım.
+
+Kullanıcı Bilgileri:
+- Email: ${storage.currentUser.email}
+- User ID: ${storage.currentUser.id}
+- Tarih: ${new Date().toLocaleDateString('tr-TR')}
+- Hata: ${error.message}
+
+Lütfen yardımcı olun.`);
+                            
+                            window.location.href = `mailto:destek@guvercinsoyagaci.com?subject=${subject}&body=${body}`;
+                        }
+                    }, 1000);
+                }
             }
         }
 
