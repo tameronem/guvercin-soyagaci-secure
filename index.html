@@ -6494,25 +6494,39 @@
                 
                 if (profileError) throw profileError;
                 
+                // Debug log
+                console.log('Profile data:', profile);
+                
                 // Son ödeme bilgisini al (sadece premium kullanıcılar için)
                 let lastPayment = null;
                 if (profile?.is_premium) {
-                    const { data: paymentData } = await supabase
+                    // SQL sorgusunu genişlet - farklı status değerlerini kabul et
+                    const { data: paymentData, error: paymentError } = await supabase
                         .from('payment_tracking')
-                        .select('created_at, verified_at, amount')
+                        .select('*')  // Tüm alanları çek
                         .eq('user_id', user.id)
-                        .eq('status', 'verified')
+                        .in('status', ['verified', 'completed', 'success', 'paid'])  // Farklı status değerleri
                         .order('created_at', { ascending: false })
                         .limit(1);
                     
+                    console.log('Payment query result:', paymentData, 'Error:', paymentError);
+                    
                     if (paymentData && paymentData.length > 0) {
                         lastPayment = paymentData[0];
+                        console.log('Last payment found:', lastPayment);
                     }
                 }
                 
                 // Kalan gün hesapla
                 let remainingDays = 0;
                 let isRefundEligible = false;
+                let daysSincePurchase = null;
+                
+                // Development mode check
+                const isDevelopment = window.location.hostname === 'localhost' || 
+                                    window.location.hostname === '127.0.0.1' ||
+                                    window.location.hostname.includes('vercel') ||
+                                    window.location.hostname.includes('cloudflare');
                 
                 if (profile?.is_premium && profile?.premium_expires_at) {
                     const expiryDate = new Date(profile.premium_expires_at);
@@ -6520,12 +6534,23 @@
                     remainingDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
                     
                     // İade hakkı kontrolü (3 gün kuralı)
-                    if (lastPayment?.verified_at) {
-                        const purchaseDate = new Date(lastPayment.verified_at);
-                        const daysSincePurchase = Math.ceil((today - purchaseDate) / (1000 * 60 * 60 * 24));
+                    // verified_at yoksa created_at kullan
+                    const purchaseDateField = lastPayment?.verified_at || lastPayment?.created_at;
+                    
+                    if (purchaseDateField) {
+                        const purchaseDate = new Date(purchaseDateField);
+                        daysSincePurchase = Math.ceil((today - purchaseDate) / (1000 * 60 * 60 * 24));
                         isRefundEligible = daysSincePurchase <= 3;
+                        
+                        console.log('Purchase date:', purchaseDate, 'Days since:', daysSincePurchase, 'Eligible:', isRefundEligible);
+                    } else if (isDevelopment) {
+                        // Development modda her zaman iade hakkı ver
+                        isRefundEligible = true;
+                        console.log('Development mode - refund always eligible');
                     }
                 }
+                
+                console.log('Final refund eligibility:', isRefundEligible);
                 
                 // Profil sayfası HTML'i
                 contentDiv.innerHTML = `
@@ -6578,7 +6603,10 @@
                                     <div class="text-center">
                                         <p class="text-gray-400 text-sm mb-1">Satın Alma Tarihi</p>
                                         <p class="text-xl font-semibold">
-                                            ${lastPayment?.verified_at ? new Date(lastPayment.verified_at).toLocaleDateString('tr-TR') : '-'}
+                                            ${lastPayment ? 
+                                                new Date(lastPayment.verified_at || lastPayment.created_at).toLocaleDateString('tr-TR') : 
+                                                '-'
+                                            }
                                         </p>
                                     </div>
                                     
@@ -6599,22 +6627,34 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Ödeme kaydı bulunamadıysa bilgilendirme -->
+                                ${!lastPayment && profile?.is_premium ? `
+                                    <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
+                                        <p class="text-yellow-400 flex items-center gap-2">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            Ödeme kaydı bulunamadı. İade işlemi için: destek@guvercinsoyagaci.com
+                                        </p>
+                                    </div>
+                                ` : ''}
+                                
                                 <!-- İade Durumu -->
-                                ${isRefundEligible ? `
-                                    <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-4">
-                                        <p class="text-green-400 flex items-center gap-2">
-                                            <i class="fas fa-check-circle"></i>
-                                            İade hakkınız bulunmaktadır (3 gün içinde)
-                                        </p>
-                                    </div>
-                                ` : `
-                                    <div class="bg-gray-500/10 border border-gray-500/30 rounded-xl p-4 mb-4">
-                                        <p class="text-gray-400 flex items-center gap-2">
-                                            <i class="fas fa-times-circle"></i>
-                                            İade hakkı süresi dolmuştur
-                                        </p>
-                                    </div>
-                                `}
+                                ${lastPayment || isDevelopment ? (
+                                    isRefundEligible ? `
+                                        <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-4">
+                                            <p class="text-green-400 flex items-center gap-2">
+                                                <i class="fas fa-check-circle"></i>
+                                                İade hakkınız bulunmaktadır ${daysSincePurchase !== null ? `(${3 - daysSincePurchase} gün kaldı)` : '(3 gün içinde)'}
+                                            </p>
+                                        </div>
+                                    ` : `
+                                        <div class="bg-gray-500/10 border border-gray-500/30 rounded-xl p-4 mb-4">
+                                            <p class="text-gray-400 flex items-center gap-2">
+                                                <i class="fas fa-times-circle"></i>
+                                                İade hakkı süresi dolmuştur ${daysSincePurchase !== null ? `(${daysSincePurchase} gün geçti)` : ''}
+                                            </p>
+                                        </div>
+                                    `
+                                ) : ''}
                             </div>
                         ` : ''}
                         
