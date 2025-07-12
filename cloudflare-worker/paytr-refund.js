@@ -89,19 +89,33 @@ export default {
 
       const payment = paymentData[0];
 
-      // 2. Check if payment is verified
-      if (payment.status !== 'verified') {
+      // 2. Check if payment is verified or paid (backward compatibility)
+      if (!['verified', 'paid'].includes(payment.status)) {
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'Ödeme doğrulanmamış'
+            error: 'Ödeme doğrulanmamış',
+            payment_status: payment.status
           }),
           { status: 400, headers: corsHeaders }
         );
       }
 
       // 3. Check 3-day refund eligibility
-      const verifiedDate = new Date(payment.verified_at);
+      // Use verified_at if available, otherwise fall back to payment_date or created_at
+      const dateToCheck = payment.verified_at || payment.payment_date || payment.created_at;
+      if (!dateToCheck) {
+        console.error('No date found for refund eligibility check');
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Ödeme tarihi bulunamadı'
+          }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+      
+      const verifiedDate = new Date(dateToCheck);
       const now = new Date();
       const daysDiff = Math.floor((now - verifiedDate) / (1000 * 60 * 60 * 24));
 

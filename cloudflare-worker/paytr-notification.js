@@ -279,7 +279,8 @@ export default {
               'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
-              status: 'paid',
+              status: 'verified',
+              verified_at: new Date().toISOString(),
               paid_amount: parseFloat(post.total_amount) / 100,
               payment_date: new Date().toISOString(),
               payment_type: post.payment_type || 'card',

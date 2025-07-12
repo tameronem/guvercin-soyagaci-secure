@@ -3,14 +3,14 @@
 // SDK'nın yüklenmesini bekle
 function waitForSupabaseSDK() {
     return new Promise((resolve) => {
-        if (window.supabase && window.supabase.createClient) {
+        if (window['supabase'] && window['supabase'].createClient) {
             resolve(true);
         } else {
             let attempts = 0;
             const checkInterval = setInterval(() => {
                 attempts++;
                 console.log('[Supabase] SDK bekleniyor... Deneme:', attempts);
-                if (window.supabase && window.supabase.createClient) {
+                if (window['supabase'] && window['supabase'].createClient) {
                     clearInterval(checkInterval);
                     console.log('[Supabase] SDK hazır!');
                     resolve(true);
@@ -32,9 +32,18 @@ let SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
 let supabase = null;
 let initializationAttempts = 0;
 const MAX_INIT_ATTEMPTS = 3;
+let isInitializing = false;
 
 // Client initialization function
 function initializeSupabaseClient() {
+    // Başlatma zaten devam ediyorsa, tekrar çalıştırma
+    if (isInitializing) {
+        console.log('[Supabase] Başlatma zaten devam ediyor...');
+        return false;
+    }
+    
+    isInitializing = true;
+    
     // Retry getting credentials
     SUPABASE_URL = window.SUPABASE_URL || '';
     SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
@@ -43,18 +52,20 @@ function initializeSupabaseClient() {
         console.error('[Supabase] Yapılandırma eksik! Lütfen config.js dosyasını kontrol edin.');
         console.error('[Supabase] URL:', SUPABASE_URL ? 'Mevcut' : 'Eksik');
         console.error('[Supabase] Key:', SUPABASE_ANON_KEY ? 'Mevcut' : 'Eksik');
+        isInitializing = false;
         return false;
     }
     
     try {
-        // SDK kontrolü
-        if (!window.supabase || !window.supabase.createClient) {
+        // SDK kontrolü - window.supabase yerine window['supabase'] kullan
+        if (!window['supabase'] || !window['supabase'].createClient) {
             console.error('[Supabase] SDK henüz yüklenmedi!');
+            isInitializing = false;
             return false;
         }
         
         // Create or recreate the client
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        supabase = window['supabase'].createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
                 detectSessionInUrl: true,
@@ -72,9 +83,11 @@ function initializeSupabaseClient() {
             }
         });
         
+        isInitializing = false;
         return true;
     } catch (error) {
         console.error('[Supabase] Client başlatma hatası:', error);
+        isInitializing = false;
         return false;
     }
 }
@@ -295,7 +308,7 @@ window.supabaseClient = {
 // But use a getter to ensure it's always the latest instance
 Object.defineProperty(window, 'supabase', {
     get: function() {
-        if (!supabase) {
+        if (!supabase && !isInitializing) {
             console.warn('[Supabase] Client erişimi sırasında client bulunamadı, başlatılıyor...');
             initializeSupabaseClient();
         }
