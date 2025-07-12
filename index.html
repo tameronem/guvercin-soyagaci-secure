@@ -5059,16 +5059,34 @@
             `;
 
             try {
+                // Supabase client kontrolü
+                if (!window.supabaseClient) {
+                    showNotification('Sistem başlatılıyor, lütfen tekrar deneyin.', 'warning');
+                    window.supabaseClient.initializeClient();
+                    contentDiv.innerHTML = previousContent;
+                    return;
+                }
+                
+                // Session kontrolü
+                const session = await window.supabaseClient.checkSession();
+                if (!session) {
+                    showNotification('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.', 'error');
+                    openAuthModal('login');
+                    contentDiv.innerHTML = previousContent;
+                    return;
+                }
+                
                 let merchant_oid;
                 
-                // Son ödeme bilgisini al - STATUS KONTROLÜ YOK
-                const { data: paymentData, error: paymentError } = await supabase
-                    .from('payment_tracking')
-                    .select('tracking_code, created_at, verified_at, status')
-                    .eq('user_id', storage.currentUser.id)
-                    // STATUS KONTROLÜ KALDIRILDI
-                    .order('created_at', { ascending: false })
-                    .limit(5);  // Son 5 kaydı al
+                // Son ödeme bilgisini güvenli şekilde al
+                const { data: paymentData, error: paymentError } = await window.supabaseClient.safeQuery('payment_tracking',
+                    (query) => query
+                        .select('tracking_code, created_at, verified_at, status')
+                        .eq('user_id', storage.currentUser.id)
+                        // STATUS KONTROLÜ KALDIRILDI
+                        .order('created_at', { ascending: false })
+                        .limit(5)  // Son 5 kaydı al
+                );
 
                 console.log('Refund - Payment query result:', paymentData, 'Error:', paymentError);
 
@@ -6661,16 +6679,29 @@ Lütfen yardımcı olun.`);
             `;
             
             try {
-                // Kullanıcı bilgilerini al
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) throw new Error('User not found');
+                // Supabase client'ı güvenli şekilde al
+                if (!window.supabaseClient) {
+                    throw new Error('Supabase client not initialized');
+                }
                 
-                // Profil bilgilerini al
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('*, is_premium, premium_expires_at')
-                    .eq('id', user.id)
-                    .single();
+                // Client'ı başlat ve session kontrolü yap
+                const session = await window.supabaseClient.checkSession();
+                if (!session) {
+                    // Session yoksa login sayfasına yönlendir
+                    openAuthModal('login');
+                    return;
+                }
+                
+                const user = session.user;
+                console.log('User from session:', user.email);
+                
+                // Profil bilgilerini güvenli şekilde al
+                const { data: profile, error: profileError } = await window.supabaseClient.safeQuery('profiles', 
+                    (query) => query
+                        .select('*, is_premium, premium_expires_at')
+                        .eq('id', user.id)
+                        .single()
+                );
                 
                 if (profileError) throw profileError;
                 
@@ -6684,14 +6715,15 @@ Lütfen yardımcı olun.`);
                     console.log('Profile premium status:', profile?.is_premium);
                     console.log('Profile premium expires:', profile?.premium_expires_at);
                     
-                    // SQL sorgusunu genişlet - STATUS KONTROLÜ YOK
-                    const { data: paymentData, error: paymentError } = await supabase
-                        .from('payment_tracking')
-                        .select('*')  // Tüm alanları çek
-                        .eq('user_id', user.id)
-                        // STATUS KONTROLÜ KALDIRILDI - tüm kayıtları getir
-                        .order('created_at', { ascending: false })
-                        .limit(5);  // Son 5 kaydı al
+                    // Ödeme bilgilerini güvenli şekilde al
+                    const { data: paymentData, error: paymentError } = await window.supabaseClient.safeQuery('payment_tracking',
+                        (query) => query
+                            .select('*')  // Tüm alanları çek
+                            .eq('user_id', user.id)
+                            // STATUS KONTROLÜ KALDIRILDI - tüm kayıtları getir
+                            .order('created_at', { ascending: false })
+                            .limit(5)  // Son 5 kaydı al
+                    );
                     
                     console.log('Payment query - full response:', { data: paymentData, error: paymentError });
                     
@@ -16581,6 +16613,56 @@ Lütfen yardımcı olun.`);
                 </div>
             `;
         }
+        
+        // Initialize Supabase Client on Page Load
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[App] Initializing application...');
+            
+            // Ensure Supabase client is initialized
+            if (window.supabaseClient && typeof window.supabaseClient.initializeClient === 'function') {
+                const initialized = window.supabaseClient.initializeClient();
+                if (!initialized) {
+                    console.error('[App] Supabase client initialization failed!');
+                    console.error('[App] Please check that config.js contains valid SUPABASE_URL and SUPABASE_ANON_KEY values');
+                    
+                    // Show error message to user
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+                    alertDiv.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <p class="font-bold">Sistem Hatası</p>
+                                <p class="text-sm">Bağlantı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.</p>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(alertDiv);
+                    
+                    // Remove after 5 seconds
+                    setTimeout(() => alertDiv.remove(), 5000);
+                }
+            } else {
+                console.error('[App] Supabase client not found!');
+            }
+            
+            // Check for existing session
+            try {
+                if (window.supabaseClient && window.supabaseClient.checkSession) {
+                    const session = await window.supabaseClient.checkSession();
+                    if (session) {
+                        console.log('[App] Found existing session for:', session.user.email);
+                        // Update UI with session info
+                        await updateAuthUI();
+                    }
+                }
+            } catch (error) {
+                console.error('[App] Session check error:', error);
+            }
+            
+            // Initialize other components
+            await initializeApp();
+        });
     </script>
     
     <!-- AI Breeding Modules -->
