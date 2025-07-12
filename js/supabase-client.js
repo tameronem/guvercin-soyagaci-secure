@@ -1,5 +1,29 @@
 // SUPABASE CLIENT CONFIGURATION
 
+// SDK'nın yüklenmesini bekle
+function waitForSupabaseSDK() {
+    return new Promise((resolve) => {
+        if (window.supabase && window.supabase.createClient) {
+            resolve(true);
+        } else {
+            let attempts = 0;
+            const checkInterval = setInterval(() => {
+                attempts++;
+                console.log('[Supabase] SDK bekleniyor... Deneme:', attempts);
+                if (window.supabase && window.supabase.createClient) {
+                    clearInterval(checkInterval);
+                    console.log('[Supabase] SDK hazır!');
+                    resolve(true);
+                } else if (attempts > 20) { // 10 saniye bekle
+                    clearInterval(checkInterval);
+                    console.error('[Supabase] SDK yüklenemedi!');
+                    resolve(false);
+                }
+            }, 500);
+        }
+    });
+}
+
 // Supabase credentials - config.js dosyasından veya environment'tan gelir
 let SUPABASE_URL = window.SUPABASE_URL || '';
 let SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
@@ -23,6 +47,12 @@ function initializeSupabaseClient() {
     }
     
     try {
+        // SDK kontrolü
+        if (!window.supabase || !window.supabase.createClient) {
+            console.error('[Supabase] SDK henüz yüklenmedi!');
+            return false;
+        }
+        
         // Create or recreate the client
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
@@ -49,21 +79,39 @@ function initializeSupabaseClient() {
     }
 }
 
-// Initialize on load
-if (!initializeSupabaseClient()) {
-    // Retry after a delay if initial attempt fails
-    const retryInit = setInterval(() => {
-        initializationAttempts++;
-        console.log(`[Supabase] Başlatma denemesi ${initializationAttempts}/${MAX_INIT_ATTEMPTS}`);
-        
-        if (initializeSupabaseClient() || initializationAttempts >= MAX_INIT_ATTEMPTS) {
-            clearInterval(retryInit);
-            if (!supabase && initializationAttempts >= MAX_INIT_ATTEMPTS) {
+// Initialize on load - SDK'yı bekle
+(async function() {
+    console.log('[Supabase] Başlatılıyor...');
+    
+    // Önce SDK'nın yüklenmesini bekle
+    const sdkReady = await waitForSupabaseSDK();
+    
+    if (!sdkReady) {
+        console.error('[Supabase] SDK yüklenemedi! CDN bağlantısını kontrol edin.');
+        return;
+    }
+    
+    // SDK yüklendikten sonra client'ı başlat
+    if (!initializeSupabaseClient()) {
+        // Retry after a delay if initial attempt fails
+        const retryInit = setInterval(() => {
+            initializationAttempts++;
+            console.log(`[Supabase] Başlatma denemesi ${initializationAttempts}/${MAX_INIT_ATTEMPTS}`);
+            
+            if (initializeSupabaseClient()) {
+                clearInterval(retryInit);
+                // Client başarıyla başlatıldı, auth listener'ı kur
+                setupAuthListener();
+            } else if (initializationAttempts >= MAX_INIT_ATTEMPTS) {
+                clearInterval(retryInit);
                 console.error('[Supabase] Client başlatılamadı! config.js dosyasında SUPABASE_URL ve SUPABASE_ANON_KEY değerlerini kontrol edin.');
             }
-        }
-    }, 1000);
-}
+        }, 1000);
+    } else {
+        // Client başarıyla başlatıldı, auth listener'ı kur
+        setupAuthListener();
+    }
+})();
 
 // Debug mode
 const DEBUG = true;
@@ -132,17 +180,7 @@ function setupAuthListener() {
 }
 
 // Setup auth listener when client is ready
-if (supabase) {
-    setupAuthListener();
-} else {
-    // Wait for client initialization
-    const checkInterval = setInterval(() => {
-        if (supabase) {
-            setupAuthListener();
-            clearInterval(checkInterval);
-        }
-    }, 500);
-}
+// This will be called after SDK and client initialization
 
 // Session kontrolü with retry
 async function checkSession() {

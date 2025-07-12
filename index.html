@@ -16619,31 +16619,39 @@ Lütfen yardımcı olun.`);
             console.log('[App] Initializing application...');
             
             // Ensure Supabase client is initialized
-            if (window.supabaseClient && typeof window.supabaseClient.initializeClient === 'function') {
-                const initialized = window.supabaseClient.initializeClient();
-                if (!initialized) {
-                    console.error('[App] Supabase client initialization failed!');
-                    console.error('[App] Please check that config.js contains valid SUPABASE_URL and SUPABASE_ANON_KEY values');
-                    
-                    // Show error message to user
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
-                    alertDiv.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <div>
-                                <p class="font-bold">Sistem Hatası</p>
-                                <p class="text-sm">Bağlantı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.</p>
+            // Client will auto-initialize with SDK wait mechanism
+            if (!window.supabaseClient) {
+                console.log('[App] Waiting for Supabase client initialization...');
+                
+                // Wait for client to be ready
+                let attempts = 0;
+                const waitForClient = setInterval(() => {
+                    attempts++;
+                    if (window.supabaseClient && window.supabaseClient.client) {
+                        console.log('[App] Supabase client ready!');
+                        clearInterval(waitForClient);
+                    } else if (attempts > 10) {
+                        clearInterval(waitForClient);
+                        console.error('[App] Supabase client initialization timeout!');
+                        
+                        // Show error message to user
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+                        alertDiv.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <div>
+                                    <p class="font-bold">Sistem Hatası</p>
+                                    <p class="text-sm">Bağlantı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.</p>
+                                </div>
                             </div>
-                        </div>
-                    `;
-                    document.body.appendChild(alertDiv);
-                    
-                    // Remove after 5 seconds
-                    setTimeout(() => alertDiv.remove(), 5000);
-                }
-            } else {
-                console.error('[App] Supabase client not found!');
+                        `;
+                        document.body.appendChild(alertDiv);
+                        
+                        // Remove after 5 seconds
+                        setTimeout(() => alertDiv.remove(), 5000);
+                    }
+                }, 500);
             }
             
             // Check for existing session
@@ -16653,7 +16661,11 @@ Lütfen yardımcı olun.`);
                     if (session) {
                         console.log('[App] Found existing session for:', session.user.email);
                         // Update UI with session info
-                        await updateAuthUI();
+                        if (typeof updateAuthUI === 'function') {
+                            await updateAuthUI();
+                        } else {
+                            console.log('[App] updateAuthUI function not found, skipping UI update');
+                        }
                     }
                 }
             } catch (error) {
@@ -16661,7 +16673,15 @@ Lütfen yardımcı olun.`);
             }
             
             // Initialize other components
-            await initializeApp();
+            if (typeof initializeApp === 'function') {
+                await initializeApp();
+            } else {
+                console.log('[App] Main app initialization complete');
+                // Ana fonksiyonları initialize et
+                if (typeof showHomepage === 'function') {
+                    console.log('[App] Homepage function ready');
+                }
+            }
         });
     </script>
     
