@@ -1443,13 +1443,20 @@
             pointer-events: none;
             z-index: 5; /* Above background but behind nodes */
             overflow: visible; /* Allow lines to be visible outside bounds */
+            border: 2px dashed red; /* Debug: make SVG visible */
+        }
+        
+        .connection-line {
+            fill: none;
+            stroke: #ff0000 !important; /* Red for debug visibility */
+            stroke-width: 3 !important;
+            opacity: 1 !important;
         }
         
         .connection-svg path {
             fill: none;
             stroke-width: 3;
             opacity: 1;
-            stroke: #6366f1; /* Solid color for debugging */
         }
         
         .connection-svg circle {
@@ -8993,21 +9000,28 @@ Lütfen yardımcı olun.`);
             
             allNodes.forEach(node => {
                 const nodeRect = node.getBoundingClientRect();
-                const nodeX = nodeRect.left - containerRect.left + container.scrollLeft;
-                const nodeY = nodeRect.top - containerRect.top + container.scrollTop;
+                const nodeX = nodeRect.left - containerRect.left;
+                const nodeY = nodeRect.top - containerRect.top;
                 maxX = Math.max(maxX, nodeX + nodeRect.width);
                 maxY = Math.max(maxY, nodeY + nodeRect.height);
+                
+                console.log(`Node ${node.id}: x=${nodeX}, y=${nodeY}, width=${nodeRect.width}, height=${nodeRect.height}`);
             });
             
             // Add padding to SVG dimensions
-            svg.setAttribute('width', maxX + 50);
-            svg.setAttribute('height', maxY + 50);
+            const svgWidth = maxX + 50;
+            const svgHeight = maxY + 50;
+            svg.setAttribute('width', svgWidth);
+            svg.setAttribute('height', svgHeight);
+            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
             svg.style.position = 'absolute';
             svg.style.top = '0';
             svg.style.left = '0';
             svg.style.pointerEvents = 'none';
-            svg.style.width = (maxX + 50) + 'px';
-            svg.style.height = (maxY + 50) + 'px';
+            svg.style.width = svgWidth + 'px';
+            svg.style.height = svgHeight + 'px';
+            svg.style.backgroundColor = 'rgba(255, 255, 0, 0.1)'; // Yellow semi-transparent for debug
+            svg.style.zIndex = '5';
             
             // Create gradient definition
             const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -9036,17 +9050,31 @@ Lütfen yardımcı olun.`);
             container.insertBefore(svg, container.firstChild);
             console.log('SVG created with dimensions:', maxX + 50, 'x', maxY + 50);
             
+            // Add a test rectangle to verify SVG is rendering
+            const testRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            testRect.setAttribute('x', '10');
+            testRect.setAttribute('y', '10');
+            testRect.setAttribute('width', '100');
+            testRect.setAttribute('height', '50');
+            testRect.setAttribute('fill', 'red');
+            testRect.setAttribute('opacity', '0.5');
+            svg.appendChild(testRect);
+            console.log('Test rectangle added to SVG');
+            
             // Helper function to get relative position
             function getRelativePos(node) {
                 const nodeRect = node.getBoundingClientRect();
-                return {
-                    left: nodeRect.left - containerRect.left + container.scrollLeft,
-                    right: nodeRect.right - containerRect.left + container.scrollLeft,
-                    top: nodeRect.top - containerRect.top + container.scrollTop,
-                    bottom: nodeRect.bottom - containerRect.top + container.scrollTop,
-                    centerX: (nodeRect.left + nodeRect.right) / 2 - containerRect.left + container.scrollLeft,
-                    centerY: (nodeRect.top + nodeRect.bottom) / 2 - containerRect.top + container.scrollTop
+                
+                const relPos = {
+                    left: nodeRect.left - containerRect.left,
+                    right: nodeRect.right - containerRect.left,
+                    top: nodeRect.top - containerRect.top,
+                    bottom: nodeRect.bottom - containerRect.top,
+                    centerX: (nodeRect.left + nodeRect.right) / 2 - containerRect.left,
+                    centerY: (nodeRect.top + nodeRect.bottom) / 2 - containerRect.top
                 };
+                
+                return relPos;
             }
             
             // Draw connections based on parent IDs using orthogonal lines
@@ -9070,22 +9098,18 @@ Lütfen yardımcı olun.`);
                         
                         // PART A: Create marriage bracket connecting parents
                         // Position bracket to the left of parents
-                        const bracketX = Math.min(relFather.left, relMother.left) - 20;
+                        const bracketX = relFather.left - 20; // Use father's position as reference
                         
                         // A.2: Father horizontal line
                         const fatherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         fatherPath.setAttribute('d', `M ${relFather.left} ${relFather.centerY} H ${bracketX}`);
-                        fatherPath.setAttribute('stroke', '#6366f1');
-                        fatherPath.setAttribute('stroke-width', isMobile ? '3' : '2');
-                        fatherPath.setAttribute('fill', 'none');
+                        fatherPath.setAttribute('class', 'connection-line');
                         svg.appendChild(fatherPath);
                         
                         // A.3: Mother horizontal line
                         const motherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         motherPath.setAttribute('d', `M ${relMother.left} ${relMother.centerY} H ${bracketX}`);
-                        motherPath.setAttribute('stroke', '#6366f1');
-                        motherPath.setAttribute('stroke-width', isMobile ? '3' : '2');
-                        motherPath.setAttribute('fill', 'none');
+                        motherPath.setAttribute('class', 'connection-line');
                         svg.appendChild(motherPath);
                         
                         // A.4: Vertical connecting line
@@ -9093,9 +9117,7 @@ Lütfen yardımcı olun.`);
                         const minY = Math.min(relFather.centerY, relMother.centerY);
                         const maxY = Math.max(relFather.centerY, relMother.centerY);
                         verticalPath.setAttribute('d', `M ${bracketX} ${minY} V ${maxY}`);
-                        verticalPath.setAttribute('stroke', '#6366f1');
-                        verticalPath.setAttribute('stroke-width', isMobile ? '3' : '2');
-                        verticalPath.setAttribute('fill', 'none');
+                        verticalPath.setAttribute('class', 'connection-line');
                         svg.appendChild(verticalPath);
                         
                         // PART B: Connect child to marriage bracket
@@ -9106,9 +9128,6 @@ Lütfen yardımcı olun.`);
                         const elbowX = relChild.right + 20;
                         const childPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         childPath.setAttribute('d', `M ${relChild.right} ${relChild.centerY} H ${elbowX} V ${bracketMidY} H ${bracketX}`);
-                        childPath.setAttribute('stroke', '#6366f1');
-                        childPath.setAttribute('stroke-width', isMobile ? '3' : '2');
-                        childPath.setAttribute('fill', 'none');
                         childPath.setAttribute('class', 'connection-line');
                         svg.appendChild(childPath);
                         console.log('Created path with d:', childPath.getAttribute('d'));
@@ -9126,9 +9145,6 @@ Lütfen yardımcı olun.`);
                         const midX = (relParent.left + relChild.right) / 2;
                         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         path.setAttribute('d', `M ${relParent.left} ${relParent.centerY} H ${midX} V ${relChild.centerY} H ${relChild.right}`);
-                        path.setAttribute('stroke', '#6366f1');
-                        path.setAttribute('stroke-width', isMobile ? '3' : '2');
-                        path.setAttribute('fill', 'none');
                         path.setAttribute('class', 'connection-line');
                         svg.appendChild(path);
                     }
