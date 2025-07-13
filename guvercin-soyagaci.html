@@ -1000,9 +1000,9 @@
             padding: 2rem;
             min-height: 600px;
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: visible;
             background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
-            scroll-behavior: smooth;
+            scroll-behavior: auto;
             -webkit-overflow-scrolling: touch;
             /* Ensure proper stacking context for SVG */
             position: relative;
@@ -8460,12 +8460,17 @@
                     </div>
                 `;
                 
-                // Position nodes and add connection lines after rendering
+                // Reset scroll position to top
+                window.scrollTo(0, 0);
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+                
+                // Position nodes and add connection lines after rendering with better timing
                 if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
                 window.pedigreeTimeout = setTimeout(() => {
                     positionNodes();
                     drawConnectionLines();
-                }, 100);
+                }, 300);
                 
                 // Add ResizeObserver for better performance and accuracy
                 const pedigreeWrapper = document.querySelector('.pedigree-wrapper');
@@ -8515,18 +8520,18 @@
                     });
                 }
                 
-                // Redraw lines when container is scrolled (for mobile)
-                const pedigreeContainer = document.querySelector('.pedigree-tree');
-                if (pedigreeContainer) {
-                    let scrollTimeout;
-                    pedigreeContainer.addEventListener('scroll', () => {
-                        clearTimeout(scrollTimeout);
-                        scrollTimeout = setTimeout(() => {
-                            positionNodes();
-                            drawConnectionLines();
-                        }, 100);
-                    });
-                }
+                // Redraw lines when container is scrolled (for mobile) - DISABLED to prevent continuous scrolling
+                // const pedigreeContainer = document.querySelector('.pedigree-tree');
+                // if (pedigreeContainer) {
+                //     let scrollTimeout;
+                //     pedigreeContainer.addEventListener('scroll', () => {
+                //         clearTimeout(scrollTimeout);
+                //         scrollTimeout = setTimeout(() => {
+                //             positionNodes();
+                //             drawConnectionLines();
+                //         }, 100);
+                //     });
+                // }
                 
                 // Use IntersectionObserver for performance optimization
                 const observer = new IntersectionObserver((entries) => {
