@@ -1,14 +1,25 @@
 // SUPABASE AUTH IMPLEMENTATION
 
 // Helper function to get supabase client
-function getSupabase() {
-    if (window.supabaseClient && window.supabaseClient.getClient) {
-        return window.supabaseClient.getClient();
+async function getSupabase() {
+    // First try to get the client directly
+    if (window.supabaseClient && window.supabaseClient.client) {
+        return window.supabaseClient.client;
     }
-    // Fallback to global supabase if available
-    if (window.supabase && typeof window.supabase.auth !== 'undefined') {
-        return window.supabase;
+    
+    // If not available, wait for initialization
+    if (window.supabaseClient && window.supabaseClient.waitForInit) {
+        try {
+            console.log('[SupabaseAuth] Waiting for Supabase client initialization...');
+            const client = await window.supabaseClient.waitForInit();
+            console.log('[SupabaseAuth] Supabase client ready');
+            return client;
+        } catch (error) {
+            console.error('[SupabaseAuth] Failed to initialize Supabase client:', error);
+            return null;
+        }
     }
+    
     console.error('[SupabaseAuth] Supabase client not available');
     return null;
 }
@@ -19,7 +30,7 @@ const SupabaseAuth = {
     async register(email, password, firstName, lastName) {
         try {
             // 1. Supabase Auth ile kullanıcı oluştur
-            const supabase = getSupabase();
+            const supabase = await getSupabase();
             if (!supabase) throw new Error('Supabase client not initialized');
             
             const { data, error } = await supabase.auth.signUp({
@@ -56,7 +67,7 @@ const SupabaseAuth = {
     // Giriş yap
     async login(email, password) {
         try {
-            const supabase = getSupabase();
+            const supabase = await getSupabase();
             if (!supabase) throw new Error('Supabase client not initialized');
             
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -67,7 +78,7 @@ const SupabaseAuth = {
             if (error) throw error;
 
             // Kullanıcı profilini getir
-            const profile = await supabaseClient.getUserProfile(data.user.id);
+            const profile = window.supabaseClient ? await window.supabaseClient.getUserProfile(data.user.id) : null;
             
             // Session storage'a kaydet (geçici uyumluluk için)
             const userData = {
@@ -110,7 +121,7 @@ const SupabaseAuth = {
     // Çıkış yap
     async logout() {
         try {
-            const supabase = getSupabase();
+            const supabase = await getSupabase();
             if (!supabase) throw new Error('Supabase client not initialized');
             
             const { error } = await supabase.auth.signOut();
@@ -136,7 +147,7 @@ const SupabaseAuth = {
     // Şifre sıfırlama emaili gönder
     async resetPassword(email) {
         try {
-            const supabase = getSupabase();
+            const supabase = await getSupabase();
             if (!supabase) throw new Error('Supabase client not initialized');
             
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -162,7 +173,7 @@ const SupabaseAuth = {
     // Şifre güncelle
     async updatePassword(newPassword) {
         try {
-            const supabase = getSupabase();
+            const supabase = await getSupabase();
             if (!supabase) throw new Error('Supabase client not initialized');
             
             const { error } = await supabase.auth.updateUser({
@@ -188,7 +199,7 @@ const SupabaseAuth = {
     // Mevcut kullanıcıyı getir
     async getCurrentUser() {
         try {
-            const supabase = getSupabase();
+            const supabase = await getSupabase();
             if (!supabase) throw new Error('Supabase client not initialized');
             
             const { data: { user }, error } = await supabase.auth.getUser();
@@ -196,7 +207,7 @@ const SupabaseAuth = {
             if (error || !user) return null;
 
             // Profil bilgilerini getir
-            const profile = await supabaseClient.getUserProfile(user.id);
+            const profile = window.supabaseClient ? await window.supabaseClient.getUserProfile(user.id) : null;
             
             return {
                 id: user.id,
@@ -217,7 +228,7 @@ const SupabaseAuth = {
     // Email doğrulama
     async verifyEmail(token) {
         try {
-            const supabase = getSupabase();
+            const supabase = await getSupabase();
             if (!supabase) throw new Error('Supabase client not initialized');
             
             const { error } = await supabase.auth.verifyOtp({

@@ -56,6 +56,9 @@ let supabase = null;
 let initializationAttempts = 0;
 const MAX_INIT_ATTEMPTS = 3;
 let isInitializing = false;
+let initializationPromise = null;
+let initializationResolve = null;
+let initializationReject = null;
 
 // Client initialization function
 function initializeSupabaseClient() {
@@ -116,8 +119,22 @@ function initializeSupabaseClient() {
     }
 }
 
+// Create initialization promise
+function createInitializationPromise() {
+    if (!initializationPromise) {
+        initializationPromise = new Promise((resolve, reject) => {
+            initializationResolve = resolve;
+            initializationReject = reject;
+        });
+    }
+    return initializationPromise;
+}
+
 // Initialize on load - SDK'yı bekle
 (async function() {
+    // Create the promise immediately
+    createInitializationPromise();
+    
     console.log('[Supabase] Başlatılıyor...');
     
     // Önce SDK'nın yüklenmesini bekle
@@ -125,6 +142,9 @@ function initializeSupabaseClient() {
     
     if (!sdkReady) {
         console.error('[Supabase] SDK yüklenemedi! CDN bağlantısını kontrol edin.');
+        if (initializationReject) {
+            initializationReject(new Error('SDK yüklenemedi'));
+        }
         return;
     }
     
@@ -139,14 +159,23 @@ function initializeSupabaseClient() {
                 clearInterval(retryInit);
                 // Client başarıyla başlatıldı, auth listener'ı kur
                 setupAuthListener();
+                if (initializationResolve) {
+                    initializationResolve(supabase);
+                }
             } else if (initializationAttempts >= MAX_INIT_ATTEMPTS) {
                 clearInterval(retryInit);
                 console.error('[Supabase] Client başlatılamadı! config.js dosyasında SUPABASE_URL ve SUPABASE_ANON_KEY değerlerini kontrol edin.');
+                if (initializationReject) {
+                    initializationReject(new Error('Client başlatılamadı'));
+                }
             }
         }, 1000);
     } else {
         // Client başarıyla başlatıldı, auth listener'ı kur
         setupAuthListener();
+        if (initializationResolve) {
+            initializationResolve(supabase);
+        }
     }
 })();
 
@@ -318,7 +347,9 @@ async function safeQuery(tableName, queryBuilder) {
 
 // Export functions
 window.supabaseClient = {
-    client: supabase,
+    get client() {
+        return supabase;
+    },
     getClient: getSupabaseClient,
     checkSession,
     getUserProfile,
@@ -326,6 +357,7 @@ window.supabaseClient = {
     safeQuery,
     logDebug,
     initializeClient: initializeSupabaseClient,
+    waitForInit: () => createInitializationPromise(),
     // Direct access to Supabase SDK functions for other modules
     get auth() {
         const client = getSupabaseClient();

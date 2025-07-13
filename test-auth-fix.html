@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Auth Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Configuration -->
+    <script src="config.js"></script>
+    
+    <!-- Supabase Scripts -->
+    <script src="js/supabase-client.js"></script>
+    <script src="js/auth-supabase.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold mb-6">Supabase Auth Test</h1>
+        
+        <div class="mb-4">
+            <h2 class="text-lg font-semibold mb-2">Initialization Status:</h2>
+            <div id="init-status" class="text-sm text-gray-600">Checking...</div>
+        </div>
+        
+        <div class="mb-4">
+            <h2 class="text-lg font-semibold mb-2">Test Results:</h2>
+            <div id="test-results" class="space-y-2"></div>
+        </div>
+        
+        <button onclick="runTests()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Run Tests Again
+        </button>
+    </div>
+    
+    <script>
+        async function addResult(message, success = true) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = success ? 'text-green-600' : 'text-red-600';
+            resultDiv.textContent = `${success ? '✓' : '✗'} ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        async function checkInitialization() {
+            const statusDiv = document.getElementById('init-status');
+            
+            // Check if supabaseClient is available
+            if (window.supabaseClient) {
+                statusDiv.textContent = 'window.supabaseClient is available';
+                
+                // Check if waitForInit exists
+                if (window.supabaseClient.waitForInit) {
+                    try {
+                        statusDiv.textContent = 'Waiting for initialization...';
+                        const client = await window.supabaseClient.waitForInit();
+                        statusDiv.textContent = 'Initialization complete!';
+                        statusDiv.className = 'text-sm text-green-600';
+                        return true;
+                    } catch (error) {
+                        statusDiv.textContent = 'Initialization failed: ' + error.message;
+                        statusDiv.className = 'text-sm text-red-600';
+                        return false;
+                    }
+                } else {
+                    statusDiv.textContent = 'waitForInit method not found';
+                    statusDiv.className = 'text-sm text-red-600';
+                    return false;
+                }
+            } else {
+                statusDiv.textContent = 'window.supabaseClient not available';
+                statusDiv.className = 'text-sm text-red-600';
+                return false;
+            }
+        }
+        
+        async function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '';
+            
+            // Test 1: Check initialization
+            const initSuccess = await checkInitialization();
+            await addResult('Supabase client initialization', initSuccess);
+            
+            if (!initSuccess) {
+                await addResult('Cannot proceed with tests - initialization failed', false);
+                return;
+            }
+            
+            // Test 2: Check if SupabaseAuth is available
+            if (window.SupabaseAuth) {
+                await addResult('SupabaseAuth module is available');
+            } else {
+                await addResult('SupabaseAuth module not found', false);
+                return;
+            }
+            
+            // Test 3: Test getCurrentUser (should work without error even if no user)
+            try {
+                const user = await window.SupabaseAuth.getCurrentUser();
+                if (user) {
+                    await addResult(`getCurrentUser: Found user ${user.email}`);
+                } else {
+                    await addResult('getCurrentUser: No user logged in (expected)');
+                }
+            } catch (error) {
+                await addResult(`getCurrentUser error: ${error.message}`, false);
+            }
+            
+            // Test 4: Check if login method exists and doesn't crash
+            try {
+                if (typeof window.SupabaseAuth.login === 'function') {
+                    await addResult('login method exists');
+                    
+                    // Test with invalid credentials (should fail gracefully)
+                    const result = await window.SupabaseAuth.login('test@test.com', 'wrongpassword');
+                    if (!result.success) {
+                        await addResult('login with invalid credentials handled gracefully');
+                    }
+                }
+            } catch (error) {
+                await addResult(`login method error: ${error.message}`, false);
+            }
+            
+            // Test 5: Check supabaseClient methods
+            try {
+                const client = window.supabaseClient.client;
+                if (client) {
+                    await addResult('Direct client access works');
+                    
+                    // Test auth object
+                    if (client.auth) {
+                        await addResult('client.auth is available');
+                    } else {
+                        await addResult('client.auth not available', false);
+                    }
+                } else {
+                    await addResult('Direct client access returned null', false);
+                }
+            } catch (error) {
+                await addResult(`Client access error: ${error.message}`, false);
+            }
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runTests, 1000); // Give time for async initialization
+        });
+    </script>
+</body>
+</html>
