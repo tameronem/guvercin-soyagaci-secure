@@ -6963,7 +6963,7 @@ Lütfen yardımcı olun.`);
         }
 
         // Show Pigeons with filters - SUPABASE VERSION
-        async function showPigeons(filters = {}) {
+        async function showPigeons(filters = {}, page = 1) {
             if (!checkAuth()) return;
             cleanupPreviousViews();
             updateActiveTab(1);
@@ -7008,6 +7008,14 @@ Lütfen yardımcı olun.`);
                 // Get unique values for filters
                 const allPigeons = result.data || [];
                 const breeds = [...new Set(allPigeons.map(p => p.breed).filter(b => b))];
+                
+                // Pagination settings
+                const itemsPerPage = 12; // 3x4 grid
+                const totalPages = Math.ceil(userPigeons.length / itemsPerPage);
+                const currentPage = Math.min(Math.max(1, page), totalPages || 1);
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const paginatedPigeons = userPigeons.slice(startIndex, endIndex);
             
             document.getElementById('content').innerHTML = `
                 <div class="container mx-auto">
@@ -7027,13 +7035,13 @@ Lütfen yardımcı olun.`);
                         <input 
                             type="text" 
                             placeholder="${t.search}..." 
-                            onchange="showPigeons({...${JSON.stringify(filters)}, search: this.value})"
+                            onchange="showPigeons({...${JSON.stringify(filters)}, search: this.value}, 1)"
                             value="${filters.search || ''}"
                             class="px-4 py-2 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none"
                         >
                         
                         <select 
-                            onchange="showPigeons({...${JSON.stringify(filters)}, breed: this.value})"
+                            onchange="showPigeons({...${JSON.stringify(filters)}, breed: this.value}, 1)"
                             class="px-4 py-2 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none"
                         >
                             <option value="">${t.filter_by_breed}</option>
@@ -7043,7 +7051,7 @@ Lütfen yardımcı olun.`);
                         </select>
                         
                         <select 
-                            onchange="showPigeons({...${JSON.stringify(filters)}, gender: this.value})"
+                            onchange="showPigeons({...${JSON.stringify(filters)}, gender: this.value}, 1)"
                             class="px-4 py-2 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none"
                         >
                             <option value="">${t.filter_by_gender}</option>
@@ -7060,7 +7068,7 @@ Lütfen yardımcı olun.`);
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    ${userPigeons.map(pigeon => `
+                    ${paginatedPigeons.map(pigeon => `
                         <div class="glass p-6 rounded-2xl pigeon-card">
                             ${pigeon.image_url ? `
                                 <img src="${pigeon.image_url}" alt="${pigeon.name}" class="w-full h-48 object-cover rounded-xl mb-4">
@@ -7109,6 +7117,42 @@ Lütfen yardımcı olun.`);
                         </div>
                     `).join('') || `<p class="text-gray-400 col-span-3 text-center">${t.no_pigeons}</p>`}
                 </div>
+                
+                <!-- Pagination Controls -->
+                ${userPigeons.length > itemsPerPage ? `
+                    <div class="flex justify-center items-center gap-2 mt-8">
+                        <button 
+                            onclick="showPigeons(${JSON.stringify(filters)}, ${currentPage - 1})"
+                            ${currentPage === 1 ? 'disabled' : ''}
+                            class="px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        
+                        <div class="flex gap-1">
+                            ${Array.from({length: totalPages}, (_, i) => i + 1).map(pageNum => `
+                                <button 
+                                    onclick="showPigeons(${JSON.stringify(filters)}, ${pageNum})"
+                                    class="px-3 py-2 ${pageNum === currentPage ? 'bg-cyan-500 text-white' : 'bg-white/10 border border-white/20'} rounded-lg hover:bg-white/20 transition min-w-[40px]"
+                                >
+                                    ${pageNum}
+                                </button>
+                            `).join('')}
+                        </div>
+                        
+                        <button 
+                            onclick="showPigeons(${JSON.stringify(filters)}, ${currentPage + 1})"
+                            ${currentPage === totalPages ? 'disabled' : ''}
+                            class="px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="text-center mt-4 text-gray-400">
+                        ${t.page || 'Sayfa'} ${currentPage} / ${totalPages} - ${t.total || 'Toplam'}: ${userPigeons.length} ${t.pigeons || 'güvercin'}
+                    </div>
+                ` : ''}
                 </div>
                 </div>
             `;
@@ -8867,6 +8911,9 @@ Lütfen yardımcı olun.`);
             svg.classList.add('connection-svg');
             svg.setAttribute('id', 'pedigree-svg');
             
+            // Clear any existing content in SVG
+            svg.innerHTML = '';
+            
             // Calculate SVG dimensions based on all nodes
             let maxX = 0;
             let maxY = 0;
@@ -8914,104 +8961,102 @@ Lütfen yardımcı olun.`);
             // Insert SVG before nodes (z-index 0)
             container.insertBefore(svg, container.firstChild);
             
-            // Draw connections based on parent IDs
-            allNodes.forEach(node => {
-                const fatherId = node.getAttribute('data-father-id');
-                const motherId = node.getAttribute('data-mother-id');
+            // Helper function to get relative position
+            function getRelativePos(node) {
+                const nodeRect = node.getBoundingClientRect();
+                return {
+                    left: nodeRect.left - containerRect.left + container.scrollLeft,
+                    right: nodeRect.right - containerRect.left + container.scrollLeft,
+                    top: nodeRect.top - containerRect.top + container.scrollTop,
+                    bottom: nodeRect.bottom - containerRect.top + container.scrollTop,
+                    centerX: (nodeRect.left + nodeRect.right) / 2 - containerRect.left + container.scrollLeft,
+                    centerY: (nodeRect.top + nodeRect.bottom) / 2 - containerRect.top + container.scrollTop
+                };
+            }
+            
+            // Draw connections based on parent IDs using orthogonal lines
+            allNodes.forEach(childNode => {
+                const fatherId = childNode.getAttribute('data-father-id');
+                const motherId = childNode.getAttribute('data-mother-id');
                 
-                if (fatherId || motherId) {
-                    // Get accurate node position using getBoundingClientRect
-                    const nodeRect = node.getBoundingClientRect();
-                    const nodeX = nodeRect.left - containerRect.left + container.scrollLeft;
-                    const nodeY = nodeRect.top - containerRect.top + container.scrollTop + nodeRect.height / 2;
+                if (fatherId && motherId) {
+                    const fatherNode = container.querySelector(`#${fatherId}`);
+                    const motherNode = container.querySelector(`#${motherId}`);
                     
-                    // Connect to father
-                    if (fatherId) {
-                        const father = container.querySelector(`#${fatherId}`);
-                        if (father) {
-                            const fatherRect = father.getBoundingClientRect();
-                            const fatherX = fatherRect.right - containerRect.left + container.scrollLeft;
-                            const fatherY = fatherRect.top - containerRect.top + container.scrollTop + fatherRect.height / 2;
-                            drawSVGLine(svg, fatherX, fatherY, nodeX, nodeY, isMobile);
-                        }
+                    if (fatherNode && motherNode) {
+                        // Get relative positions
+                        const relChild = getRelativePos(childNode);
+                        const relFather = getRelativePos(fatherNode);
+                        const relMother = getRelativePos(motherNode);
+                        
+                        // PART A: Create marriage bracket connecting parents
+                        // Position bracket to the left of parents
+                        const bracketX = Math.min(relFather.left, relMother.left) - 20;
+                        
+                        // A.2: Father horizontal line
+                        const fatherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        fatherPath.setAttribute('d', `M ${relFather.left} ${relFather.centerY} H ${bracketX}`);
+                        fatherPath.setAttribute('stroke', 'url(#lineGradient)');
+                        fatherPath.setAttribute('stroke-width', isMobile ? '3' : '2');
+                        fatherPath.setAttribute('fill', 'none');
+                        svg.appendChild(fatherPath);
+                        
+                        // A.3: Mother horizontal line
+                        const motherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        motherPath.setAttribute('d', `M ${relMother.left} ${relMother.centerY} H ${bracketX}`);
+                        motherPath.setAttribute('stroke', 'url(#lineGradient)');
+                        motherPath.setAttribute('stroke-width', isMobile ? '3' : '2');
+                        motherPath.setAttribute('fill', 'none');
+                        svg.appendChild(motherPath);
+                        
+                        // A.4: Vertical connecting line
+                        const verticalPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        const minY = Math.min(relFather.centerY, relMother.centerY);
+                        const maxY = Math.max(relFather.centerY, relMother.centerY);
+                        verticalPath.setAttribute('d', `M ${bracketX} ${minY} V ${maxY}`);
+                        verticalPath.setAttribute('stroke', 'url(#lineGradient)');
+                        verticalPath.setAttribute('stroke-width', isMobile ? '3' : '2');
+                        verticalPath.setAttribute('fill', 'none');
+                        svg.appendChild(verticalPath);
+                        
+                        // PART B: Connect child to marriage bracket
+                        // B.1: Calculate midpoint of marriage bracket
+                        const bracketMidY = (relFather.centerY + relMother.centerY) / 2;
+                        
+                        // B.2-B.5: Create child connection path
+                        const elbowX = relChild.right + 20;
+                        const childPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        childPath.setAttribute('d', `M ${relChild.right} ${relChild.centerY} H ${elbowX} V ${bracketMidY} H ${bracketX}`);
+                        childPath.setAttribute('stroke', 'url(#lineGradient)');
+                        childPath.setAttribute('stroke-width', isMobile ? '3' : '2');
+                        childPath.setAttribute('fill', 'none');
+                        childPath.setAttribute('class', 'connection-line');
+                        svg.appendChild(childPath);
                     }
+                } else if (fatherId || motherId) {
+                    // Handle single parent case
+                    const parentId = fatherId || motherId;
+                    const parentNode = container.querySelector(`#${parentId}`);
                     
-                    // Connect to mother
-                    if (motherId) {
-                        const mother = container.querySelector(`#${motherId}`);
-                        if (mother) {
-                            const motherRect = mother.getBoundingClientRect();
-                            const motherX = motherRect.right - containerRect.left + container.scrollLeft;
-                            const motherY = motherRect.top - containerRect.top + container.scrollTop + motherRect.height / 2;
-                            drawSVGLine(svg, motherX, motherY, nodeX, nodeY, isMobile);
-                        }
+                    if (parentNode) {
+                        const relChild = getRelativePos(childNode);
+                        const relParent = getRelativePos(parentNode);
+                        
+                        // Simple orthogonal connection for single parent
+                        const midX = (relParent.left + relChild.right) / 2;
+                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        path.setAttribute('d', `M ${relParent.left} ${relParent.centerY} H ${midX} V ${relChild.centerY} H ${relChild.right}`);
+                        path.setAttribute('stroke', 'url(#lineGradient)');
+                        path.setAttribute('stroke-width', isMobile ? '3' : '2');
+                        path.setAttribute('fill', 'none');
+                        path.setAttribute('class', 'connection-line');
+                        svg.appendChild(path);
                     }
                 }
             });
         }
         
-        // Draw SVG connection line with smooth curved elbow paths
-        function drawSVGLine(svg, x1, y1, x2, y2, isMobile = false) {
-            // Calculate midpoint for the elbow
-            const midX = x1 + (x2 - x1) / 2;
-            const radius = Math.min(Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 4, 20); // Curve radius
-            
-            // Create path element
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            
-            // Create smooth path data with rounded corners
-            let pathData;
-            if (y1 === y2) {
-                // Straight horizontal line
-                pathData = `M ${x1} ${y1} L ${x2} ${y2}`;
-            } else {
-                // Path with rounded corners
-                const dir = y2 > y1 ? 1 : -1; // Direction of vertical line
-                pathData = `M ${x1} ${y1} `;
-                pathData += `L ${midX - radius} ${y1} `;
-                pathData += `Q ${midX} ${y1} ${midX} ${y1 + (radius * dir)} `;
-                pathData += `L ${midX} ${y2 - (radius * dir)} `;
-                pathData += `Q ${midX} ${y2} ${midX + radius} ${y2} `;
-                pathData += `L ${x2} ${y2}`;
-            }
-            
-            path.setAttribute('d', pathData);
-            path.setAttribute('stroke', 'url(#lineGradient)');
-            path.setAttribute('stroke-width', isMobile ? '3' : '2');
-            path.setAttribute('fill', 'none');
-            path.setAttribute('stroke-linecap', 'round');
-            path.setAttribute('stroke-linejoin', 'round');
-            
-            // Add animation delay based on position
-            const delay = (x1 / 100) * 0.1;
-            path.style.animationDelay = `${delay}s`;
-            
-            // Add path to SVG
-            svg.appendChild(path);
-            
-            // Create connection joints (circles at corners) - smaller and more subtle
-            if (y1 !== y2) {
-                const joint1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                joint1.setAttribute('cx', midX);
-                joint1.setAttribute('cy', y1);
-                joint1.setAttribute('r', isMobile ? '3' : '2.5');
-                joint1.setAttribute('fill', '#6366f1');
-                joint1.setAttribute('opacity', '0.7');
-                joint1.style.animationDelay = `${delay + 0.1}s`;
-                
-                const joint2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                joint2.setAttribute('cx', midX);
-                joint2.setAttribute('cy', y2);
-                joint2.setAttribute('r', isMobile ? '3' : '2.5');
-                joint2.setAttribute('fill', '#8b5cf6');
-                joint2.setAttribute('opacity', '0.7');
-                joint2.style.animationDelay = `${delay + 0.2}s`;
-                
-                // Add joints to SVG
-                svg.appendChild(joint1);
-                svg.appendChild(joint2);
-            }
-        }
+        // Removed drawSVGLine function - no longer needed as we're using orthogonal lines only
         
         // OLD: Draw a single connection line with 90-degree elbow paths (keeping for backwards compatibility)
         function drawLine(x1, y1, x2, y2, container, isMobile = false) {
