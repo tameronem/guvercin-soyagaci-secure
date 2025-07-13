@@ -1005,8 +1005,7 @@
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
             /* Ensure proper stacking context for SVG */
-            z-index: 0;
-            transform: translateZ(0);
+            position: relative;
         }
         
         /* Custom scrollbar for pedigree tree */
@@ -1068,7 +1067,8 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             animation: nodeAppear 0.5s ease-out;
             animation-fill-mode: backwards;
-            z-index: 20; /* Ensure nodes are above connection lines */
+            z-index: 10; /* Ensure nodes are above connection lines */
+            will-change: transform; /* Better performance for animations */
         }
         
         .pigeon-node:hover {
@@ -1347,7 +1347,8 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 1;
+            z-index: 0; /* Behind nodes */
+            overflow: visible; /* Allow lines to be visible outside bounds */
         }
         
         .connection-svg path {
@@ -7649,14 +7650,30 @@
             // Clear existing lines and SVG
             container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
             
+            // Get container bounds for accurate positioning
+            const containerRect = container.getBoundingClientRect();
+            
             // Create or get SVG element
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.classList.add('connection-svg');
             svg.setAttribute('id', 'pedigree-svg');
             
-            // Set SVG dimensions to match container's scroll dimensions
-            svg.setAttribute('width', container.scrollWidth);
-            svg.setAttribute('height', container.scrollHeight);
+            // Calculate SVG dimensions based on all nodes
+            let maxX = 0;
+            let maxY = 0;
+            const allNodes = container.querySelectorAll('.pigeon-node');
+            
+            allNodes.forEach(node => {
+                const nodeRect = node.getBoundingClientRect();
+                const nodeX = nodeRect.left - containerRect.left + container.scrollLeft;
+                const nodeY = nodeRect.top - containerRect.top + container.scrollTop;
+                maxX = Math.max(maxX, nodeX + nodeRect.width);
+                maxY = Math.max(maxY, nodeY + nodeRect.height);
+            });
+            
+            // Add padding to SVG dimensions
+            svg.setAttribute('width', maxX + 50);
+            svg.setAttribute('height', maxY + 50);
             svg.style.position = 'absolute';
             svg.style.top = '0';
             svg.style.left = '0';
@@ -7671,6 +7688,7 @@
             gradient.setAttribute('x2', '100%');
             gradient.setAttribute('y2', '0%');
             
+            const isMobile = window.innerWidth <= 768;
             const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
             stop1.setAttribute('offset', '0%');
             stop1.setAttribute('stop-color', isMobile ? 'rgba(99, 102, 241, 0.7)' : 'rgba(99, 102, 241, 0.5)');
@@ -7684,11 +7702,8 @@
             defs.appendChild(gradient);
             svg.appendChild(defs);
             
-            // Append SVG to container first
-            container.appendChild(svg);
-            
-            const allNodes = container.querySelectorAll('.pigeon-node');
-            const isMobile = window.innerWidth <= 768;
+            // Insert SVG before nodes (z-index 0)
+            container.insertBefore(svg, container.firstChild);
             
             // Draw connections based on parent IDs
             allNodes.forEach(node => {
@@ -7696,16 +7711,18 @@
                 const motherId = node.getAttribute('data-mother-id');
                 
                 if (fatherId || motherId) {
-                    // Child node position (left side)
-                    const nodeX = node.offsetLeft;
-                    const nodeY = node.offsetTop + node.offsetHeight / 2;
+                    // Get accurate node position using getBoundingClientRect
+                    const nodeRect = node.getBoundingClientRect();
+                    const nodeX = nodeRect.left - containerRect.left + container.scrollLeft;
+                    const nodeY = nodeRect.top - containerRect.top + container.scrollTop + nodeRect.height / 2;
                     
                     // Connect to father
                     if (fatherId) {
                         const father = container.querySelector(`#${fatherId}`);
                         if (father) {
-                            const fatherX = father.offsetLeft + father.offsetWidth;
-                            const fatherY = father.offsetTop + father.offsetHeight / 2;
+                            const fatherRect = father.getBoundingClientRect();
+                            const fatherX = fatherRect.right - containerRect.left + container.scrollLeft;
+                            const fatherY = fatherRect.top - containerRect.top + container.scrollTop + fatherRect.height / 2;
                             drawSVGLine(svg, fatherX, fatherY, nodeX, nodeY, isMobile);
                         }
                     }
@@ -7714,8 +7731,9 @@
                     if (motherId) {
                         const mother = container.querySelector(`#${motherId}`);
                         if (mother) {
-                            const motherX = mother.offsetLeft + mother.offsetWidth;
-                            const motherY = mother.offsetTop + mother.offsetHeight / 2;
+                            const motherRect = mother.getBoundingClientRect();
+                            const motherX = motherRect.right - containerRect.left + container.scrollLeft;
+                            const motherY = motherRect.top - containerRect.top + container.scrollTop + motherRect.height / 2;
                             drawSVGLine(svg, motherX, motherY, nodeX, nodeY, isMobile);
                         }
                     }
@@ -7723,20 +7741,37 @@
             });
         }
         
-        // Draw SVG connection line with 90-degree elbow paths
+        // Draw SVG connection line with smooth curved elbow paths
         function drawSVGLine(svg, x1, y1, x2, y2, isMobile = false) {
             // Calculate midpoint for the elbow
             const midX = x1 + (x2 - x1) / 2;
+            const radius = Math.min(Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 4, 20); // Curve radius
             
             // Create path element
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             
-            // Create path data with 90-degree angles
-            const pathData = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+            // Create smooth path data with rounded corners
+            let pathData;
+            if (y1 === y2) {
+                // Straight horizontal line
+                pathData = `M ${x1} ${y1} L ${x2} ${y2}`;
+            } else {
+                // Path with rounded corners
+                const dir = y2 > y1 ? 1 : -1; // Direction of vertical line
+                pathData = `M ${x1} ${y1} `;
+                pathData += `L ${midX - radius} ${y1} `;
+                pathData += `Q ${midX} ${y1} ${midX} ${y1 + (radius * dir)} `;
+                pathData += `L ${midX} ${y2 - (radius * dir)} `;
+                pathData += `Q ${midX} ${y2} ${midX + radius} ${y2} `;
+                pathData += `L ${x2} ${y2}`;
+            }
+            
             path.setAttribute('d', pathData);
             path.setAttribute('stroke', 'url(#lineGradient)');
             path.setAttribute('stroke-width', isMobile ? '3' : '2');
             path.setAttribute('fill', 'none');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('stroke-linejoin', 'round');
             
             // Add animation delay based on position
             const delay = (x1 / 100) * 0.1;
@@ -7745,24 +7780,28 @@
             // Add path to SVG
             svg.appendChild(path);
             
-            // Create connection joints (circles at corners)
-            const joint1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            joint1.setAttribute('cx', midX);
-            joint1.setAttribute('cy', y1);
-            joint1.setAttribute('r', isMobile ? '5' : '4');
-            joint1.setAttribute('fill', '#6366f1');
-            joint1.style.animationDelay = `${delay + 0.1}s`;
-            
-            const joint2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            joint2.setAttribute('cx', midX);
-            joint2.setAttribute('cy', y2);
-            joint2.setAttribute('r', isMobile ? '5' : '4');
-            joint2.setAttribute('fill', '#8b5cf6');
-            joint2.style.animationDelay = `${delay + 0.2}s`;
-            
-            // Add joints to SVG
-            svg.appendChild(joint1);
-            svg.appendChild(joint2);
+            // Create connection joints (circles at corners) - smaller and more subtle
+            if (y1 !== y2) {
+                const joint1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                joint1.setAttribute('cx', midX);
+                joint1.setAttribute('cy', y1);
+                joint1.setAttribute('r', isMobile ? '3' : '2.5');
+                joint1.setAttribute('fill', '#6366f1');
+                joint1.setAttribute('opacity', '0.7');
+                joint1.style.animationDelay = `${delay + 0.1}s`;
+                
+                const joint2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                joint2.setAttribute('cx', midX);
+                joint2.setAttribute('cy', y2);
+                joint2.setAttribute('r', isMobile ? '3' : '2.5');
+                joint2.setAttribute('fill', '#8b5cf6');
+                joint2.setAttribute('opacity', '0.7');
+                joint2.style.animationDelay = `${delay + 0.2}s`;
+                
+                // Add joints to SVG
+                svg.appendChild(joint1);
+                svg.appendChild(joint2);
+            }
         }
         
         // OLD: Draw a single connection line with 90-degree elbow paths (keeping for backwards compatibility)
@@ -7871,6 +7910,12 @@
             if (window.pedigreeTimeout) {
                 clearTimeout(window.pedigreeTimeout);
                 window.pedigreeTimeout = null;
+            }
+            
+            // Disconnect ResizeObserver if exists
+            if (window.pedigreeResizeObserver) {
+                window.pedigreeResizeObserver.disconnect();
+                window.pedigreeResizeObserver = null;
             }
         }
 
@@ -8422,7 +8467,29 @@
                     drawConnectionLines();
                 }, 100);
                 
-                // Add resize event handler with debouncing (only once)
+                // Add ResizeObserver for better performance and accuracy
+                const pedigreeWrapper = document.querySelector('.pedigree-wrapper');
+                if (pedigreeWrapper && window.ResizeObserver) {
+                    // Clean up any existing observer
+                    if (window.pedigreeResizeObserver) {
+                        window.pedigreeResizeObserver.disconnect();
+                    }
+                    
+                    // Create new ResizeObserver
+                    let resizeTimeout;
+                    window.pedigreeResizeObserver = new ResizeObserver((entries) => {
+                        clearTimeout(resizeTimeout);
+                        resizeTimeout = setTimeout(() => {
+                            positionNodes();
+                            drawConnectionLines();
+                        }, 150);
+                    });
+                    
+                    // Start observing
+                    window.pedigreeResizeObserver.observe(pedigreeWrapper);
+                }
+                
+                // Add resize event handler with debouncing (only once) as fallback
                 if (!window.pedigreeResizeHandler) {
                     window.pedigreeResizeHandler = true;
                     let resizeTimeout;
