@@ -9627,152 +9627,135 @@ Lütfen yardımcı olun.`);
                     return node;
                 }
                 
-                async function showPedigree(pigeonId, requestedGenerations) {
-    try {
-        // ÖNEMLİ: Soy ağacı datasını backend'den çek
-        const pedigreeData = await buildPedigreeTree(pigeonId);
-
-        // Kuş bilgisi (örnek veri; kendi datanı çek)
-        const pigeon = {
-            name: "gff"
-        };
-
-        const t = {
-            pedigree: "Soyağacı",
-            generation: "Nesil",
-            back: "Geri Dön",
-            download_pdf: "PDF İndir",
-            print: "Yazdır"
-        };
-
-        // Maksimum 5 nesile sınırla
-        const maxGenerations = Math.min(requestedGenerations || 3, 5);
-
-        document.getElementById('content').innerHTML = `
-            <div class="container mx-auto">
-                <div class="glass p-8 rounded-3xl">
-                    <div class="flex justify-between items-center mb-8">
-                        <h2 class="text-3xl font-bold">${pigeon.name} - ${t.pedigree || 'Soyağacı'}</h2>
-                        <div class="flex gap-2">
-                            <button onclick="showPedigree('${pigeonId}', 3)" class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
-                                3 ${t.generation || 'Nesil'}
-                            </button>
-                            <button onclick="showPedigree('${pigeonId}', 4)" class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
-                                4 ${t.generation || 'Nesil'}
-                            </button>
-                            <button onclick="showPedigree('${pigeonId}', 5)" class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
-                                5 ${t.generation || 'Nesil'}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="pedigree-container bg-black/20 rounded-2xl">
-                        <div class="pedigree-tree" style="position: relative;">
-                            <svg class="connection-svg" id="pedigree-svg" width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
-                                <defs>
-                                    <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stop-color="rgba(99, 102, 241, 0.5)"></stop>
-                                        <stop offset="100%" stop-color="rgba(168, 85, 247, 0.5)"></stop>
-                                    </linearGradient>
-                                </defs>
-                            </svg>
-                            <div class="pedigree-wrapper">
-                                ${renderModernPedigree(pedigreeData, t, 0, maxGenerations)}
+                const pedigreeData = await buildPedigreeTree(pigeonId);
+                
+                // Create pedigree HTML with modern SVG rendering
+                document.getElementById('content').innerHTML = `
+                    <div class="container mx-auto">
+                        <div class="glass p-8 rounded-3xl">
+                            <div class="flex justify-between items-center mb-8">
+                                <h2 class="text-3xl font-bold">${pigeon.name} - ${t.pedigree || 'Soyağacı'}</h2>
+                                <div class="flex gap-2">
+                                    <button onclick="showPedigree('${pigeonId}', 3)" class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
+                                        3 ${t.generation || 'Nesil'}
+                                    </button>
+                                    <button onclick="showPedigree('${pigeonId}', 4)" class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
+                                        4 ${t.generation || 'Nesil'}
+                                    </button>
+                                    <button onclick="showPedigree('${pigeonId}', 5)" class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
+                                        5 ${t.generation || 'Nesil'}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="pedigree-container bg-black/20 rounded-2xl">
+                                <div class="pedigree-wrapper">
+                                    ${renderModernPedigree(pedigreeData, t)}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8 flex gap-4 flex-wrap">
+                                <button onclick="showPigeons()" class="px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
+                                    <i class="fas fa-arrow-left mr-2"></i> ${t.back || 'Geri Dön'}
+                                </button>
+                                <button onclick="exportSVGPedigreePDF('${pigeonId}')" class="btn-primary">
+                                    <i class="fas fa-file-pdf mr-2"></i> ${t.download_pdf || 'PDF İndir'}
+                                </button>
+                                <button onclick="printPedigree()" class="px-6 py-3 bg-green-500 rounded-full hover:bg-green-600 transition">
+                                    <i class="fas fa-print mr-2"></i> ${t.print || 'Yazdır'}
+                                </button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="mt-8 flex gap-4 flex-wrap">
-                        <button onclick="showPigeons()" class="px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
-                            <i class="fas fa-arrow-left mr-2"></i> ${t.back || 'Geri Dön'}
-                        </button>
-                        <button onclick="exportSVGPedigreePDF('${pigeonId}')" class="btn-primary">
-                            <i class="fas fa-file-pdf mr-2"></i> ${t.download_pdf || 'PDF İndir'}
-                        </button>
-                        <button onclick="printPedigree()" class="px-6 py-3 bg-green-500 rounded-full hover:bg-green-600 transition">
-                            <i class="fas fa-print mr-2"></i> ${t.print || 'Yazdır'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Timeout ile çizim işlemi
-        if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
-        window.pedigreeTimeout = setTimeout(() => {
-            positionNodes();
-            drawConnectionLines();
-        }, 100);
-
-        // Resize listener (debounced)
-        if (!window.pedigreeResizeHandler) {
-            window.pedigreeResizeHandler = true;
-            let resizeTimeout;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(() => {
-                    positionNodes();
-                    drawConnectionLines();
-                }, 150);
-            });
-
-            window.addEventListener('orientationchange', () => {
-                const container = document.querySelector('.pedigree-tree');
-                if (container) {
-                    container.querySelectorAll('.connection-svg line').forEach(el => el.remove());
-                }
-                setTimeout(() => {
-                    positionNodes();
-                    drawConnectionLines();
-                }, 200);
-            });
-        }
-
-        const pedigreeContainer = document.querySelector('.pedigree-tree');
-        if (pedigreeContainer) {
-            let scrollTimeout;
-            pedigreeContainer.addEventListener('scroll', () => {
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
+                `;
+                
+                // Position nodes and add connection lines after rendering
+                if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
+                window.pedigreeTimeout = setTimeout(() => {
                     positionNodes();
                     drawConnectionLines();
                 }, 100);
-            });
-        }
-
-        const observer = new IntersectionObserver((entries) => {
-            if (entries.some(entry => entry.isIntersecting)) {
-                positionNodes();
-                drawConnectionLines();
-            }
-        });
-        if (pedigreeContainer) {
-            observer.observe(pedigreeContainer);
-        }
-
-        if (window.ResizeObserver) {
-            if (window.pedigreeResizeObserver) {
-                window.pedigreeResizeObserver.disconnect();
-            }
-            const pedigreeWrapper = document.querySelector('.pedigree-wrapper');
-            if (pedigreeWrapper) {
-                window.pedigreeResizeObserver = new ResizeObserver(() => {
-                    clearTimeout(window.resizeTimeout);
-                    window.resizeTimeout = setTimeout(() => {
+                
+                // Add resize event handler with debouncing (only once)
+                if (!window.pedigreeResizeHandler) {
+                    window.pedigreeResizeHandler = true;
+                    let resizeTimeout;
+                    window.addEventListener('resize', () => {
+                        clearTimeout(resizeTimeout);
+                        resizeTimeout = setTimeout(() => {
+                            positionNodes();
+                            drawConnectionLines();
+                        }, 150); // Faster response for mobile
+                    });
+                    
+                    // Handle orientation changes for mobile devices
+                    window.addEventListener('orientationchange', () => {
+                        // Clear lines immediately for visual feedback
+                        const container = document.querySelector('.pedigree-tree');
+                        if (container) {
+                            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
+                        }
+                        setTimeout(() => {
+                            positionNodes();
+                            drawConnectionLines();
+                        }, 200);
+                    });
+                }
+                
+                // Redraw lines when container is scrolled (for mobile)
+                const pedigreeContainer = document.querySelector('.pedigree-tree');
+                if (pedigreeContainer) {
+                    let scrollTimeout;
+                    pedigreeContainer.addEventListener('scroll', () => {
+                        clearTimeout(scrollTimeout);
+                        scrollTimeout = setTimeout(() => {
+                            positionNodes();
+                            drawConnectionLines();
+                        }, 100);
+                    });
+                }
+                
+                // Use IntersectionObserver for performance optimization
+                const observer = new IntersectionObserver((entries) => {
+                    if (entries.some(entry => entry.isIntersecting)) {
                         positionNodes();
                         drawConnectionLines();
-                    }, 150);
+                    }
                 });
-                window.pedigreeResizeObserver.observe(pedigreeWrapper);
+                
+                // Observe the pedigree container
+                if (pedigreeContainer) {
+                    observer.observe(pedigreeContainer);
+                }
+                
+                // Add ResizeObserver for better size change detection
+                if (window.ResizeObserver) {
+                    // Clean up any existing ResizeObserver
+                    if (window.pedigreeResizeObserver) {
+                        window.pedigreeResizeObserver.disconnect();
+                    }
+                    
+                    // Create new ResizeObserver
+                    const pedigreeWrapper = document.querySelector('.pedigree-wrapper');
+                    if (pedigreeWrapper) {
+                        window.pedigreeResizeObserver = new ResizeObserver((entries) => {
+                            // Debounce resize events
+                            clearTimeout(window.resizeTimeout);
+                            window.resizeTimeout = setTimeout(() => {
+                                positionNodes();
+                                drawConnectionLines();
+                            }, 150);
+                        });
+                        window.pedigreeResizeObserver.observe(pedigreeWrapper);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Pedigree error:', error);
+                showNotification(error.message || 'Soyağacı yüklenemedi', 'error');
+                showPigeons();
             }
         }
-
-    } catch (error) {
-        console.error('Pedigree error:', error);
-        showNotification(error.message || 'Soyağacı yüklenemedi', 'error');
-        showPigeons();
-    }
-}
 
         // Print Pedigree
         function printPedigree() {
@@ -16777,116 +16760,66 @@ Lütfen yardımcı olun.`);
     <script src="js/ai-breeding/recommendation-engine.js"></script>
     
     <!-- PayTR Integration -->
-<script src="js/paytr-integration.js"></script>
-
-<script>
-    function drawConnectionLines() {
-        const svg = document.getElementById('pedigree-svg');
-        if (!svg) return;
-
-        while (svg.firstChild) {
-            svg.removeChild(svg.firstChild);
-        }
-
-        const nodes = document.querySelectorAll('.pigeon-node');
-        nodes.forEach(childNode => {
-            const generation = childNode.dataset.generation;
-            const index = childNode.dataset.index;
-
-            if (generation === "0") return;
-
-            const parentGen = parseInt(generation) - 1;
-            const parentIndex = Math.floor(index / 2);
-
-            const parentNode = document.querySelector(
-                `.pigeon-node[data-generation="${parentGen}"][data-index="${parentIndex}"]`
-            );
-
-            if (!parentNode) return;
-
-            const parentRect = parentNode.getBoundingClientRect();
-            const childRect = childNode.getBoundingClientRect();
-
-            const svgRect = svg.getBoundingClientRect();
-
-            const startX = parentRect.left + parentRect.width / 2 - svgRect.left;
-            const startY = parentRect.top + parentRect.height - svgRect.top;
-
-            const endX = childRect.left + childRect.width / 2 - svgRect.left;
-            const endY = childRect.top - svgRect.top;
-
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", startX);
-            line.setAttribute("y1", startY);
-            line.setAttribute("x2", endX);
-            line.setAttribute("y2", endY);
-            line.setAttribute("stroke", "url(#lineGradient)");
-            line.setAttribute("stroke-width", "3");
-            line.setAttribute("stroke-linecap", "round");
-
-            svg.appendChild(line);
-        });
-    }
-</script>
-
-<!-- PayTR Iframe Modal -->
-<div id="paytrIframeModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center">
-    <div class="relative bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl mx-4">
-        <button onclick="closePayTRIframe()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
-            <i class="fas fa-times text-2xl"></i>
-        </button>
-        <div class="p-6">
-            <h3 class="text-2xl font-bold mb-4 text-white">PayTR Güvenli Ödeme</h3>
-            <div id="paytrIframeContainer" class="bg-gray-800 rounded-lg p-4 min-h-[500px]">
-                <!-- PayTR iframe will be inserted here -->
+    <script src="js/paytr-integration.js"></script>
+    
+    <!-- PayTR Iframe Modal -->
+    <div id="paytrIframeModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center">
+        <div class="relative bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl mx-4">
+            <button onclick="closePayTRIframe()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4 text-white">PayTR Güvenli Ödeme</h3>
+                <div id="paytrIframeContainer" class="bg-gray-800 rounded-lg p-4 min-h-[500px]">
+                    <!-- PayTR iframe will be inserted here -->
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-<!-- Footer -->
-<footer class="footer-section mt-auto">
-    <div class="container mx-auto px-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 py-8">
-            <!-- Contact Info -->
-            <div class="text-center md:text-left">
-                <h3 class="text-xl font-bold mb-4 text-cyan-400">İletişim</h3>
-                <div class="space-y-2">
-                    <p class="flex items-center justify-center md:justify-start gap-3">
-                        <i class="fas fa-phone text-cyan-400"></i>
-                        <a href="tel:05369134977" class="hover:text-cyan-400 transition">0536 913 49 77</a>
+    
+    <!-- Footer -->
+    <footer class="footer-section mt-auto">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 py-8">
+                <!-- Contact Info -->
+                <div class="text-center md:text-left">
+                    <h3 class="text-xl font-bold mb-4 text-cyan-400">İletişim</h3>
+                    <div class="space-y-2">
+                        <p class="flex items-center justify-center md:justify-start gap-3">
+                            <i class="fas fa-phone text-cyan-400"></i>
+                            <a href="tel:05369134977" class="hover:text-cyan-400 transition">0536 913 49 77</a>
+                        </p>
+                        <p class="flex items-center justify-center md:justify-start gap-3">
+                            <i class="fas fa-map-marker-alt text-cyan-400"></i>
+                            <span>Kartepe / Kocaeli</span>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- App Info -->
+                <div class="text-center md:text-right">
+                    <h3 class="text-xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                        Güvercin Soyağacı
+                    </h3>
+                    <p class="text-gray-400 mb-4">
+                        Profesyonel güvercin yönetim sistemi
                     </p>
-                    <p class="flex items-center justify-center md:justify-start gap-3">
-                        <i class="fas fa-map-marker-alt text-cyan-400"></i>
-                        <span>Kartepe / Kocaeli</span>
-                    </p>
+                    <div class="flex gap-4 justify-center md:justify-end">
+                        <a href="#" onclick="showPricing()" class="text-gray-400 hover:text-cyan-400 transition">
+                            <i class="fas fa-tags"></i> Fiyatlandırma
+                        </a>
+                    </div>
                 </div>
             </div>
-
-            <!-- App Info -->
-            <div class="text-center md:text-right">
-                <h3 class="text-xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                    Güvercin Soyağacı
-                </h3>
-                <p class="text-gray-400 mb-4">
-                    Profesyonel güvercin yönetim sistemi
+            
+            <!-- Copyright -->
+            <div class="border-t border-gray-800 py-4 text-center">
+                <p class="text-sm text-gray-500">
+                    &copy; 2024 Güvercin Soyağacı. Tüm hakları saklıdır.
                 </p>
-                <div class="flex gap-4 justify-center md:justify-end">
-                    <a href="#" onclick="showPricing()" class="text-gray-400 hover:text-cyan-400 transition">
-                        <i class="fas fa-tags"></i> Fiyatlandırma
-                    </a>
-                </div>
             </div>
         </div>
-
-        <!-- Copyright -->
-        <div class="border-t border-gray-800 py-4 text-center">
-            <p class="text-sm text-gray-500">
-                &copy; 2024 Güvercin Soyağacı. Tüm hakları saklıdır.
-            </p>
-        </div>
-    </div>
-</footer>
-
+    </footer>
 </body>
 </html>
+                
