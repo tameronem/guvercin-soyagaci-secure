@@ -8742,35 +8742,35 @@ Lütfen yardımcı olun.`);
             // Build HTML structure
             let html = '<div class="pedigree-tree">';
             
-            // Calculate parent IDs for each node (parent-to-child approach)
+            // Build parent map from pedigree data structure
             const nodeParentMap = {};
-            generations.forEach((gen, genIndex) => {
-                if (genIndex < generations.length - 1) { // Son generation'ın çocuğu yok
-                    gen.forEach((parent, parentIndex) => {
-                        if (!parent.empty && parent.id) {
-                            const childGen = generations[genIndex + 1];
-                            const fatherChild = childGen[parentIndex * 2];     // Sol çocuk (father tarafı)
-                            const motherChild = childGen[parentIndex * 2 + 1]; // Sağ çocuk (mother tarafı)
-                            
-                            if (fatherChild && !fatherChild.empty && fatherChild.id) {
-                                // Mevcut bilgiyi koru ve yeni bilgiyi ekle
-                                nodeParentMap[fatherChild.id] = {
-                                    ...(nodeParentMap[fatherChild.id] || {}),
-                                    fatherId: parent.id
-                                };
-                            }
-                            
-                            if (motherChild && !motherChild.empty && motherChild.id) {
-                                // Mevcut bilgiyi koru ve yeni bilgiyi ekle
-                                nodeParentMap[motherChild.id] = {
-                                    ...(nodeParentMap[motherChild.id] || {}),
-                                    motherId: parent.id
-                                };
-                            }
-                        }
-                    });
+            
+            function buildParentMap(n) {
+                if (!n || n.empty || !n.id) return;
+                
+                // For this node, store its parents' IDs
+                const parentInfo = {};
+                if (n.father && n.father.id) {
+                    parentInfo.fatherId = n.father.id;
                 }
-            });
+                if (n.mother && n.mother.id) {
+                    parentInfo.motherId = n.mother.id;
+                }
+                
+                nodeParentMap[n.id] = parentInfo;
+                
+                // Debug log
+                console.log(`Node ${n.id} has parents: father=${parentInfo.fatherId || 'none'}, mother=${parentInfo.motherId || 'none'}`);
+                
+                // Recurse through the tree
+                if (n.father) buildParentMap(n.father);
+                if (n.mother) buildParentMap(n.mother);
+            }
+            
+            buildParentMap(node);
+            
+            // Debug: print final parent map
+            console.log('Final nodeParentMap:', nodeParentMap);
             
             // Render all nodes directly without generation wrappers
             generations.forEach((gen, genIndex) => {
@@ -8819,9 +8819,12 @@ Lütfen yardımcı olun.`);
             if (pigeon.empty) {
                 return `
                     <div class="pigeon-node empty ${pigeon.gender}" 
+                         ${pigeon.id ? `id="pigeon-${pigeon.id}"` : ''}
                          data-generation="${genIndex}" 
                          data-gen="${genIndex}" 
-                         data-index="${nodeIndex}">
+                         data-index="${nodeIndex}"
+                         ${parentInfo.fatherId ? `data-father-id="pigeon-${parentInfo.fatherId}"` : ''}
+                         ${parentInfo.motherId ? `data-mother-id="pigeon-${parentInfo.motherId}"` : ''}>
                         <div class="pigeon-header">
                             <div class="pigeon-icon bg-gray-700">
                                 <i class="fas fa-question text-gray-500"></i>
@@ -8921,21 +8924,41 @@ Lütfen yardımcı olun.`);
                 const x = 20 + genIndex * (nodeWidth + horizontalGap);
                 
                 const totalHeight = nodes.length * (nodeHeight + verticalGap) - verticalGap;
-                let y = Math.max(20, (container.offsetHeight - totalHeight) / 2);
                 
-                nodes.forEach(node => {
+                // Use fixed positioning instead of centering on container height
+                let y = 20; // Always start from top
+                
+                console.log(`Gen ${gen}: ${nodes.length} nodes, totalHeight=${totalHeight}, starting at y=${y}`);
+                
+                nodes.forEach((node, nodeIndex) => {
                     node.style.left = x + 'px';
                     node.style.top = y + 'px';
                     node.style.width = nodeWidth + 'px';
+                    
+                    console.log(`  Node ${nodeIndex} positioned at (${x}, ${y})`);
                     
                     y += nodeHeight + verticalGap;
                 });
             });
             
             // Update container height if needed
-            const maxY = Math.max(...Array.from(allNodes).map(n => n.offsetTop + n.offsetHeight));
-            if (maxY > container.offsetHeight) {
+            let maxY = 0;
+            allNodes.forEach(node => {
+                const bottom = node.offsetTop + node.offsetHeight;
+                if (bottom > maxY) {
+                    maxY = bottom;
+                }
+            });
+            
+            // Debug logging
+            console.log('positionNodes: maxY =', maxY, 'container.offsetHeight =', container.offsetHeight);
+            
+            // Only set minHeight if content exceeds current height
+            if (maxY > 0 && maxY < 5000) { // Sanity check - don't set huge heights
                 container.style.minHeight = (maxY + 40) + 'px';
+            } else if (maxY >= 5000) {
+                console.error('Calculated height too large:', maxY, '- keeping default');
+                container.style.minHeight = '600px';
             }
         }
         
@@ -8983,6 +9006,8 @@ Lütfen yardımcı olun.`);
             svg.style.top = '0';
             svg.style.left = '0';
             svg.style.pointerEvents = 'none';
+            svg.style.width = (maxX + 50) + 'px';
+            svg.style.height = (maxY + 50) + 'px';
             
             // Create gradient definition
             const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -9726,9 +9751,9 @@ Lütfen yardımcı olun.`);
                     // Always create parent slots for consistent tree structure
                     if (generation < maxGenerations - 1) {
                         node.father = p.father_id ? await buildPedigreeTree(p.father_id, generation + 1) : 
-                            { empty: true, gender: 'male', generation: generation + 1 };
+                            { id: `empty-father-${p.id}-${generation}`, empty: true, gender: 'male', generation: generation + 1 };
                         node.mother = p.mother_id ? await buildPedigreeTree(p.mother_id, generation + 1) : 
-                            { empty: true, gender: 'female', generation: generation + 1 };
+                            { id: `empty-mother-${p.id}-${generation}`, empty: true, gender: 'female', generation: generation + 1 };
                     }
                     
                     return node;
