@@ -1,5 +1,14 @@
 // PayTR iframe entegrasyonu için yardımcı fonksiyonlar
 
+// Helper function to get supabase client
+function getSupabaseClient() {
+    if (window.supabaseClient && window.supabaseClient.client) {
+        return window.supabaseClient.client;
+    }
+    console.error('[PayTR] Supabase client not available');
+    return null;
+}
+
 // PayTR iframe callback fonksiyonu
 window.callback = function(payment_status, payment_amount, payment_hash, merchant_oid) {
     console.log('PayTR callback:', { payment_status, payment_amount, payment_hash, merchant_oid });
@@ -20,7 +29,13 @@ window.callback = function(payment_status, payment_amount, payment_hash, merchan
 
 // PayTR iframe ile ödeme başlatma
 async function startPayTRPayment() {
-    const { data: { user } } = await window.supabase.auth.getUser();
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+        console.error('[PayTR] Supabase client not initialized');
+        showError('Sistem hatası. Lütfen sayfayı yenileyin.');
+        return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
         showError('Lütfen önce giriş yapın.');
@@ -173,7 +188,11 @@ async function saveOrderToSupabase(userId, merchantOid, userEmail) {
     try {
         console.log('Saving payment to Supabase:', { userId, merchantOid, userEmail });
         
-        const { data, error } = await window.supabase
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Supabase client not initialized');
+        }
+        const { data, error } = await supabase
             .from('payment_tracking')
             .insert({
                 user_id: userId,
@@ -205,7 +224,12 @@ async function saveOrderToSupabase(userId, merchantOid, userEmail) {
 
 // Premium durumunu kontrol et ve güncelle
 async function checkAndUpdatePremiumStatus() {
-    const { data: { user } } = await window.supabase.auth.getUser();
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+        console.error('[PayTR] Supabase client not initialized');
+        return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     
     const isPremium = await checkPremiumStatus(user.id);
