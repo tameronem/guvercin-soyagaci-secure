@@ -1038,7 +1038,7 @@
         .pedigree-container {
             position: relative;
             min-height: 600px;
-            overflow: auto;
+            overflow: hidden;
             -webkit-overflow-scrolling: touch;
         }
         
@@ -1046,6 +1046,8 @@
             display: inline-block;
             min-width: 100%;
             padding: 40px;
+            transform-origin: 0 0;
+            transition: transform 0.2s ease;
         }
         
         /* Pedigree tree styles - Modern redesign */
@@ -1149,6 +1151,42 @@
         .pigeon-node[data-gen="1"] { animation-delay: 0.2s; }
         .pigeon-node[data-gen="2"] { animation-delay: 0.3s; }
         .pigeon-node[data-gen="3"] { animation-delay: 0.4s; }
+        
+        /* Zoom controls */
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.9);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .zoom-btn:hover {
+            background: rgba(99, 102, 241, 1);
+            transform: scale(1.1);
+        }
+        
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
         
         /* Tooltip styles for pigeon details */
         .pigeon-tooltip {
@@ -1403,16 +1441,15 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 0; /* Behind nodes */
+            z-index: 5; /* Above background but behind nodes */
             overflow: visible; /* Allow lines to be visible outside bounds */
         }
         
         .connection-svg path {
             fill: none;
-            stroke-width: 3 !important;
-            opacity: 1 !important;
-            stroke: url(#lineGradient) !important;
-            animation: lineGlow 3s ease-in-out infinite;
+            stroke-width: 3;
+            opacity: 1;
+            stroke: #6366f1; /* Solid color for debugging */
         }
         
         .connection-svg circle {
@@ -7016,6 +7053,13 @@ Lütfen yardımcı olun.`);
                 const startIndex = (currentPage - 1) * itemsPerPage;
                 const endIndex = startIndex + itemsPerPage;
                 const paginatedPigeons = userPigeons.slice(startIndex, endIndex);
+                
+                console.log('Pagination:', {
+                    total: userPigeons.length,
+                    page: currentPage,
+                    totalPages: totalPages,
+                    showing: paginatedPigeons.length
+                });
             
             document.getElementById('content').innerHTML = `
                 <div class="container mx-auto">
@@ -8897,14 +8941,19 @@ Lütfen yardımcı olun.`);
         
         // Draw connection lines between nodes
         function drawConnectionLines() {
+            console.log('drawConnectionLines called');
             const container = document.querySelector('.pedigree-tree');
-            if (!container) return;
+            if (!container) {
+                console.log('No pedigree-tree container found!');
+                return;
+            }
             
             // Clear existing lines and SVG
             container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
             
             // Get container bounds for accurate positioning
             const containerRect = container.getBoundingClientRect();
+            console.log('Container rect:', containerRect);
             
             // Create or get SVG element
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -8960,6 +9009,7 @@ Lütfen yardımcı olun.`);
             
             // Insert SVG before nodes (z-index 0)
             container.insertBefore(svg, container.firstChild);
+            console.log('SVG created with dimensions:', maxX + 50, 'x', maxY + 50);
             
             // Helper function to get relative position
             function getRelativePos(node) {
@@ -8975,13 +9025,17 @@ Lütfen yardımcı olun.`);
             }
             
             // Draw connections based on parent IDs using orthogonal lines
+            console.log('Total nodes found:', allNodes.length);
             allNodes.forEach(childNode => {
                 const fatherId = childNode.getAttribute('data-father-id');
                 const motherId = childNode.getAttribute('data-mother-id');
+                console.log('Processing node:', childNode.id, 'Father:', fatherId, 'Mother:', motherId);
                 
                 if (fatherId && motherId) {
                     const fatherNode = container.querySelector(`#${fatherId}`);
                     const motherNode = container.querySelector(`#${motherId}`);
+                    console.log('Looking for father:', fatherId, 'Found:', !!fatherNode);
+                    console.log('Looking for mother:', motherId, 'Found:', !!motherNode);
                     
                     if (fatherNode && motherNode) {
                         // Get relative positions
@@ -8996,7 +9050,7 @@ Lütfen yardımcı olun.`);
                         // A.2: Father horizontal line
                         const fatherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         fatherPath.setAttribute('d', `M ${relFather.left} ${relFather.centerY} H ${bracketX}`);
-                        fatherPath.setAttribute('stroke', 'url(#lineGradient)');
+                        fatherPath.setAttribute('stroke', '#6366f1');
                         fatherPath.setAttribute('stroke-width', isMobile ? '3' : '2');
                         fatherPath.setAttribute('fill', 'none');
                         svg.appendChild(fatherPath);
@@ -9004,7 +9058,7 @@ Lütfen yardımcı olun.`);
                         // A.3: Mother horizontal line
                         const motherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         motherPath.setAttribute('d', `M ${relMother.left} ${relMother.centerY} H ${bracketX}`);
-                        motherPath.setAttribute('stroke', 'url(#lineGradient)');
+                        motherPath.setAttribute('stroke', '#6366f1');
                         motherPath.setAttribute('stroke-width', isMobile ? '3' : '2');
                         motherPath.setAttribute('fill', 'none');
                         svg.appendChild(motherPath);
@@ -9014,7 +9068,7 @@ Lütfen yardımcı olun.`);
                         const minY = Math.min(relFather.centerY, relMother.centerY);
                         const maxY = Math.max(relFather.centerY, relMother.centerY);
                         verticalPath.setAttribute('d', `M ${bracketX} ${minY} V ${maxY}`);
-                        verticalPath.setAttribute('stroke', 'url(#lineGradient)');
+                        verticalPath.setAttribute('stroke', '#6366f1');
                         verticalPath.setAttribute('stroke-width', isMobile ? '3' : '2');
                         verticalPath.setAttribute('fill', 'none');
                         svg.appendChild(verticalPath);
@@ -9027,11 +9081,12 @@ Lütfen yardımcı olun.`);
                         const elbowX = relChild.right + 20;
                         const childPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         childPath.setAttribute('d', `M ${relChild.right} ${relChild.centerY} H ${elbowX} V ${bracketMidY} H ${bracketX}`);
-                        childPath.setAttribute('stroke', 'url(#lineGradient)');
+                        childPath.setAttribute('stroke', '#6366f1');
                         childPath.setAttribute('stroke-width', isMobile ? '3' : '2');
                         childPath.setAttribute('fill', 'none');
                         childPath.setAttribute('class', 'connection-line');
                         svg.appendChild(childPath);
+                        console.log('Created path with d:', childPath.getAttribute('d'));
                     }
                 } else if (fatherId || motherId) {
                     // Handle single parent case
@@ -9046,7 +9101,7 @@ Lütfen yardımcı olun.`);
                         const midX = (relParent.left + relChild.right) / 2;
                         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         path.setAttribute('d', `M ${relParent.left} ${relParent.centerY} H ${midX} V ${relChild.centerY} H ${relChild.right}`);
-                        path.setAttribute('stroke', 'url(#lineGradient)');
+                        path.setAttribute('stroke', '#6366f1');
                         path.setAttribute('stroke-width', isMobile ? '3' : '2');
                         path.setAttribute('fill', 'none');
                         path.setAttribute('class', 'connection-line');
@@ -9054,6 +9109,13 @@ Lütfen yardımcı olun.`);
                     }
                 }
             });
+            
+            // Final debug info
+            const finalPaths = svg.querySelectorAll('path').length;
+            console.log('Total paths created:', finalPaths);
+            if (finalPaths === 0) {
+                console.log('No paths created! Check if nodes have parent IDs set correctly.');
+            }
         }
         
         // Removed drawSVGLine function - no longer needed as we're using orthogonal lines only
@@ -9693,9 +9755,20 @@ Lütfen yardımcı olun.`);
                                 </div>
                             </div>
                             
-                            <div class="pedigree-container bg-black/20 rounded-2xl">
-                                <div class="pedigree-wrapper">
+                            <div class="pedigree-container bg-black/20 rounded-2xl" id="pedigreeContainer">
+                                <div class="pedigree-wrapper" id="pedigreeWrapper">
                                     ${renderModernPedigree(pedigreeData, t)}
+                                </div>
+                                <div class="zoom-controls">
+                                    <button class="zoom-btn" onclick="zoomIn()" title="Yakınlaştır">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="zoom-btn" onclick="zoomOut()" title="Uzaklaştır">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button class="zoom-btn" onclick="zoomFit()" title="Sığdır">
+                                        <i class="fas fa-compress"></i>
+                                    </button>
                                 </div>
                             </div>
                             
@@ -9719,6 +9792,16 @@ Lütfen yardımcı olun.`);
                 window.pedigreeTimeout = setTimeout(() => {
                     positionNodes();
                     drawConnectionLines();
+                    // Initialize zoom functionality
+                    initPedigreeZoom();
+                    // Debug: Check if lines are drawn
+                    console.log('Drawing connection lines...');
+                    const svg = document.querySelector('.connection-svg');
+                    if (svg) {
+                        console.log('SVG found, paths:', svg.querySelectorAll('path').length);
+                    } else {
+                        console.log('SVG not found!');
+                    }
                 }, 100);
                 
                 // Add resize event handler with debouncing (only once)
@@ -11663,6 +11746,72 @@ Lütfen yardımcı olun.`);
         window.drawConnectionLines = drawConnectionLines;
         window.drawLine = drawLine;
         window.printPedigree = printPedigree;
+        
+        // Zoom functionality
+        let zoomLevel = 1;
+        const zoomStep = 0.1;
+        const minZoom = 0.5;
+        const maxZoom = 3;
+        
+        function zoomIn() {
+            if (zoomLevel < maxZoom) {
+                zoomLevel += zoomStep;
+                applyZoom();
+            }
+        }
+        
+        function zoomOut() {
+            if (zoomLevel > minZoom) {
+                zoomLevel -= zoomStep;
+                applyZoom();
+            }
+        }
+        
+        function zoomFit() {
+            zoomLevel = 1;
+            applyZoom();
+            // Center the view
+            const container = document.getElementById('pedigreeContainer');
+            if (container) {
+                const tree = container.querySelector('.pedigree-tree');
+                if (tree) {
+                    tree.scrollTo(0, 0);
+                }
+            }
+        }
+        
+        function applyZoom() {
+            const wrapper = document.getElementById('pedigreeWrapper');
+            if (wrapper) {
+                wrapper.style.transform = `scale(${zoomLevel})`;
+                // Redraw connection lines after zoom
+                setTimeout(() => {
+                    drawConnectionLines();
+                }, 100);
+            }
+        }
+        
+        // Add mouse wheel zoom support
+        function initPedigreeZoom() {
+            const container = document.getElementById('pedigreeContainer');
+            if (!container) return;
+            
+            container.addEventListener('wheel', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                        zoomIn();
+                    } else {
+                        zoomOut();
+                    }
+                }
+            });
+        }
+        
+        window.zoomIn = zoomIn;
+        window.zoomOut = zoomOut;
+        window.zoomFit = zoomFit;
+        window.initPedigreeZoom = initPedigreeZoom;
         window.cleanupPreviousViews = cleanupPreviousViews;
         window.logout = logout;
         window.requestRefund = requestRefund;
