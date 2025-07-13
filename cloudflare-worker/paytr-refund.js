@@ -1,5 +1,24 @@
 // PayTR Refund API Cloudflare Worker
 
+// PayTR token oluşturma (HMAC-SHA256)
+async function generatePaytrToken(merchantId, merchantOid, returnAmount, merchantSalt) {
+    const dataToHash = merchantId + merchantOid + returnAmount + merchantSalt;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(dataToHash);
+    const key = encoder.encode(merchantSalt);
+    
+    const keyData = await crypto.subtle.importKey(
+        'raw',
+        key,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', keyData, data);
+    return btoa(String.fromCharCode(...new Uint8Array(signature)));
+}
+
 export default {
   async fetch(request, env) {
     // Get the origin from request headers
@@ -130,12 +149,60 @@ export default {
         );
       }
 
-      // 4. PayTR refund API call
-      // NOT: PayTR'de otomatik iade API'si yoktur. 
-      // Gerçek uygulamada bu kısım PayTR panel üzerinden manuel yapılır.
-      // Burada sadece veritabanı güncellemesi yapacağız.
+      // 4. PayTR otomatik iade API çağrısı
+      console.log('Processing PayTR refund for:', merchant_oid);
+      
+      const paytrToken = await generatePaytrToken(
+          env.MERCHANT_ID,
+          merchant_oid,
+          payment.amount.toString(),
+          env.MERCHANT_SALT
+      );
 
-      console.log('Refund eligible, processing...');
+      const refundData = {
+          merchant_id: env.MERCHANT_ID,
+          merchant_oid: merchant_oid,
+          return_amount: payment.amount,
+          paytr_token: paytrToken
+      };
+
+      const paytrResponse = await fetch('https://www.paytr.com/odeme/iade', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams(refundData).toString()
+      });
+
+      const paytrResult = await paytrResponse.json();
+      console.log('PayTR refund response:', paytrResult);
+
+      if (paytrResult.status === 'failed') {
+          return new Response(
+              JSON.stringify({
+                  success: false,
+                  error: 'İşlem bulunamadı. PayTR\'da bu sipariş numarasına ait işlem yok.'
+              }),
+              { status: 404, headers: corsHeaders }
+          );
+      }
+
+      if (paytrResult.status === 'error') {
+          return new Response(
+              JSON.stringify({
+                  success: false,
+                  error: 'PayTR iade hatası',
+                  details: paytrResult.err_msg || 'Bilinmeyen hata'
+              }),
+              { status: 400, headers: corsHeaders }
+          );
+      }
+
+      if (paytrResult.status !== 'success') {
+          throw new Error(`PayTR iade başarısız: ${paytrResult.err_msg || 'Bilinmeyen hata'}`);
+      }
+
+      console.log('PayTR refund successful, updating database...');
 
       // 5. Update payment status to refunded
       const updatePaymentResponse = await fetch(
@@ -227,12 +294,13 @@ export default {
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'İade işlemi başarıyla tamamlandı',
+          message: 'İade işlemi başarıyla tamamlandı. Ödemeniz 1-3 iş günü içinde kartınıza/hesabınıza yansıyacaktır.',
           refund_details: {
             merchant_oid: merchant_oid,
             amount: payment.amount,
             currency: payment.currency,
-            refunded_at: new Date().toISOString()
+            refunded_at: new Date().toISOString(),
+            paytr_status: paytrResult.status
           }
         }),
         { 
