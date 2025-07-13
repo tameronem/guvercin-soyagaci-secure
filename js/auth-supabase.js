@@ -1,11 +1,27 @@
 // SUPABASE AUTH IMPLEMENTATION
 
+// Helper function to get supabase client
+function getSupabase() {
+    if (window.supabaseClient && window.supabaseClient.getClient) {
+        return window.supabaseClient.getClient();
+    }
+    // Fallback to global supabase if available
+    if (window.supabase && typeof window.supabase.auth !== 'undefined') {
+        return window.supabase;
+    }
+    console.error('[SupabaseAuth] Supabase client not available');
+    return null;
+}
+
 // Auth Functions
 const SupabaseAuth = {
     // Kayıt ol
     async register(email, password, firstName, lastName) {
         try {
             // 1. Supabase Auth ile kullanıcı oluştur
+            const supabase = getSupabase();
+            if (!supabase) throw new Error('Supabase client not initialized');
+            
             const { data, error } = await supabase.auth.signUp({
                 email: email,
                 password: password,
@@ -40,6 +56,9 @@ const SupabaseAuth = {
     // Giriş yap
     async login(email, password) {
         try {
+            const supabase = getSupabase();
+            if (!supabase) throw new Error('Supabase client not initialized');
+            
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password
@@ -91,6 +110,9 @@ const SupabaseAuth = {
     // Çıkış yap
     async logout() {
         try {
+            const supabase = getSupabase();
+            if (!supabase) throw new Error('Supabase client not initialized');
+            
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
 
@@ -114,6 +136,9 @@ const SupabaseAuth = {
     // Şifre sıfırlama emaili gönder
     async resetPassword(email) {
         try {
+            const supabase = getSupabase();
+            if (!supabase) throw new Error('Supabase client not initialized');
+            
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: `${window.location.origin}/reset-password`
             });
@@ -137,6 +162,9 @@ const SupabaseAuth = {
     // Şifre güncelle
     async updatePassword(newPassword) {
         try {
+            const supabase = getSupabase();
+            if (!supabase) throw new Error('Supabase client not initialized');
+            
             const { error } = await supabase.auth.updateUser({
                 password: newPassword
             });
@@ -160,6 +188,9 @@ const SupabaseAuth = {
     // Mevcut kullanıcıyı getir
     async getCurrentUser() {
         try {
+            const supabase = getSupabase();
+            if (!supabase) throw new Error('Supabase client not initialized');
+            
             const { data: { user }, error } = await supabase.auth.getUser();
             
             if (error || !user) return null;
@@ -186,6 +217,9 @@ const SupabaseAuth = {
     // Email doğrulama
     async verifyEmail(token) {
         try {
+            const supabase = getSupabase();
+            if (!supabase) throw new Error('Supabase client not initialized');
+            
             const { error } = await supabase.auth.verifyOtp({
                 token_hash: token,
                 type: 'signup'

@@ -3,20 +3,43 @@
 // SDK'nın yüklenmesini bekle
 function waitForSupabaseSDK() {
     return new Promise((resolve) => {
-        if (window['supabase'] && window['supabase'].createClient) {
+        // Supabase v2 için kontrol - window.supabase global değişkeni
+        function checkSDK() {
+            // Önce window.supabase var mı kontrol et
+            if (typeof window.supabase !== 'undefined') {
+                console.log('[Supabase] window.supabase bulundu, detaylı kontrol yapılıyor...');
+                // createClient fonksiyonu var mı kontrol et
+                if (typeof window.supabase.createClient === 'function') {
+                    return true;
+                }
+            }
+            // Alternatif olarak window['@supabase/supabase-js'] kontrol et
+            if (window['@supabase/supabase-js']) {
+                console.log('[Supabase] @supabase/supabase-js modülü bulundu');
+                // Bu durumda window.supabase'e ata
+                window.supabase = window['@supabase/supabase-js'];
+                return true;
+            }
+            return false;
+        }
+        
+        if (checkSDK()) {
+            console.log('[Supabase] SDK zaten yüklü!');
             resolve(true);
         } else {
             let attempts = 0;
             const checkInterval = setInterval(() => {
                 attempts++;
                 console.log('[Supabase] SDK bekleniyor... Deneme:', attempts);
-                if (window['supabase'] && window['supabase'].createClient) {
+                
+                if (checkSDK()) {
                     clearInterval(checkInterval);
                     console.log('[Supabase] SDK hazır!');
                     resolve(true);
-                } else if (attempts > 20) { // 10 saniye bekle
+                } else if (attempts > 40) { // 20 saniye bekle
                     clearInterval(checkInterval);
-                    console.error('[Supabase] SDK yüklenemedi!');
+                    console.error('[Supabase] SDK yüklenemedi! CDN bağlantısını kontrol edin.');
+                    console.error('[Supabase] Mevcut window özellikleri:', Object.keys(window).filter(k => k.includes('supabase')));
                     resolve(false);
                 }
             }, 500);
@@ -57,15 +80,16 @@ function initializeSupabaseClient() {
     }
     
     try {
-        // SDK kontrolü - window.supabase yerine window['supabase'] kullan
-        if (!window['supabase'] || !window['supabase'].createClient) {
-            console.error('[Supabase] SDK henüz yüklenmedi!');
+        // SDK kontrolü - önce window.supabase var mı kontrol et
+        if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient !== 'function') {
+            console.error('[Supabase] SDK henüz yüklenmedi veya createClient fonksiyonu bulunamadı!');
+            console.error('[Supabase] window.supabase:', typeof window.supabase);
             isInitializing = false;
             return false;
         }
         
         // Create or recreate the client
-        supabase = window['supabase'].createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
                 detectSessionInUrl: true,
@@ -301,18 +325,36 @@ window.supabaseClient = {
     checkPremiumStatus,
     safeQuery,
     logDebug,
-    initializeClient: initializeSupabaseClient
+    initializeClient: initializeSupabaseClient,
+    // Direct access to Supabase SDK functions for other modules
+    get auth() {
+        const client = getSupabaseClient();
+        return client ? client.auth : null;
+    },
+    get from() {
+        const client = getSupabaseClient();
+        return client ? client.from.bind(client) : null;
+    },
+    get storage() {
+        const client = getSupabaseClient();
+        return client ? client.storage : null;
+    }
 };
 
-// Also export supabase directly for backward compatibility
-// But use a getter to ensure it's always the latest instance
-Object.defineProperty(window, 'supabase', {
-    get: function() {
-        if (!supabase && !isInitializing) {
-            console.warn('[Supabase] Client erişimi sırasında client bulunamadı, başlatılıyor...');
-            initializeSupabaseClient();
-        }
-        return supabase;
-    },
-    configurable: true
-});
+// Also export supabase client instance for backward compatibility
+// But only if SDK is loaded
+if (typeof window.supabase !== 'undefined') {
+    // SDK already loaded, we'll override with our client instance after initialization
+    console.log('[Supabase] SDK global değişkeni mevcut, client instance beklenecek');
+} else {
+    // Create a getter for backward compatibility
+    Object.defineProperty(window, '_supabaseClient', {
+        get: function() {
+            if (!supabase && !isInitializing) {
+                console.warn('[Supabase] Client erişimi sırasında client bulunamadı');
+            }
+            return supabase;
+        },
+        configurable: true
+    });
+}
