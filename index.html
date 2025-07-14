@@ -1111,6 +1111,7 @@
         
         .pigeon-node {
             position: absolute;
+            transform: translate(-50%, -50%); /* Center the node on its position */
             background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(10px);
             border-radius: 20px;
@@ -1128,7 +1129,7 @@
         }
         
         .pigeon-node:hover {
-            transform: translateY(-4px) scale(1.02);
+            transform: translate(-50%, calc(-50% - 4px)) scale(1.02); /* Keep centering with hover effect */
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             border-color: rgba(148, 163, 184, 0.3);
         }
@@ -1136,11 +1137,11 @@
         @keyframes nodeAppear {
             from {
                 opacity: 0;
-                transform: scale(0.9);
+                transform: translate(-50%, -50%) scale(0.9);
             }
             to {
                 opacity: 1;
-                transform: scale(1);
+                transform: translate(-50%, -50%) scale(1);
             }
         }
         
@@ -1530,6 +1531,7 @@
                 max-width: 160px;
                 padding: 0.5rem;
                 font-size: 0.8rem;
+                transform: translate(-50%, -50%) scale(0.8); /* Keep centering, add scale for mobile */
             }
             
             .pigeon-header {
@@ -1597,9 +1599,12 @@
             }
             
             .connection-svg path {
-                stroke-width: 3 !important;
-                stroke: url(#lineGradient) !important;
+                stroke-width: 2 !important; /* Thinner lines for mobile */
                 opacity: 0.9 !important;
+            }
+            
+            .connection-line {
+                stroke-width: 2 !important; /* Thinner lines for mobile */
             }
             
             .connection-svg circle {
@@ -8922,43 +8927,49 @@ Lütfen yardımcı olun.`);
                 nodesByGeneration[gen].push(node);
             });
             
-            // Use smaller, optimized values for positioning
-            const nodeHeight = 100; // Reduced from 120
-            const verticalGap = 20; // Reduced from 40
-            const topMargin = 10; // Reduced from 20
-            const maxContainerHeight = 1200; // Maximum reasonable height
+            // Constants for layout
+            const NODE_HEIGHT = 120;
+            const MIN_SPACING = 30;
+            const containerHeight = container.offsetHeight || 800;
             
             // Position each generation
             Object.keys(nodesByGeneration).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen) => {
                 const nodes = nodesByGeneration[gen];
                 const generationNumber = parseInt(gen);
                 
-                // X-axis positioning: x = (generation_number * 190) - 90
-                const x = (generationNumber * 190) - 90;
+                // NEW X FORMULA: X = (generation_number * 300) + 50
+                const x = (generationNumber * 300) + 50;
                 
-                // Y-axis positioning - compact layout
+                // Y positioning - Equal distribution based on container height
+                const totalNodesHeight = nodes.length * NODE_HEIGHT;
+                let spacing = (containerHeight - totalNodesHeight) / (nodes.length + 1);
+                
+                // Minimum spacing check
+                if (spacing < MIN_SPACING) {
+                    spacing = MIN_SPACING;
+                }
+                
                 nodes.forEach((node, nodeIndex) => {
-                    // Simple top-to-bottom positioning
-                    const y = topMargin + (nodeIndex * (nodeHeight + verticalGap));
+                    const y = spacing + (nodeIndex * (NODE_HEIGHT + spacing));
                     
+                    // Position with CSS left/top (transform will be handled by CSS)
                     node.style.left = x + 'px';
                     node.style.top = y + 'px';
                 });
             });
             
-            // Calculate container height with maximum limit
+            // Calculate container height
             let maxY = 0;
             allNodes.forEach(node => {
                 const bottom = node.offsetTop + node.offsetHeight;
                 maxY = Math.max(maxY, bottom);
             });
             
-            // Set height with maximum limit
+            // Set height with 3000px maximum limit
             if (maxY > 0) {
-                const newHeight = Math.min(maxY + 40, maxContainerHeight); // Enforce maximum
+                const newHeight = Math.min(maxY + 100, 3000);
                 container.style.height = newHeight + 'px';
                 container.style.minHeight = 'initial';
-                // If content is larger than container, scrolling will handle it
             }
             
             // Clear positioning flag
@@ -8972,62 +8983,39 @@ Lütfen yardımcı olun.`);
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
             
-            // Clear all existing SVG content
-            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
+            // Clear existing SVG
+            container.querySelectorAll('.connection-svg').forEach(el => el.remove());
             
-            // Create SVG element
+            // Create new SVG element
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.classList.add('connection-svg');
-            svg.setAttribute('id', 'pedigree-svg');
-            svg.innerHTML = ''; // Clear all content
-            
-            // Get container bounds for accurate positioning
-            const containerRect = container.getBoundingClientRect();
-            
-            // Calculate SVG dimensions based on all nodes
-            let maxX = 0;
-            let maxY = 0;
-            const allNodes = container.querySelectorAll('.pigeon-node');
-            
-            allNodes.forEach(node => {
-                const nodeRect = node.getBoundingClientRect();
-                const nodeX = nodeRect.left - containerRect.left;
-                const nodeY = nodeRect.top - containerRect.top;
-                maxX = Math.max(maxX, nodeX + nodeRect.width);
-                maxY = Math.max(maxY, nodeY + nodeRect.height);
-            });
-            
-            // Add padding to SVG dimensions
-            const svgWidth = maxX + 50;
-            const svgHeight = maxY + 50;
-            svg.setAttribute('width', svgWidth);
-            svg.setAttribute('height', svgHeight);
-            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
             svg.style.position = 'absolute';
             svg.style.top = '0';
             svg.style.left = '0';
+            svg.style.zIndex = '20'; // High z-index
             svg.style.pointerEvents = 'none';
-            svg.style.width = svgWidth + 'px';
-            svg.style.height = svgHeight + 'px';
-            svg.style.zIndex = '5';
             
-            // Insert SVG before nodes
-            container.insertBefore(svg, container.firstChild);
+            const containerRect = container.getBoundingClientRect();
+            const allNodes = container.querySelectorAll('.pigeon-node');
             
-            // Helper function to get relative position
-            function getRelativePos(node) {
-                const nodeRect = node.getBoundingClientRect();
+            // Track max dimensions
+            let maxX = 0;
+            let maxY = 0;
+            
+            // Helper function to get node position
+            function getNodePosition(node) {
+                const rect = node.getBoundingClientRect();
                 return {
-                    left: nodeRect.left - containerRect.left,
-                    right: nodeRect.right - containerRect.left,
-                    top: nodeRect.top - containerRect.top,
-                    bottom: nodeRect.bottom - containerRect.top,
-                    centerX: (nodeRect.left + nodeRect.right) / 2 - containerRect.left,
-                    centerY: (nodeRect.top + nodeRect.bottom) / 2 - containerRect.top
+                    left: rect.left - containerRect.left,
+                    right: rect.right - containerRect.left,
+                    top: rect.top - containerRect.top,
+                    bottom: rect.bottom - containerRect.top,
+                    centerX: (rect.left + rect.right) / 2 - containerRect.left,
+                    centerY: (rect.top + rect.bottom) / 2 - containerRect.top
                 };
             }
             
-            // Draw connections for each child node
+            // Draw connections for all nodes
             allNodes.forEach(childNode => {
                 const fatherId = childNode.getAttribute('data-father-id');
                 const motherId = childNode.getAttribute('data-mother-id');
@@ -9037,48 +9025,64 @@ Lütfen yardımcı olun.`);
                     const motherNode = container.querySelector(`#${motherId}`);
                     
                     if (fatherNode && motherNode) {
-                        const relChild = getRelativePos(childNode);
-                        const relFather = getRelativePos(fatherNode);
-                        const relMother = getRelativePos(motherNode);
+                        const childPos = getNodePosition(childNode);
+                        const fatherPos = getNodePosition(fatherNode);
+                        const motherPos = getNodePosition(motherNode);
                         
-                        // A. Marriage bracket (] shape)
-                        const bracketX = Math.min(relFather.left, relMother.left) - 20;
+                        // PART A: Marriage Bracket (] shape)
+                        const bracketX = Math.min(fatherPos.left, motherPos.left) - 20;
                         
-                        // Father horizontal line
-                        const fatherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        fatherPath.setAttribute('d', `M ${relFather.left} ${relFather.centerY} H ${bracketX}`);
-                        fatherPath.setAttribute('stroke', '#6366f1');
-                        fatherPath.setAttribute('stroke-width', '2');
-                        fatherPath.setAttribute('fill', 'none');
-                        svg.appendChild(fatherPath);
+                        // 1. Father to bracket horizontal line
+                        const fatherLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        fatherLine.setAttribute('d', `M ${fatherPos.left} ${fatherPos.centerY} H ${bracketX}`);
+                        fatherLine.setAttribute('class', 'connection-line');
+                        fatherLine.setAttribute('stroke', '#8b5cf6'); // Purple color
+                        fatherLine.setAttribute('stroke-width', '3');
+                        fatherLine.setAttribute('stroke-linecap', 'round');
+                        fatherLine.setAttribute('fill', 'none');
+                        svg.appendChild(fatherLine);
                         
-                        // Mother horizontal line
-                        const motherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        motherPath.setAttribute('d', `M ${relMother.left} ${relMother.centerY} H ${bracketX}`);
-                        motherPath.setAttribute('stroke', '#6366f1');
-                        motherPath.setAttribute('stroke-width', '2');
-                        motherPath.setAttribute('fill', 'none');
-                        svg.appendChild(motherPath);
+                        // 2. Mother to bracket horizontal line
+                        const motherLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        motherLine.setAttribute('d', `M ${motherPos.left} ${motherPos.centerY} H ${bracketX}`);
+                        motherLine.setAttribute('class', 'connection-line');
+                        motherLine.setAttribute('stroke', '#8b5cf6');
+                        motherLine.setAttribute('stroke-width', '3');
+                        motherLine.setAttribute('stroke-linecap', 'round');
+                        motherLine.setAttribute('fill', 'none');
+                        svg.appendChild(motherLine);
                         
-                        // Vertical connecting line
-                        const minY = Math.min(relFather.centerY, relMother.centerY);
-                        const maxY = Math.max(relFather.centerY, relMother.centerY);
-                        const verticalPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        verticalPath.setAttribute('d', `M ${bracketX} ${minY} V ${maxY}`);
-                        verticalPath.setAttribute('stroke', '#6366f1');
-                        verticalPath.setAttribute('stroke-width', '2');
-                        verticalPath.setAttribute('fill', 'none');
-                        svg.appendChild(verticalPath);
+                        // 3. Vertical connecting line
+                        const minY = Math.min(fatherPos.centerY, motherPos.centerY);
+                        const maxLineY = Math.max(fatherPos.centerY, motherPos.centerY);
+                        const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        verticalLine.setAttribute('d', `M ${bracketX} ${minY} V ${maxLineY}`);
+                        verticalLine.setAttribute('class', 'connection-line');
+                        verticalLine.setAttribute('stroke', '#8b5cf6');
+                        verticalLine.setAttribute('stroke-width', '3');
+                        verticalLine.setAttribute('stroke-linecap', 'round');
+                        verticalLine.setAttribute('fill', 'none');
+                        svg.appendChild(verticalLine);
                         
-                        // B. Child connection
-                        const bracketMidY = (relFather.centerY + relMother.centerY) / 2;
-                        const elbowX = relChild.right + 20;
-                        const childPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        childPath.setAttribute('d', `M ${relChild.right} ${relChild.centerY} H ${elbowX} V ${bracketMidY} H ${bracketX}`);
-                        childPath.setAttribute('stroke', '#6366f1');
-                        childPath.setAttribute('stroke-width', '2');
-                        childPath.setAttribute('fill', 'none');
-                        svg.appendChild(childPath);
+                        // PART B: Child Connection
+                        const bracketMidY = (motherPos.centerY + fatherPos.centerY) / 2;
+                        const childLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        childLine.setAttribute('d', 
+                            `M ${childPos.right} ${childPos.centerY} ` +  // Start at child right edge
+                            `H ${childPos.right + 20} ` +                  // 20px right
+                            `V ${bracketMidY} ` +                          // Down/up to bracket mid
+                            `H ${bracketX}`                                // Horizontal to bracket
+                        );
+                        childLine.setAttribute('class', 'connection-line');
+                        childLine.setAttribute('stroke', '#8b5cf6');
+                        childLine.setAttribute('stroke-width', '3');
+                        childLine.setAttribute('stroke-linecap', 'round');
+                        childLine.setAttribute('fill', 'none');
+                        svg.appendChild(childLine);
+                        
+                        // Update max coordinates
+                        maxX = Math.max(maxX, childPos.right + 20, fatherPos.right, motherPos.right);
+                        maxY = Math.max(maxY, childPos.bottom, fatherPos.bottom, motherPos.bottom);
                     }
                 } else if (fatherId || motherId) {
                     // Single parent case
@@ -9086,19 +9090,36 @@ Lütfen yardımcı olun.`);
                     const parentNode = container.querySelector(`#${parentId}`);
                     
                     if (parentNode) {
-                        const relChild = getRelativePos(childNode);
-                        const relParent = getRelativePos(parentNode);
+                        const childPos = getNodePosition(childNode);
+                        const parentPos = getNodePosition(parentNode);
                         
-                        const midX = (relParent.left + relChild.right) / 2;
+                        const midX = (parentPos.left + childPos.right) / 2;
                         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        path.setAttribute('d', `M ${relParent.left} ${relParent.centerY} H ${midX} V ${relChild.centerY} H ${relChild.right}`);
-                        path.setAttribute('stroke', '#6366f1');
-                        path.setAttribute('stroke-width', '2');
+                        path.setAttribute('d', `M ${parentPos.left} ${parentPos.centerY} H ${midX} V ${childPos.centerY} H ${childPos.right}`);
+                        path.setAttribute('class', 'connection-line');
+                        path.setAttribute('stroke', '#8b5cf6');
+                        path.setAttribute('stroke-width', '3');
+                        path.setAttribute('stroke-linecap', 'round');
                         path.setAttribute('fill', 'none');
                         svg.appendChild(path);
+                        
+                        maxX = Math.max(maxX, childPos.right, parentPos.right);
+                        maxY = Math.max(maxY, childPos.bottom, parentPos.bottom);
                     }
                 }
             });
+            
+            // Set SVG dimensions
+            const svgWidth = maxX + 100;
+            const svgHeight = Math.min(maxY + 100, 3000); // Max 3000px
+            svg.setAttribute('width', svgWidth);
+            svg.setAttribute('height', svgHeight);
+            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+            svg.style.width = svgWidth + 'px';
+            svg.style.height = svgHeight + 'px';
+            
+            // Append SVG to container
+            container.appendChild(svg);
         }
         
         // Removed drawSVGLine function - no longer needed as we're using orthogonal lines only
