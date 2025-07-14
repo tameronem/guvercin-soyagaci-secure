@@ -7201,6 +7201,72 @@ Lütfen yardımcı olun.`);
                     .grid {
                         overflow: visible !important;
                     }
+                    
+                    /* Buton renklerini agresif şekilde override et */
+                    .pigeon-card-actions button {
+                        /* Arka plan */
+                        background: #3B82F6 !important; /* Parlak mavi */
+                        border: 2px solid #60A5FA !important;
+                        
+                        /* Metin */
+                        color: #FFFFFF !important;
+                        text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
+                        
+                        /* Boyut */
+                        min-height: 40px !important;
+                        min-width: 100px !important;
+                        padding: 10px 16px !important;
+                        
+                        /* Font */
+                        font-size: 14px !important;
+                        font-weight: 600 !important;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                    }
+                    
+                    /* Icon renkleri */
+                    .pigeon-card-actions button i {
+                        color: #FFFFFF !important;
+                        font-size: 16px !important;
+                        margin-right: 8px !important;
+                    }
+                    
+                    /* Span renkleri */
+                    .pigeon-card-actions button span {
+                        color: #FFFFFF !important;
+                    }
+                    
+                    /* Hover durumu */
+                    .pigeon-card-actions button:hover {
+                        background: #2563EB !important;
+                        transform: translateY(-2px) !important;
+                        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5) !important;
+                    }
+                    
+                    /* Her buton tipi için özel renkler */
+                    button[onclick*="showPigeonDetail"] {
+                        background: #3B82F6 !important; /* Mavi */
+                    }
+                    
+                    button[onclick*="showPigeonDetail"]:hover {
+                        background: #2563EB !important; /* Koyu mavi */
+                    }
+                    
+                    button[onclick*="showPedigree"] {
+                        background: #10B981 !important; /* Yeşil */
+                    }
+                    
+                    button[onclick*="showPedigree"]:hover {
+                        background: #059669 !important; /* Koyu yeşil */
+                    }
+                    
+                    button[onclick*="deletePigeon"] {
+                        background: #EF4444 !important; /* Kırmızı */
+                        min-width: 50px !important; /* Sil butonu daha küçük olabilir */
+                    }
+                    
+                    button[onclick*="deletePigeon"]:hover {
+                        background: #DC2626 !important; /* Koyu kırmızı */
+                    }
                 </style>
                 <div class="container mx-auto">
                 <div class="glass p-8 rounded-3xl">`
@@ -7432,7 +7498,7 @@ Lütfen yardımcı olun.`);
                     }
                 });
                 
-                // Button click testi
+                // Button click testi ve renk kontrolü
                 if (pigeonButtons.length > 0) {
                     console.log('=== BUTTON CLICK TESTİ ===');
                     console.log('İlk butona test click yapmayı deneyin:');
@@ -7450,6 +7516,19 @@ Lütfen yardımcı olun.`);
                     } catch (err) {
                         console.error('Click hatası:', err);
                     }
+                    
+                    // Renk kontrolü
+                    console.log('=== BUTON RENK KONTROLÜ ===');
+                    pigeonButtons.forEach((btn, i) => {
+                        const styles = window.getComputedStyle(btn);
+                        console.log(`Buton ${i + 1} renkleri:`, {
+                            background: styles.backgroundColor,
+                            color: styles.color,
+                            border: styles.border,
+                            fontSize: styles.fontSize,
+                            padding: styles.padding
+                        });
+                    });
                 }
                 
                 // Alternatif fixed element kontrolü
