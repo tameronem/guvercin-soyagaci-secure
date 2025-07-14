@@ -8901,7 +8901,7 @@ Lütfen yardımcı olun.`);
             `;
         }
         
-        // Position nodes with absolute positioning
+        // Position nodes with perfect grid layout
         function positionNodes() {
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
@@ -8919,32 +8919,26 @@ Lütfen yardımcı olun.`);
                 nodesByGeneration[gen].push(node);
             });
             
-            const isMobile = window.innerWidth <= 768;
-            const nodeWidth = isMobile ? 200 : 280;
-            const nodeHeight = isMobile ? 100 : 120;
-            const horizontalGap = isMobile ? 150 : 200;
-            const verticalGap = isMobile ? 30 : 40;
+            // Get container height for Y calculations
+            const containerHeight = container.offsetHeight || 600; // Fallback to 600px if not available
             
-            // Position each generation
-            Object.keys(nodesByGeneration).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen, genIndex) => {
+            // Position each generation with new formulas
+            Object.keys(nodesByGeneration).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen) => {
                 const nodes = nodesByGeneration[gen];
-                const x = 20 + genIndex * (nodeWidth + horizontalGap);
+                const generationNumber = parseInt(gen);
                 
-                const totalHeight = nodes.length * (nodeHeight + verticalGap) - verticalGap;
+                // X-axis positioning: x = (generation_number * 190) - 90
+                const x = (generationNumber * 190) - 90;
                 
-                // Use fixed positioning instead of centering on container height
-                let y = 20; // Always start from top
-                
-                console.log(`Gen ${gen}: ${nodes.length} nodes, totalHeight=${totalHeight}, starting at y=${y}`);
-                
+                // Y-axis distribution for this generation
+                const nodesCount = nodes.length;
                 nodes.forEach((node, nodeIndex) => {
+                    // Y-axis positioning: y = (container_height / (nodes_in_generation + 1)) * (node_index + 1)
+                    const y = (containerHeight / (nodesCount + 1)) * (nodeIndex + 1);
+                    
                     node.style.left = x + 'px';
                     node.style.top = y + 'px';
-                    node.style.width = nodeWidth + 'px';
-                    
-                    console.log(`  Node ${nodeIndex} positioned at (${x}, ${y})`);
-                    
-                    y += nodeHeight + verticalGap;
+                    // Removed width styling - let CSS handle it
                 });
             });
             
@@ -8957,9 +8951,6 @@ Lütfen yardımcı olun.`);
                 }
             });
             
-            // Debug logging
-            console.log('positionNodes: maxY =', maxY, 'container.offsetHeight =', container.offsetHeight);
-            
             // Only set minHeight if content exceeds current height
             if (maxY > 0 && maxY < 5000) { // Sanity check - don't set huge heights
                 container.style.minHeight = (maxY + 40) + 'px';
@@ -8969,29 +8960,22 @@ Lütfen yardımcı olun.`);
             }
         }
         
-        // Draw connection lines between nodes
+        // Draw connection lines between nodes (orthogonal lines only)
         function drawConnectionLines() {
-            console.log('drawConnectionLines called');
             const container = document.querySelector('.pedigree-tree');
-            if (!container) {
-                console.log('No pedigree-tree container found!');
-                return;
-            }
+            if (!container) return;
             
-            // Clear existing lines and SVG
+            // Clear all existing SVG content
             container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
             
-            // Get container bounds for accurate positioning
-            const containerRect = container.getBoundingClientRect();
-            console.log('Container rect:', containerRect);
-            
-            // Create or get SVG element
+            // Create SVG element
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.classList.add('connection-svg');
             svg.setAttribute('id', 'pedigree-svg');
+            svg.innerHTML = ''; // Clear all content
             
-            // Clear any existing content in SVG
-            svg.innerHTML = '';
+            // Get container bounds for accurate positioning
+            const containerRect = container.getBoundingClientRect();
             
             // Calculate SVG dimensions based on all nodes
             let maxX = 0;
@@ -9004,8 +8988,6 @@ Lütfen yardımcı olun.`);
                 const nodeY = nodeRect.top - containerRect.top;
                 maxX = Math.max(maxX, nodeX + nodeRect.width);
                 maxY = Math.max(maxY, nodeY + nodeRect.height);
-                
-                console.log(`Node ${node.id}: x=${nodeX}, y=${nodeY}, width=${nodeRect.width}, height=${nodeRect.height}`);
             });
             
             // Add padding to SVG dimensions
@@ -9020,52 +9002,15 @@ Lütfen yardımcı olun.`);
             svg.style.pointerEvents = 'none';
             svg.style.width = svgWidth + 'px';
             svg.style.height = svgHeight + 'px';
-            svg.style.backgroundColor = 'rgba(255, 255, 0, 0.1)'; // Yellow semi-transparent for debug
             svg.style.zIndex = '5';
             
-            // Create gradient definition
-            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-            const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-            gradient.setAttribute('id', 'lineGradient');
-            gradient.setAttribute('x1', '0%');
-            gradient.setAttribute('y1', '0%');
-            gradient.setAttribute('x2', '100%');
-            gradient.setAttribute('y2', '0%');
-            
-            const isMobile = window.innerWidth <= 768;
-            const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop1.setAttribute('offset', '0%');
-            stop1.setAttribute('stop-color', isMobile ? 'rgba(99, 102, 241, 0.7)' : 'rgba(99, 102, 241, 0.5)');
-            
-            const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop2.setAttribute('offset', '100%');
-            stop2.setAttribute('stop-color', isMobile ? 'rgba(168, 85, 247, 0.7)' : 'rgba(168, 85, 247, 0.5)');
-            
-            gradient.appendChild(stop1);
-            gradient.appendChild(stop2);
-            defs.appendChild(gradient);
-            svg.appendChild(defs);
-            
-            // Insert SVG before nodes (z-index 0)
+            // Insert SVG before nodes
             container.insertBefore(svg, container.firstChild);
-            console.log('SVG created with dimensions:', maxX + 50, 'x', maxY + 50);
-            
-            // Add a test rectangle to verify SVG is rendering
-            const testRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            testRect.setAttribute('x', '10');
-            testRect.setAttribute('y', '10');
-            testRect.setAttribute('width', '100');
-            testRect.setAttribute('height', '50');
-            testRect.setAttribute('fill', 'red');
-            testRect.setAttribute('opacity', '0.5');
-            svg.appendChild(testRect);
-            console.log('Test rectangle added to SVG');
             
             // Helper function to get relative position
             function getRelativePos(node) {
                 const nodeRect = node.getBoundingClientRect();
-                
-                const relPos = {
+                return {
                     left: nodeRect.left - containerRect.left,
                     right: nodeRect.right - containerRect.left,
                     top: nodeRect.top - containerRect.top,
@@ -9073,67 +9018,63 @@ Lütfen yardımcı olun.`);
                     centerX: (nodeRect.left + nodeRect.right) / 2 - containerRect.left,
                     centerY: (nodeRect.top + nodeRect.bottom) / 2 - containerRect.top
                 };
-                
-                return relPos;
             }
             
-            // Draw connections based on parent IDs using orthogonal lines
-            console.log('Total nodes found:', allNodes.length);
+            // Draw connections for each child node
             allNodes.forEach(childNode => {
                 const fatherId = childNode.getAttribute('data-father-id');
                 const motherId = childNode.getAttribute('data-mother-id');
-                console.log('Processing node:', childNode.id, 'Father:', fatherId, 'Mother:', motherId);
                 
                 if (fatherId && motherId) {
                     const fatherNode = container.querySelector(`#${fatherId}`);
                     const motherNode = container.querySelector(`#${motherId}`);
-                    console.log('Looking for father:', fatherId, 'Found:', !!fatherNode);
-                    console.log('Looking for mother:', motherId, 'Found:', !!motherNode);
                     
                     if (fatherNode && motherNode) {
-                        // Get relative positions
                         const relChild = getRelativePos(childNode);
                         const relFather = getRelativePos(fatherNode);
                         const relMother = getRelativePos(motherNode);
                         
-                        // PART A: Create marriage bracket connecting parents
-                        // Position bracket to the left of parents
-                        const bracketX = relFather.left - 20; // Use father's position as reference
+                        // A. Marriage bracket (] shape)
+                        const bracketX = Math.min(relFather.left, relMother.left) - 20;
                         
-                        // A.2: Father horizontal line
+                        // Father horizontal line
                         const fatherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         fatherPath.setAttribute('d', `M ${relFather.left} ${relFather.centerY} H ${bracketX}`);
-                        fatherPath.setAttribute('class', 'connection-line');
+                        fatherPath.setAttribute('stroke', '#6366f1');
+                        fatherPath.setAttribute('stroke-width', '2');
+                        fatherPath.setAttribute('fill', 'none');
                         svg.appendChild(fatherPath);
                         
-                        // A.3: Mother horizontal line
+                        // Mother horizontal line
                         const motherPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         motherPath.setAttribute('d', `M ${relMother.left} ${relMother.centerY} H ${bracketX}`);
-                        motherPath.setAttribute('class', 'connection-line');
+                        motherPath.setAttribute('stroke', '#6366f1');
+                        motherPath.setAttribute('stroke-width', '2');
+                        motherPath.setAttribute('fill', 'none');
                         svg.appendChild(motherPath);
                         
-                        // A.4: Vertical connecting line
-                        const verticalPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        // Vertical connecting line
                         const minY = Math.min(relFather.centerY, relMother.centerY);
                         const maxY = Math.max(relFather.centerY, relMother.centerY);
+                        const verticalPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         verticalPath.setAttribute('d', `M ${bracketX} ${minY} V ${maxY}`);
-                        verticalPath.setAttribute('class', 'connection-line');
+                        verticalPath.setAttribute('stroke', '#6366f1');
+                        verticalPath.setAttribute('stroke-width', '2');
+                        verticalPath.setAttribute('fill', 'none');
                         svg.appendChild(verticalPath);
                         
-                        // PART B: Connect child to marriage bracket
-                        // B.1: Calculate midpoint of marriage bracket
+                        // B. Child connection
                         const bracketMidY = (relFather.centerY + relMother.centerY) / 2;
-                        
-                        // B.2-B.5: Create child connection path
                         const elbowX = relChild.right + 20;
                         const childPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         childPath.setAttribute('d', `M ${relChild.right} ${relChild.centerY} H ${elbowX} V ${bracketMidY} H ${bracketX}`);
-                        childPath.setAttribute('class', 'connection-line');
+                        childPath.setAttribute('stroke', '#6366f1');
+                        childPath.setAttribute('stroke-width', '2');
+                        childPath.setAttribute('fill', 'none');
                         svg.appendChild(childPath);
-                        console.log('Created path with d:', childPath.getAttribute('d'));
                     }
                 } else if (fatherId || motherId) {
-                    // Handle single parent case
+                    // Single parent case
                     const parentId = fatherId || motherId;
                     const parentNode = container.querySelector(`#${parentId}`);
                     
@@ -9141,22 +9082,16 @@ Lütfen yardımcı olun.`);
                         const relChild = getRelativePos(childNode);
                         const relParent = getRelativePos(parentNode);
                         
-                        // Simple orthogonal connection for single parent
                         const midX = (relParent.left + relChild.right) / 2;
                         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         path.setAttribute('d', `M ${relParent.left} ${relParent.centerY} H ${midX} V ${relChild.centerY} H ${relChild.right}`);
-                        path.setAttribute('class', 'connection-line');
+                        path.setAttribute('stroke', '#6366f1');
+                        path.setAttribute('stroke-width', '2');
+                        path.setAttribute('fill', 'none');
                         svg.appendChild(path);
                     }
                 }
             });
-            
-            // Final debug info
-            const finalPaths = svg.querySelectorAll('path').length;
-            console.log('Total paths created:', finalPaths);
-            if (finalPaths === 0) {
-                console.log('No paths created! Check if nodes have parent IDs set correctly.');
-            }
         }
         
         // Removed drawSVGLine function - no longer needed as we're using orthogonal lines only
