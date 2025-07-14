@@ -1050,139 +1050,187 @@
             transition: transform 0.2s ease;
         }
         
-        /* Pedigree tree styles - Modern redesign */
-        .pedigree-tree {
-            position: relative;
-            width: 100%;
-            min-height: 600px;
-            max-height: 100vh;
-            overflow: auto;
-            background: #f9fafb; /* Light gray background */
-            padding: 50px 20px;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
+        /* Pedigree tree styles - Grid-based redesign */
+        .pedigree-container {
+            background: #0d1321;
+            min-height: 100vh;
+            padding: 2rem;
         }
         
-        /* Custom scrollbar for pedigree tree */
-        .pedigree-tree::-webkit-scrollbar {
+        .pedigree-grid {
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+            min-height: 80vh;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 2rem;
+        }
+        
+        /* Custom scrollbar for pedigree grid */
+        .pedigree-grid::-webkit-scrollbar {
             height: 8px;
         }
         
-        .pedigree-tree::-webkit-scrollbar-track {
-            background: rgba(148, 163, 184, 0.1);
+        .pedigree-grid::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 4px;
         }
         
-        .pedigree-tree::-webkit-scrollbar-thumb {
-            background: rgba(99, 102, 241, 0.3);
+        .pedigree-grid::-webkit-scrollbar-thumb {
+            background: rgba(155, 125, 206, 0.3);
             border-radius: 4px;
             transition: background 0.3s ease;
         }
         
-        .pedigree-tree::-webkit-scrollbar-thumb:hover {
-            background: rgba(99, 102, 241, 0.5);
+        .pedigree-grid::-webkit-scrollbar-thumb:hover {
+            background: rgba(155, 125, 206, 0.5);
         }
         
-        .generation {
+        .generation-column {
             display: flex;
             flex-direction: column;
-            justify-content: center;
             gap: 2rem;
-            margin-right: 6rem;
+            align-items: center;
+            justify-content: center;
             position: relative;
-            animation: fadeInLeft 0.6s ease-out;
         }
         
-        .generation:last-child {
-            margin-right: 0;
-        }
-        
-        @keyframes fadeInLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        .pigeon-node {
+        .generation-column h3 {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
             position: absolute;
-            transform: translate(-50%, 0); /* Center horizontally only */
-            width: 200px;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px;
+            top: -2rem;
+            white-space: nowrap;
+        }
+        
+        .pigeon-card {
+            width: 180px;
+            height: 220px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1rem;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            z-index: 10; /* Above connection lines */
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .pigeon-node:hover {
-            transform: translate(-50%, 0) scale(1.05);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            border-color: #6366f1;
+        .pigeon-card.male {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
+            border-color: rgba(147, 51, 234, 0.3);
         }
         
-        @keyframes nodeAppear {
-            from {
-                opacity: 0;
-                transform: translate(-50%, 0) scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, 0) scale(1);
-            }
+        .pigeon-card.female {
+            background: linear-gradient(135deg, rgba(251, 113, 133, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+            border-color: rgba(236, 72, 153, 0.3);
         }
         
-        /* Add animation delay based on generation */
-        .pigeon-node[data-gen="0"] { animation-delay: 0.1s; }
-        .pigeon-node[data-gen="1"] { animation-delay: 0.2s; }
-        .pigeon-node[data-gen="2"] { animation-delay: 0.3s; }
-        .pigeon-node[data-gen="3"] { animation-delay: 0.4s; }
-        
-        /* Zoom controls */
-        .zoom-controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 100;
+        .pigeon-card.unknown {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.1);
         }
         
-        .zoom-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(99, 102, 241, 0.9);
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
+        .pigeon-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        
+        .pigeon-card.male:hover {
+            border-color: rgba(147, 51, 234, 0.6);
+            box-shadow: 0 8px 24px rgba(147, 51, 234, 0.3);
+        }
+        
+        .pigeon-card.female:hover {
+            border-color: rgba(236, 72, 153, 0.6);
+            box-shadow: 0 8px 24px rgba(236, 72, 153, 0.3);
+        }
+        
+        .pigeon-photo {
+            width: 100%;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
         }
         
-        .zoom-btn:hover {
-            background: rgba(99, 102, 241, 1);
-            transform: scale(1.1);
+        .pigeon-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         
-        .zoom-btn:active {
-            transform: scale(0.95);
+        .pigeon-photo .placeholder-icon {
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.3);
         }
         
-        /* Tooltip styles for pigeon details */
-        .pigeon-tooltip {
+        .pigeon-info {
+            text-align: center;
+        }
+        
+        .pigeon-name {
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .pigeon-band {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .pigeon-year {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.75rem;
+        }
+        
+        /* SVG Connection Lines */
+        .connections-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .connection-line {
+            stroke: #9b7dce;
+            stroke-width: 2;
+            fill: none;
+            opacity: 0.6;
+        }
+        
+        /* Responsive scaling */
+        @media (max-width: 768px) {
+            .pedigree-grid {
+                transform: scale(0.8);
+                transform-origin: left center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .pedigree-grid {
+                transform: scale(0.6);
+                transform-origin: left center;
+            }
+        }
+        
+        /* Remove old tooltip styles - not needed in new design */
+        .pigeon-tooltip-removed {
             position: absolute;
             bottom: 100%;
             left: 50%;
@@ -8728,61 +8776,69 @@ Lütfen yardımcı olun.`);
 
         // Render modern pedigree tree
         function renderModernPedigree(node, t) {
-            const generations = [];
+            // Create grid-based layout
+            let html = '<div class="pedigree-grid">';
             
-            // Organize nodes by generation
-            function collectGenerations(n, genIndex = 0) {
-                if (!n || genIndex >= 4) return;
+            // Add SVG container for connections
+            html += '<svg class="connections-svg"></svg>';
+            
+            // Generation 0: Main bird
+            html += `
+                <div class="generation-column" data-generation="0">
+                    <h3>${t.pigeon || 'Güvercin'}</h3>
+                    ${createBirdCard(node, t, 0, 0)}
+                </div>
+            `;
+            
+            // Generation 1: Parents
+            html += `
+                <div class="generation-column" data-generation="1">
+                    <h3>${t.parents || 'Anne-Baba'}</h3>
+                    ${createBirdCard(node.father || {empty: true, gender: 'male'}, t, 1, 0)}
+                    ${createBirdCard(node.mother || {empty: true, gender: 'female'}, t, 1, 1)}
+                </div>
+            `;
+            
+            // Generation 2: Grandparents
+            const grandparents = [
+                node.father?.father || {empty: true, gender: 'male'},
+                node.father?.mother || {empty: true, gender: 'female'},
+                node.mother?.father || {empty: true, gender: 'male'},
+                node.mother?.mother || {empty: true, gender: 'female'}
+            ];
+            
+            html += `
+                <div class="generation-column" data-generation="2">
+                    <h3>${t.grandparents || 'Büyükanne-Büyükbaba'}</h3>
+                    ${grandparents.map((gp, i) => createBirdCard(gp, t, 2, i)).join('')}
+                </div>
+            `;
+            
+            // Generation 3: Great-grandparents (if needed)
+            const hasGreatGrandparents = node.father?.father?.father || node.father?.father?.mother ||
+                                       node.father?.mother?.father || node.father?.mother?.mother ||
+                                       node.mother?.father?.father || node.mother?.father?.mother ||
+                                       node.mother?.mother?.father || node.mother?.mother?.mother;
+            
+            if (hasGreatGrandparents) {
+                const greatGrandparents = [
+                    node.father?.father?.father || {empty: true, gender: 'male'},
+                    node.father?.father?.mother || {empty: true, gender: 'female'},
+                    node.father?.mother?.father || {empty: true, gender: 'male'},
+                    node.father?.mother?.mother || {empty: true, gender: 'female'},
+                    node.mother?.father?.father || {empty: true, gender: 'male'},
+                    node.mother?.father?.mother || {empty: true, gender: 'female'},
+                    node.mother?.mother?.father || {empty: true, gender: 'male'},
+                    node.mother?.mother?.mother || {empty: true, gender: 'female'}
+                ];
                 
-                if (!generations[genIndex]) generations[genIndex] = [];
-                generations[genIndex].push(n);
-                
-                if (n.father) collectGenerations(n.father, genIndex + 1);
-                if (n.mother) collectGenerations(n.mother, genIndex + 1);
+                html += `
+                    <div class="generation-column" data-generation="3">
+                        <h3>${t.greatGrandparents || 'Büyük Büyükanne-Büyükbaba'}</h3>
+                        ${greatGrandparents.map((ggp, i) => createBirdCard(ggp, t, 3, i)).join('')}
+                    </div>
+                `;
             }
-            
-            collectGenerations(node);
-            
-            // Build HTML structure
-            let html = '<div class="pedigree-tree">';
-            
-            // Build parent map from pedigree data structure
-            const nodeParentMap = {};
-            
-            function buildParentMap(n) {
-                if (!n || n.empty || !n.id) return;
-                
-                // For this node, store its parents' IDs
-                const parentInfo = {};
-                if (n.father && n.father.id) {
-                    parentInfo.fatherId = n.father.id;
-                }
-                if (n.mother && n.mother.id) {
-                    parentInfo.motherId = n.mother.id;
-                }
-                
-                nodeParentMap[n.id] = parentInfo;
-                
-                // Debug log
-                console.log(`Node ${n.id} has parents: father=${parentInfo.fatherId || 'none'}, mother=${parentInfo.motherId || 'none'}`);
-                
-                // Recurse through the tree
-                if (n.father) buildParentMap(n.father);
-                if (n.mother) buildParentMap(n.mother);
-            }
-            
-            buildParentMap(node);
-            
-            // Debug: print final parent map
-            console.log('Final nodeParentMap:', nodeParentMap);
-            
-            // Render all nodes directly without generation wrappers
-            generations.forEach((gen, genIndex) => {
-                gen.forEach((pigeon, index) => {
-                    const parentInfo = pigeon.id ? (nodeParentMap[pigeon.id] || {}) : {};
-                    html += renderPigeonNode(pigeon, t, genIndex, index, parentInfo);
-                });
-            });
             
             html += '</div>';
             return html;
@@ -8818,157 +8874,125 @@ Lütfen yardımcı olun.`);
             }
         }
         
-        // Render individual pigeon node
-        function renderPigeonNode(pigeon, t, genIndex, nodeIndex, parentInfo = {}) {
+        // Create bird card for grid layout
+        function createBirdCard(pigeon, t, genIndex, nodeIndex) {
             if (pigeon.empty) {
-                return `
-                    <div class="pigeon-node empty ${pigeon.gender}" 
-                         ${pigeon.id ? `id="pigeon-${pigeon.id}"` : ''}
-                         data-generation="${genIndex}" 
-                         data-gen="${genIndex}" 
-                         data-index="${nodeIndex}"
-                         ${parentInfo.fatherId ? `data-father-id="pigeon-${parentInfo.fatherId}"` : ''}
-                         ${parentInfo.motherId ? `data-mother-id="pigeon-${parentInfo.motherId}"` : ''}>
-                        <div class="pigeon-header">
-                            <div class="pigeon-icon bg-gray-700">
-                                <i class="fas fa-question text-gray-500"></i>
-                            </div>
-                            <div class="pigeon-info">
-                                <div class="pigeon-name">${t.unknown || 'Bilinmiyor'}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                return createUnknownCard(pigeon.gender || 'unknown', t, genIndex, nodeIndex);
             }
             
             const genderClass = pigeon.gender || 'unknown';
-            const iconColor = pigeon.gender === 'male' ? 'bg-blue-500' : 
-                             pigeon.gender === 'female' ? 'bg-pink-500' : 'bg-gray-500';
-            const role = getFamilialRole(genIndex, nodeIndex);
+            const birthYear = pigeon.birthDate ? new Date(pigeon.birthDate).getFullYear() : '';
             
             return `
-                <div class="pigeon-node ${genderClass}" 
+                <div class="pigeon-card ${genderClass}" 
                      id="pigeon-${pigeon.id}"
                      data-pigeon-id="${pigeon.id}" 
                      data-generation="${genIndex}"
-                     data-gen="${genIndex}" 
                      data-index="${nodeIndex}"
-                     ${parentInfo.fatherId ? `data-father-id="pigeon-${parentInfo.fatherId}"` : ''}
-                     ${parentInfo.motherId ? `data-mother-id="pigeon-${parentInfo.motherId}"` : ''}
                      onclick="showPedigree('${pigeon.id}')">
-                    <div class="pigeon-tooltip">
-                        <div class="text-sm font-semibold text-gray-200 mb-2">${t.quick_info || 'Hızlı Bilgi'}</div>
-                        ${pigeon.strain ? `<div class="text-xs text-gray-400"><span class="text-gray-500">${t.strain || 'Irk'}:</span> ${pigeon.strain}</div>` : ''}
-                        ${pigeon.owner ? `<div class="text-xs text-gray-400"><span class="text-gray-500">${t.owner || 'Sahip'}:</span> ${pigeon.owner}</div>` : ''}
-                        ${pigeon.notes ? `<div class="text-xs text-gray-400 mt-2"><span class="text-gray-500">${t.notes || 'Notlar'}:</span> ${pigeon.notes}</div>` : ''}
+                    <div class="pigeon-photo">
+                        ${pigeon.image ? 
+                            `<img src="${pigeon.image}" alt="${pigeon.name}">` : 
+                            `<i class="fas fa-dove placeholder-icon"></i>`
+                        }
                     </div>
-                    <div class="pigeon-header">
-                        ${pigeon.image ? `
-                            <img src="${pigeon.image}" alt="${pigeon.name}" class="pigeon-image">
-                        ` : `
-                            <div class="pigeon-icon ${iconColor}">
-                                <i class="fas fa-dove"></i>
-                            </div>
-                        `}
-                        <div class="pigeon-info">
-                            ${role ? `<div class="pigeon-role">${role}</div>` : ''}
-                            <div class="pigeon-name">${pigeon.name}</div>
-                            ${pigeon.altName ? `<div class="pigeon-alt-name">${pigeon.altName}</div>` : ''}
-                        </div>
-                    </div>
-                    <div class="pigeon-details">
-                        <div class="pigeon-detail-item">
-                            <span>${t.band || 'Künye'}:</span>
-                            <span>${pigeon.bandNumber}</span>
-                        </div>
-                        ${pigeon.birthDate ? `
-                            <div class="pigeon-detail-item">
-                                <span>${t.birth || 'Doğum'}:</span>
-                                <span>${new Date(pigeon.birthDate).getFullYear()}</span>
-                            </div>
-                        ` : ''}
-                        ${pigeon.deathDate ? `
-                            <div class="pigeon-detail-item">
-                                <span>${t.death || 'Ölüm'}:</span>
-                                <span>${new Date(pigeon.deathDate).getFullYear()}</span>
-                            </div>
-                        ` : ''}
+                    <div class="pigeon-info">
+                        <div class="pigeon-name">${pigeon.name}</div>
+                        <div class="pigeon-band">${pigeon.bandNumber}</div>
+                        ${birthYear ? `<div class="pigeon-year">${birthYear}</div>` : ''}
                     </div>
                 </div>
             `;
         }
         
-        // Position nodes with hierarchical top-down layout
-        function positionNodes() {
-            const container = document.querySelector('.pedigree-tree');
+        // Create unknown bird card
+        function createUnknownCard(gender, t, genIndex, nodeIndex) {
+            return `
+                <div class="pigeon-card unknown ${gender}" 
+                     data-generation="${genIndex}"
+                     data-index="${nodeIndex}">
+                    <div class="pigeon-photo">
+                        <i class="fas fa-question placeholder-icon"></i>
+                    </div>
+                    <div class="pigeon-info">
+                        <div class="pigeon-name">${t.unknown || 'Bilinmiyor'}</div>
+                        <div class="pigeon-band">-</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Draw orthogonal connection lines for grid layout
+        function drawPedigreeConnections() {
+            const container = document.querySelector('.pedigree-grid');
             if (!container) return;
             
-            // Prevent infinite loop with positioning flag
-            if (container.dataset.positioning === 'true') return;
-            container.dataset.positioning = 'true';
+            const svg = container.querySelector('.connections-svg');
+            if (!svg) return;
             
-            // Get all nodes
-            const allNodes = container.querySelectorAll('.pigeon-node');
-            const containerWidth = container.offsetWidth;
+            // Clear existing paths
+            svg.innerHTML = '';
             
-            // Create levels based on parent-child relationships
-            const levels = {};
-            const processedNodes = new Set();
-            
-            // First, organize nodes by generation to create hierarchy
-            const nodesByGen = {};
-            allNodes.forEach(node => {
-                const gen = parseInt(node.getAttribute('data-generation') || '0');
-                if (!nodesByGen[gen]) nodesByGen[gen] = [];
-                nodesByGen[gen].push(node);
-            });
-            
-            // Constants for layout
-            const NODE_WIDTH = 200;
-            const NODE_HEIGHT = 100;
-            const HORIZONTAL_GAP = 80;
-            const VERTICAL_GAP = 150;
-            const TOP_MARGIN = 50;
-            
-            // Position nodes level by level (generation = level)
-            Object.keys(nodesByGen).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen, levelIndex) => {
-                const nodesInLevel = nodesByGen[gen];
-                const levelY = TOP_MARGIN + (levelIndex * VERTICAL_GAP);
-                
-                // Calculate total width needed for this level
-                const totalWidth = (nodesInLevel.length * NODE_WIDTH) + ((nodesInLevel.length - 1) * HORIZONTAL_GAP);
-                const startX = Math.max(50, (containerWidth - totalWidth) / 2); // Center the level
-                
-                // Position each node in the level
-                nodesInLevel.forEach((node, index) => {
-                    const x = startX + (index * (NODE_WIDTH + HORIZONTAL_GAP)) + (NODE_WIDTH / 2);
-                    const y = levelY;
-                    
-                    // Apply position
-                    node.style.left = x + 'px';
-                    node.style.top = y + 'px';
-                    node.style.width = NODE_WIDTH + 'px';
-                    node.style.height = 'auto';
-                    
-                    // Store position for connection drawing
-                    node.dataset.centerX = x;
-                    node.dataset.centerY = y + 50; // Approximate center
-                });
-            });
-            
-            // Calculate and set container height
-            let maxY = TOP_MARGIN + (Object.keys(nodesByGen).length * VERTICAL_GAP) + 100;
-            container.style.height = Math.min(maxY, 2000) + 'px';
-            container.style.minHeight = '600px';
-            
-            // Clear positioning flag
+            // Wait for layout to settle
             setTimeout(() => {
-                container.dataset.positioning = 'false';
+                const cards = container.querySelectorAll('.pigeon-card');
+                const connections = [];
+                
+                // Map cards by generation and index
+                const cardMap = {};
+                cards.forEach(card => {
+                    const gen = parseInt(card.dataset.generation);
+                    const idx = parseInt(card.dataset.index);
+                    if (!cardMap[gen]) cardMap[gen] = {};
+                    cardMap[gen][idx] = card;
+                });
+                
+                // Define parent-child relationships
+                const relationships = [
+                    // Gen 0 to Gen 1
+                    {from: {gen: 0, idx: 0}, to: [{gen: 1, idx: 0}, {gen: 1, idx: 1}]},
+                    // Gen 1 to Gen 2
+                    {from: {gen: 1, idx: 0}, to: [{gen: 2, idx: 0}, {gen: 2, idx: 1}]}, // Father's parents
+                    {from: {gen: 1, idx: 1}, to: [{gen: 2, idx: 2}, {gen: 2, idx: 3}]}, // Mother's parents
+                    // Gen 2 to Gen 3 (if exists)
+                    {from: {gen: 2, idx: 0}, to: [{gen: 3, idx: 0}, {gen: 3, idx: 1}]},
+                    {from: {gen: 2, idx: 1}, to: [{gen: 3, idx: 2}, {gen: 3, idx: 3}]},
+                    {from: {gen: 2, idx: 2}, to: [{gen: 3, idx: 4}, {gen: 3, idx: 5}]},
+                    {from: {gen: 2, idx: 3}, to: [{gen: 3, idx: 6}, {gen: 3, idx: 7}]}
+                ];
+                
+                // Draw connections
+                relationships.forEach(rel => {
+                    const fromCard = cardMap[rel.from.gen]?.[rel.from.idx];
+                    if (!fromCard) return;
+                    
+                    rel.to.forEach(toCoord => {
+                        const toCard = cardMap[toCoord.gen]?.[toCoord.idx];
+                        if (!toCard) return;
+                        
+                        // Calculate positions
+                        const fromRect = fromCard.getBoundingClientRect();
+                        const toRect = toCard.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+                        
+                        const fromX = fromRect.right - containerRect.left;
+                        const fromY = fromRect.top + fromRect.height / 2 - containerRect.top;
+                        const toX = toRect.left - containerRect.left;
+                        const toY = toRect.top + toRect.height / 2 - containerRect.top;
+                        
+                        // Create orthogonal path
+                        const midX = fromX + (toX - fromX) / 2;
+                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        path.setAttribute('d', `M ${fromX} ${fromY} L ${midX} ${fromY} L ${midX} ${toY} L ${toX} ${toY}`);
+                        path.setAttribute('class', 'connection-line');
+                        svg.appendChild(path);
+                    });
+                });
             }, 100);
         }
         
-        // Draw connection lines with clean top-down hierarchy
-        function drawConnectionLines() {
+        // OLD drawConnectionLines function removed - replaced with drawPedigreeConnections
+        function drawConnectionLines_REMOVED() {
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
             
@@ -9738,48 +9762,37 @@ Lütfen yardımcı olun.`);
                 
                 // Create pedigree HTML with modern SVG rendering
                 document.getElementById('content').innerHTML = `
-                    <div class="container mx-auto">
-                        <div class="glass p-8 rounded-3xl">
-                            <div class="flex justify-between items-center mb-8">
-                                <h2 class="text-3xl font-bold">${pigeon.name} - ${t.pedigree || 'Soyağacı'}</h2>
+                    <div class="pedigree-page" style="background: #0d1321; min-height: 100vh; padding: 2rem;">
+                        <div class="container mx-auto">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-3xl font-bold text-white">${pigeon.name} - ${t.pedigree || 'Soyağacı'}</h2>
                                 <div class="flex gap-2">
-                                    <button onclick="showPedigree('${pigeonId}', 3)" class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
+                                    <button onclick="showPedigree('${pigeonId}', 3)" class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
                                         3 ${t.generation || 'Nesil'}
                                     </button>
-                                    <button onclick="showPedigree('${pigeonId}', 4)" class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
+                                    <button onclick="showPedigree('${pigeonId}', 4)" class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
                                         4 ${t.generation || 'Nesil'}
                                     </button>
-                                    <button onclick="showPedigree('${pigeonId}', 5)" class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-600'} rounded-lg hover:opacity-80 transition">
+                                    <button onclick="showPedigree('${pigeonId}', 5)" class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
                                         5 ${t.generation || 'Nesil'}
                                     </button>
                                 </div>
                             </div>
                             
-                            <div class="pedigree-container bg-black/20 rounded-2xl" id="pedigreeContainer">
+                            <div class="pedigree-container" id="pedigreeContainer">
                                 <div class="pedigree-wrapper" id="pedigreeWrapper">
                                     ${renderModernPedigree(pedigreeData, t)}
-                                </div>
-                                <div class="zoom-controls">
-                                    <button class="zoom-btn" onclick="zoomIn()" title="Yakınlaştır">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                    <button class="zoom-btn" onclick="zoomOut()" title="Uzaklaştır">
-                                        <i class="fas fa-minus"></i>
-                                    </button>
-                                    <button class="zoom-btn" onclick="zoomFit()" title="Sığdır">
-                                        <i class="fas fa-compress"></i>
-                                    </button>
                                 </div>
                             </div>
                             
                             <div class="mt-8 flex gap-4 flex-wrap">
-                                <button onclick="showPigeons()" class="px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
+                                <button onclick="showPigeons()" class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
                                     <i class="fas fa-arrow-left mr-2"></i> ${t.back || 'Geri Dön'}
                                 </button>
-                                <button onclick="exportSVGPedigreePDF('${pigeonId}')" class="btn-primary">
+                                <button onclick="exportSVGPedigreePDF('${pigeonId}')" class="px-6 py-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition">
                                     <i class="fas fa-file-pdf mr-2"></i> ${t.download_pdf || 'PDF İndir'}
                                 </button>
-                                <button onclick="printPedigree()" class="px-6 py-3 bg-green-500 rounded-full hover:bg-green-600 transition">
+                                <button onclick="printPedigree()" class="px-6 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition">
                                     <i class="fas fa-print mr-2"></i> ${t.print || 'Yazdır'}
                                 </button>
                             </div>
@@ -9790,8 +9803,7 @@ Lütfen yardımcı olun.`);
                 // Position nodes and add connection lines after rendering
                 if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
                 window.pedigreeTimeout = setTimeout(() => {
-                    positionNodes();
-                    drawConnectionLines();
+                    drawPedigreeConnections();
                     // Zoom functionality disabled for cleaner experience
                     // initPedigreeZoom();
                     // Debug: Check if lines are drawn
@@ -9811,8 +9823,7 @@ Lütfen yardımcı olun.`);
                     window.addEventListener('resize', () => {
                         clearTimeout(resizeTimeout);
                         resizeTimeout = setTimeout(() => {
-                            positionNodes();
-                            drawConnectionLines();
+                            drawPedigreeConnections();
                         }, 300); // Increased debounce to prevent rapid firing
                     });
                     
@@ -9824,8 +9835,7 @@ Lütfen yardımcı olun.`);
                             container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
                         }
                         setTimeout(() => {
-                            positionNodes();
-                            drawConnectionLines();
+                            drawPedigreeConnections();
                         }, 200);
                     });
                 }
@@ -9856,8 +9866,7 @@ Lütfen yardımcı olun.`);
                                 // Longer debounce to prevent rapid firing
                                 clearTimeout(window.resizeTimeout);
                                 window.resizeTimeout = setTimeout(() => {
-                                    positionNodes();
-                                    drawConnectionLines();
+                                    drawPedigreeConnections();
                                 }, 300);
                             }
                         });
