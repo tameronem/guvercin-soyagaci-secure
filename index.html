@@ -1053,17 +1053,15 @@
         /* Pedigree tree styles - Modern redesign */
         .pedigree-tree {
             display: flex;
-            align-items: center;
+            align-items: flex-start; /* Changed from center to flex-start */
             position: relative;
             padding: 2rem;
-            min-height: 600px;
+            height: 600px; /* Changed from min-height to height */
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: auto; /* Changed from hidden to auto */
             background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
-            /* Ensure proper stacking context for SVG */
-            position: relative;
         }
         
         /* Custom scrollbar for pedigree tree */
@@ -1514,10 +1512,11 @@
             
             .pedigree-tree {
                 padding: 1rem;
-                min-height: 400px;
+                height: 400px; /* Changed from min-height to height */
                 /* Removed transform scale - using smaller sizes instead */
                 font-size: 0.85rem;
                 overflow-x: auto;
+                overflow-y: auto; /* Added overflow-y */
                 -webkit-overflow-scrolling: touch;
             }
             
@@ -1612,7 +1611,7 @@
             .pedigree-tree {
                 position: relative;
                 overflow-x: auto;
-                overflow-y: hidden;
+                overflow-y: auto; /* Changed from hidden to auto */
             }
             
             /* Adjust line positioning for mobile viewport */
@@ -8906,6 +8905,10 @@ Lütfen yardımcı olun.`);
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
             
+            // Prevent infinite loop with positioning flag
+            if (container.dataset.positioning === 'true') return;
+            container.dataset.positioning = 'true';
+            
             // Get all nodes directly (no generation wrappers)
             const allNodes = container.querySelectorAll('.pigeon-node');
             
@@ -8919,10 +8922,13 @@ Lütfen yardımcı olun.`);
                 nodesByGeneration[gen].push(node);
             });
             
-            // Get container height for Y calculations
-            const containerHeight = container.offsetHeight || 600; // Fallback to 600px if not available
+            // Use smaller, optimized values for positioning
+            const nodeHeight = 100; // Reduced from 120
+            const verticalGap = 20; // Reduced from 40
+            const topMargin = 10; // Reduced from 20
+            const maxContainerHeight = 1200; // Maximum reasonable height
             
-            // Position each generation with new formulas
+            // Position each generation
             Object.keys(nodesByGeneration).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen) => {
                 const nodes = nodesByGeneration[gen];
                 const generationNumber = parseInt(gen);
@@ -8930,34 +8936,35 @@ Lütfen yardımcı olun.`);
                 // X-axis positioning: x = (generation_number * 190) - 90
                 const x = (generationNumber * 190) - 90;
                 
-                // Y-axis distribution for this generation
-                const nodesCount = nodes.length;
+                // Y-axis positioning - compact layout
                 nodes.forEach((node, nodeIndex) => {
-                    // Y-axis positioning: y = (container_height / (nodes_in_generation + 1)) * (node_index + 1)
-                    const y = (containerHeight / (nodesCount + 1)) * (nodeIndex + 1);
+                    // Simple top-to-bottom positioning
+                    const y = topMargin + (nodeIndex * (nodeHeight + verticalGap));
                     
                     node.style.left = x + 'px';
                     node.style.top = y + 'px';
-                    // Removed width styling - let CSS handle it
                 });
             });
             
-            // Update container height if needed
+            // Calculate container height with maximum limit
             let maxY = 0;
             allNodes.forEach(node => {
                 const bottom = node.offsetTop + node.offsetHeight;
-                if (bottom > maxY) {
-                    maxY = bottom;
-                }
+                maxY = Math.max(maxY, bottom);
             });
             
-            // Only set minHeight if content exceeds current height
-            if (maxY > 0 && maxY < 5000) { // Sanity check - don't set huge heights
-                container.style.minHeight = (maxY + 40) + 'px';
-            } else if (maxY >= 5000) {
-                console.error('Calculated height too large:', maxY, '- keeping default');
-                container.style.minHeight = '600px';
+            // Set height with maximum limit
+            if (maxY > 0) {
+                const newHeight = Math.min(maxY + 40, maxContainerHeight); // Enforce maximum
+                container.style.height = newHeight + 'px';
+                container.style.minHeight = 'initial';
+                // If content is larger than container, scrolling will handle it
             }
+            
+            // Clear positioning flag
+            setTimeout(() => {
+                container.dataset.positioning = 'false';
+            }, 100);
         }
         
         // Draw connection lines between nodes (orthogonal lines only)
@@ -9789,7 +9796,7 @@ Lütfen yardımcı olun.`);
                         resizeTimeout = setTimeout(() => {
                             positionNodes();
                             drawConnectionLines();
-                        }, 150); // Faster response for mobile
+                        }, 300); // Increased debounce to prevent rapid firing
                     });
                     
                     // Handle orientation changes for mobile devices
@@ -9806,31 +9813,10 @@ Lütfen yardımcı olun.`);
                     });
                 }
                 
-                // Redraw lines when container is scrolled (for mobile)
-                const pedigreeContainer = document.querySelector('.pedigree-tree');
-                if (pedigreeContainer) {
-                    let scrollTimeout;
-                    pedigreeContainer.addEventListener('scroll', () => {
-                        clearTimeout(scrollTimeout);
-                        scrollTimeout = setTimeout(() => {
-                            positionNodes();
-                            drawConnectionLines();
-                        }, 100);
-                    });
-                }
+                // REMOVED scroll event listener - not needed and can cause loops
+                // Positions should be independent of scroll position
                 
-                // Use IntersectionObserver for performance optimization
-                const observer = new IntersectionObserver((entries) => {
-                    if (entries.some(entry => entry.isIntersecting)) {
-                        positionNodes();
-                        drawConnectionLines();
-                    }
-                });
-                
-                // Observe the pedigree container
-                if (pedigreeContainer) {
-                    observer.observe(pedigreeContainer);
-                }
+                // REMOVED IntersectionObserver - causes infinite loop with height changes
                 
                 // Add ResizeObserver for better size change detection
                 if (window.ResizeObserver) {
@@ -9839,16 +9825,24 @@ Lütfen yardımcı olun.`);
                         window.pedigreeResizeObserver.disconnect();
                     }
                     
-                    // Create new ResizeObserver
+                    // Create new ResizeObserver with smarter logic
                     const pedigreeWrapper = document.querySelector('.pedigree-wrapper');
                     if (pedigreeWrapper) {
+                        let lastWidth = pedigreeWrapper.offsetWidth;
                         window.pedigreeResizeObserver = new ResizeObserver((entries) => {
-                            // Debounce resize events
-                            clearTimeout(window.resizeTimeout);
-                            window.resizeTimeout = setTimeout(() => {
-                                positionNodes();
-                                drawConnectionLines();
-                            }, 150);
+                            const entry = entries[0];
+                            const newWidth = entry.contentRect.width;
+                            
+                            // Only trigger on width changes, not height changes
+                            if (Math.abs(newWidth - lastWidth) > 10) {
+                                lastWidth = newWidth;
+                                // Longer debounce to prevent rapid firing
+                                clearTimeout(window.resizeTimeout);
+                                window.resizeTimeout = setTimeout(() => {
+                                    positionNodes();
+                                    drawConnectionLines();
+                                }, 300);
+                            }
                         });
                         window.pedigreeResizeObserver.observe(pedigreeWrapper);
                     }
