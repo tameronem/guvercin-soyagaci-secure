@@ -7157,6 +7157,51 @@ Lütfen yardımcı olun.`);
                 }
             
             document.getElementById('content').innerHTML = `
+                <style>
+                    /* Fixed navbar altında kalma sorununu çöz */
+                    #content {
+                        position: relative;
+                        z-index: 1;
+                        padding-top: 80px; /* Navbar yüksekliği + boşluk */
+                    }
+                    
+                    /* Pigeon card ve butonları fixed element'in üstüne çıkar */
+                    .pigeon-card {
+                        position: relative !important;
+                        z-index: 60 !important; /* Fixed glass'ın 50'sinden yüksek */
+                        overflow: visible !important;
+                    }
+                    
+                    .pigeon-card-actions {
+                        position: relative !important;
+                        z-index: 70 !important;
+                        background: rgba(0, 0, 0, 0.95) !important;
+                        padding: 12px !important;
+                        border-radius: 8px !important;
+                        margin-top: 20px !important;
+                        margin-bottom: 10px !important;
+                        overflow: visible !important;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8) !important;
+                    }
+                    
+                    .pigeon-card-actions button {
+                        position: relative !important;
+                        z-index: 80 !important;
+                    }
+                    
+                    /* Container overflow düzeltmeleri */
+                    .glass {
+                        overflow: visible !important;
+                    }
+                    
+                    .container.mx-auto {
+                        overflow: visible !important;
+                    }
+                    
+                    .grid {
+                        overflow: visible !important;
+                    }
+                </style>
                 <div class="container mx-auto">
                 <div class="glass p-8 rounded-3xl">`
                 +
@@ -7323,61 +7368,7 @@ Lütfen yardımcı olun.`);
                 ` : ''}
                 </div>
                 
-                <!-- CSS for pigeon card buttons - Daha agresif görünürlük -->
-                <style>
-                    /* Güvercin kartlarını ve butonları zorla görünür yap */
-                    .pigeon-card {
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                        display: block !important;
-                    }
-                    
-                    .pigeon-card-actions {
-                        display: flex !important;
-                        gap: 8px !important;
-                        margin-top: 16px !important;
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                        height: auto !important;
-                        overflow: visible !important;
-                        position: relative !important;
-                        z-index: 10 !important;
-                    }
-                    
-                    .pigeon-card button,
-                    .pigeon-card-actions button {
-                        visibility: visible !important;
-                        display: inline-flex !important;
-                        align-items: center !important;
-                        justify-content: center !important;
-                        opacity: 1 !important;
-                        position: relative !important;
-                        z-index: 20 !important;
-                        min-width: 80px !important;
-                        white-space: nowrap !important;
-                        pointer-events: all !important;
-                        user-select: none !important;
-                    }
-                    
-                    /* Tüm alt elementleri de görünür yap */
-                    .pigeon-card * {
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                    }
-                    
-                    /* Buton hover efektleri */
-                    .pigeon-card button:hover,
-                    .pigeon-card-actions button:hover {
-                        opacity: 1 !important;
-                        filter: brightness(1.2);
-                    }
-                    
-                    /* Debug için arka plan rengi - gerekirse açın */
-                    /* .pigeon-card-actions {
-                        background: rgba(255, 0, 0, 0.1) !important;
-                        border: 2px solid red !important;
-                    } */
-                </style>
+                <!-- Eski CSS kaldırıldı - Yeni CSS yukarıda tanımlı -->
                 </div>
             `;
             
@@ -7405,6 +7396,77 @@ Lütfen yardımcı olun.`);
                         opacity: window.getComputedStyle(btn).opacity
                     });
                 });
+                
+                // Fixed navbar kontrolü ve düzeltmesi
+                const fixedNav = document.querySelector('.fixed.glass') || document.querySelector('.fixed.w-full.top-0.glass');
+                if (fixedNav) {
+                    console.log('=== FIXED NAVBAR KONTROLÜ ===');
+                    const navHeight = fixedNav.offsetHeight;
+                    const navZIndex = window.getComputedStyle(fixedNav).zIndex;
+                    console.log('Navbar height:', navHeight);
+                    console.log('Navbar z-index:', navZIndex);
+                    
+                    // Navbar'ın sadece button ve link'leri tıklanabilir yap
+                    fixedNav.style.pointerEvents = 'none';
+                    const navInteractiveElements = fixedNav.querySelectorAll('button, a, input');
+                    navInteractiveElements.forEach(el => {
+                        el.style.pointerEvents = 'auto';
+                    });
+                    console.log('Fixed navbar pointer-events düzeltildi');
+                    
+                    // Butonların navbar altında olup olmadığını kontrol et
+                    pigeonButtons.forEach((btn, i) => {
+                        const rect = btn.getBoundingClientRect();
+                        if (rect.top < navHeight) {
+                            console.warn(`Buton ${i + 1} navbar altında! Top: ${rect.top}, Navbar height: ${navHeight}`);
+                        }
+                    });
+                }
+                
+                // Tüm overflow hidden'ları tespit et ve düzelt
+                document.querySelectorAll('.glass, .container, .grid').forEach(el => {
+                    const overflow = window.getComputedStyle(el).overflow;
+                    if (overflow === 'hidden') {
+                        el.style.overflow = 'visible';
+                        console.log('Overflow düzeltildi:', el.className);
+                    }
+                });
+                
+                // Button click testi
+                if (pigeonButtons.length > 0) {
+                    console.log('=== BUTTON CLICK TESTİ ===');
+                    console.log('İlk butona test click yapmayı deneyin:');
+                    const firstBtn = pigeonButtons[0];
+                    
+                    // Click event listener ekle
+                    firstBtn.addEventListener('click', function(e) {
+                        console.log('TEST CLICK ÇALIŞTI!', e);
+                    }, { once: true });
+                    
+                    // Simüle click
+                    try {
+                        firstBtn.click();
+                        console.log('Simüle click başarılı');
+                    } catch (err) {
+                        console.error('Click hatası:', err);
+                    }
+                }
+                
+                // Alternatif fixed element kontrolü
+                if (!fixedNav) {
+                    const allFixed = document.querySelectorAll('[style*="position: fixed"], .fixed');
+                    console.log('=== TÜM FIXED ELEMENTLER ===');
+                    allFixed.forEach(el => {
+                        const zIndex = window.getComputedStyle(el).zIndex;
+                        if (zIndex && zIndex !== 'auto' && parseInt(zIndex) > 20) {
+                            console.log('Fixed element bulundu:', {
+                                class: el.className,
+                                zIndex: zIndex,
+                                height: el.offsetHeight
+                            });
+                        }
+                    });
+                }
             }, 100);
             
             } catch (error) {
