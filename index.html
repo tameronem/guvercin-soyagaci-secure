@@ -7279,6 +7279,57 @@ Lütfen yardımcı olun.`);
                     </div>
                 ` : ''}
                 </div>
+                
+                <!-- CSS for pigeon card buttons -->
+                <style>
+                    /* Ensure pigeon card buttons are visible */
+                    .pigeon-card button {
+                        visibility: visible !important;
+                        display: inline-flex !important;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 1 !important;
+                    }
+                    
+                    .pigeon-card .flex.gap-2.mt-4 {
+                        display: flex !important;
+                        visibility: visible !important;
+                    }
+                    
+                    .pigeon-card button[data-action] {
+                        min-width: 80px;
+                        white-space: nowrap;
+                    }
+                    
+                    /* Enhanced button styling for better visibility */
+                    .pigeon-card button[data-action="showDetail"] {
+                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2)) !important;
+                        border-color: rgba(99, 102, 241, 0.4) !important;
+                    }
+                    
+                    .pigeon-card button[data-action="showDetail"]:hover {
+                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(99, 102, 241, 0.4)) !important;
+                        border-color: rgba(99, 102, 241, 0.6) !important;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+                    }
+                    
+                    .pigeon-card button[data-action="showPedigree"] {
+                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2)) !important;
+                        border-color: rgba(16, 185, 129, 0.4) !important;
+                    }
+                    
+                    .pigeon-card button[data-action="showPedigree"]:hover {
+                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(16, 185, 129, 0.4)) !important;
+                        border-color: rgba(16, 185, 129, 0.6) !important;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                    }
+                    
+                    .pigeon-card button i {
+                        margin-right: 0.5rem;
+                    }
+                </style>
                 </div>
             `;
             
@@ -12417,54 +12468,6 @@ Lütfen yardımcı olun.`);
                     }
                     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                         background: linear-gradient(to bottom, #0891b2, #7c3aed);
-                    }
-                    
-                    /* Ensure pigeon card buttons are visible */
-                    .pigeon-card button {
-                        visibility: visible !important;
-                        display: inline-flex !important;
-                        align-items: center;
-                        justify-content: center;
-                        opacity: 1 !important;
-                    }
-                    
-                    .pigeon-card .flex.gap-2.mt-4 {
-                        display: flex !important;
-                        visibility: visible !important;
-                    }
-                    
-                    .pigeon-card button[data-action] {
-                        min-width: 80px;
-                        white-space: nowrap;
-                    }
-                    
-                    /* Enhanced button styling for better visibility */
-                    .pigeon-card button[data-action="showDetail"] {
-                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2)) !important;
-                        border-color: rgba(99, 102, 241, 0.4) !important;
-                    }
-                    
-                    .pigeon-card button[data-action="showDetail"]:hover {
-                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(99, 102, 241, 0.4)) !important;
-                        border-color: rgba(99, 102, 241, 0.6) !important;
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-                    }
-                    
-                    .pigeon-card button[data-action="showPedigree"] {
-                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2)) !important;
-                        border-color: rgba(16, 185, 129, 0.4) !important;
-                    }
-                    
-                    .pigeon-card button[data-action="showPedigree"]:hover {
-                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(16, 185, 129, 0.4)) !important;
-                        border-color: rgba(16, 185, 129, 0.6) !important;
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-                    }
-                    
-                    .pigeon-card button i {
-                        margin-right: 0.5rem;
                     }
                 </style>
             `;
