@@ -7137,10 +7137,24 @@ Lütfen yardımcı olun.`);
                     showing: paginatedPigeons.length
                 });
                 
-                // Log button rendering info
-                console.log('Rendering pigeon cards with buttons');
-                console.log('Sample pigeon data:', paginatedPigeons[0]);
-                console.log('Button visibility will be ensured with CSS');
+                // Detaylı debug loglama
+                console.log('=== GÜVERCİN KARTLARI DEBUG ===');
+                console.log('Toplam güvercin sayısı:', userPigeons.length);
+                console.log('Bu sayfadaki güvercin sayısı:', paginatedPigeons.length);
+                console.log('İlk güvercin verisi:', paginatedPigeons[0]);
+                console.log('Çeviri anahtarları:', { 
+                    detail: t.detail, 
+                    pedigree: t.pedigree,
+                    detailExists: !!t.detail,
+                    pedigreeExists: !!t.pedigree
+                });
+                console.log('Mevcut dil:', currentLang);
+                console.log('Tam çeviri nesnesi:', t);
+                
+                // Veri doğrulama
+                if (!paginatedPigeons || paginatedPigeons.length === 0) {
+                    console.error('HATA: Gösterilecek güvercin yok!');
+                }
             
             document.getElementById('content').innerHTML = `
                 <div class="container mx-auto">
@@ -7193,7 +7207,10 @@ Lütfen yardımcı olun.`);
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    ${paginatedPigeons.map(pigeon => `
+                    ${paginatedPigeons.map((pigeon, index) => {
+                        try {
+                            console.log(`Kart ${index + 1} render ediliyor:`, pigeon.name, pigeon.id);
+                            return `
                         <div class="glass p-6 rounded-2xl pigeon-card">
                             ${pigeon.image_url ? `
                                 <img src="${pigeon.image_url}" alt="${pigeon.name}" class="w-full h-48 object-cover rounded-xl mb-4">
@@ -7228,19 +7245,45 @@ Lütfen yardımcı olun.`);
                                     <span>${formatDate(pigeon.birth_date)}</span>
                                 </div>
                             </div>
-                            <div class="flex gap-2 mt-4">
-                                <button type="button" data-action="showDetail" data-pigeon-id="${pigeon.id}" onclick="try { showPigeonDetail('${pigeon.id}'); } catch(e) { console.error('Error calling showPigeonDetail:', e); alert('Detay görüntülenemedi: ' + e.message); }" class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition text-sm">
-                                    <i class="fas fa-eye"></i> ${t.detail || 'Detay'}
+                            <!-- Butonlar - Basitleştirilmiş ve inline style ile -->
+                            <div class="pigeon-card-actions" style="display: flex !important; gap: 8px; margin-top: 16px; visibility: visible !important; opacity: 1 !important;">
+                                ${typeof showPigeonDetail === 'function' ? `<button 
+                                    type="button" 
+                                    onclick="showPigeonDetail('${pigeon.id}')" 
+                                    style="flex: 1; padding: 8px 12px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 8px; color: white; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; visibility: visible !important; opacity: 1 !important;"
+                                    onmouseover="this.style.background='rgba(59, 130, 246, 0.4)'; this.style.transform='translateY(-1px)'"
+                                    onmouseout="this.style.background='rgba(59, 130, 246, 0.2)'; this.style.transform='translateY(0)'">
+                                    <i class="fas fa-eye" style="margin-right: 6px;"></i> 
+                                    <span>Detay</span>
                                 </button>
-                                <button type="button" data-action="showPedigree" data-pigeon-id="${pigeon.id}" onclick="try { showPedigree('${pigeon.id}'); } catch(e) { console.error('Error calling showPedigree:', e); alert('Soyağacı görüntülenemedi: ' + e.message); }" class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition text-sm">
-                                    <i class="fas fa-sitemap"></i> ${t.pedigree || 'Soyağacı'}
+                                <button 
+                                    type="button" 
+                                    onclick="showPedigree('${pigeon.id}')" 
+                                    style="flex: 1; padding: 8px 12px; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; color: white; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; visibility: visible !important; opacity: 1 !important;"
+                                    onmouseover="this.style.background='rgba(34, 197, 94, 0.4)'; this.style.transform='translateY(-1px)'"
+                                    onmouseout="this.style.background='rgba(34, 197, 94, 0.2)'; this.style.transform='translateY(0)'">
+                                    <i class="fas fa-sitemap" style="margin-right: 6px;"></i> 
+                                    <span>Soyağacı</span>
                                 </button>
-                                <button type="button" data-action="deletePigeon" data-pigeon-id="${pigeon.id}" onclick="deletePigeon('${pigeon.id}')" class="px-3 py-2 bg-red-500/20 border border-red-500/40 rounded-lg hover:bg-red-500/30 transition text-sm">
+                                <button 
+                                    type="button" 
+                                    onclick="if(confirm('Bu güvercini silmek istediğinizden emin misiniz?')) deletePigeon('${pigeon.id}')" 
+                                    style="padding: 8px 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; color: white; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; visibility: visible !important; opacity: 1 !important;"
+                                    onmouseover="this.style.background='rgba(239, 68, 68, 0.4)'; this.style.transform='translateY(-1px)'"
+                                    onmouseout="this.style.background='rgba(239, 68, 68, 0.2)'; this.style.transform='translateY(0)'">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
                         </div>
-                    `).join('') || `<p class="text-gray-400 col-span-3 text-center">${t.no_pigeons}</p>`}
+                        `;
+                        } catch (error) {
+                            console.error('Güvercin kartı render hatası:', error, pigeon);
+                            return `<div class="glass p-6 rounded-2xl pigeon-card text-red-500">
+                                <p>Kart yüklenemedi: ${pigeon.name || 'Bilinmeyen'}</p>
+                                <p class="text-sm">${error.message}</p>
+                            </div>`;
+                        }
+                    }).join('') || `<p class="text-gray-400 col-span-3 text-center">${t.no_pigeons}</p>`}
                 </div>
                 
                 <!-- Pagination Controls -->
@@ -7280,58 +7323,89 @@ Lütfen yardımcı olun.`);
                 ` : ''}
                 </div>
                 
-                <!-- CSS for pigeon card buttons -->
+                <!-- CSS for pigeon card buttons - Daha agresif görünürlük -->
                 <style>
-                    /* Ensure pigeon card buttons are visible */
-                    .pigeon-card button {
+                    /* Güvercin kartlarını ve butonları zorla görünür yap */
+                    .pigeon-card {
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        display: block !important;
+                    }
+                    
+                    .pigeon-card-actions {
+                        display: flex !important;
+                        gap: 8px !important;
+                        margin-top: 16px !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                        position: relative !important;
+                        z-index: 10 !important;
+                    }
+                    
+                    .pigeon-card button,
+                    .pigeon-card-actions button {
                         visibility: visible !important;
                         display: inline-flex !important;
-                        align-items: center;
-                        justify-content: center;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        opacity: 1 !important;
+                        position: relative !important;
+                        z-index: 20 !important;
+                        min-width: 80px !important;
+                        white-space: nowrap !important;
+                        pointer-events: all !important;
+                        user-select: none !important;
+                    }
+                    
+                    /* Tüm alt elementleri de görünür yap */
+                    .pigeon-card * {
+                        visibility: visible !important;
                         opacity: 1 !important;
                     }
                     
-                    .pigeon-card .flex.gap-2.mt-4 {
-                        display: flex !important;
-                        visibility: visible !important;
+                    /* Buton hover efektleri */
+                    .pigeon-card button:hover,
+                    .pigeon-card-actions button:hover {
+                        opacity: 1 !important;
+                        filter: brightness(1.2);
                     }
                     
-                    .pigeon-card button[data-action] {
-                        min-width: 80px;
-                        white-space: nowrap;
-                    }
-                    
-                    /* Enhanced button styling for better visibility */
-                    .pigeon-card button[data-action="showDetail"] {
-                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2)) !important;
-                        border-color: rgba(99, 102, 241, 0.4) !important;
-                    }
-                    
-                    .pigeon-card button[data-action="showDetail"]:hover {
-                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(99, 102, 241, 0.4)) !important;
-                        border-color: rgba(99, 102, 241, 0.6) !important;
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-                    }
-                    
-                    .pigeon-card button[data-action="showPedigree"] {
-                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2)) !important;
-                        border-color: rgba(16, 185, 129, 0.4) !important;
-                    }
-                    
-                    .pigeon-card button[data-action="showPedigree"]:hover {
-                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(16, 185, 129, 0.4)) !important;
-                        border-color: rgba(16, 185, 129, 0.6) !important;
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-                    }
-                    
-                    .pigeon-card button i {
-                        margin-right: 0.5rem;
-                    }
+                    /* Debug için arka plan rengi - gerekirse açın */
+                    /* .pigeon-card-actions {
+                        background: rgba(255, 0, 0, 0.1) !important;
+                        border: 2px solid red !important;
+                    } */
                 </style>
                 </div>
             `;
+            
+            // Render sonrası debug kontrolü
+            setTimeout(() => {
+                const pigeonCards = document.querySelectorAll('.pigeon-card');
+                const pigeonButtons = document.querySelectorAll('.pigeon-card-actions button');
+                console.log('=== RENDER SONRASI KONTROL ===');
+                console.log('Bulunan güvercin kartı sayısı:', pigeonCards.length);
+                console.log('Bulunan buton sayısı:', pigeonButtons.length);
+                
+                // İlk kartın butonlarını kontrol et
+                if (pigeonCards.length > 0) {
+                    const firstCard = pigeonCards[0];
+                    const firstCardButtons = firstCard.querySelectorAll('button');
+                    console.log('İlk karttaki buton sayısı:', firstCardButtons.length);
+                    console.log('İlk kart HTML:', firstCard.innerHTML);
+                }
+                
+                // Butonları görünür olmaya zorla
+                pigeonButtons.forEach((btn, index) => {
+                    console.log(`Buton ${index + 1} görünürlük:`, {
+                        display: window.getComputedStyle(btn).display,
+                        visibility: window.getComputedStyle(btn).visibility,
+                        opacity: window.getComputedStyle(btn).opacity
+                    });
+                });
+            }, 100);
             
             } catch (error) {
                 console.error('Error loading pigeons:', error);
