@@ -1052,14 +1052,13 @@
         
         /* Pedigree tree styles - Modern redesign */
         .pedigree-tree {
-            display: flex;
-            align-items: flex-start; /* Changed from center to flex-start */
             position: relative;
-            padding: 2rem;
-            height: 600px; /* Changed from min-height to height */
-            overflow-x: auto;
-            overflow-y: auto; /* Changed from hidden to auto */
-            background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+            width: 100%;
+            min-height: 600px;
+            max-height: 100vh;
+            overflow: auto;
+            background: #f9fafb; /* Light gray background */
+            padding: 50px 20px;
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
         }
@@ -1111,37 +1110,32 @@
         
         .pigeon-node {
             position: absolute;
-            transform: translate(-50%, -50%); /* Center the node on its position */
-            background: rgba(30, 41, 59, 0.6);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 1.25rem;
-            min-width: 240px;
-            max-width: 280px;
+            transform: translate(-50%, 0); /* Center horizontally only */
+            width: 200px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            animation: nodeAppear 0.5s ease-out;
-            animation-fill-mode: backwards;
-            z-index: 10; /* Ensure nodes are above connection lines */
-            will-change: transform; /* Better performance for animations */
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10; /* Above connection lines */
         }
         
         .pigeon-node:hover {
-            transform: translate(-50%, calc(-50% - 4px)) scale(1.02); /* Keep centering with hover effect */
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-color: rgba(148, 163, 184, 0.3);
+            transform: translate(-50%, 0) scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: #6366f1;
         }
         
         @keyframes nodeAppear {
             from {
                 opacity: 0;
-                transform: translate(-50%, -50%) scale(0.9);
+                transform: translate(-50%, 0) scale(0.9);
             }
             to {
                 opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
+                transform: translate(-50%, 0) scale(1);
             }
         }
         
@@ -1527,11 +1521,10 @@
             }
             
             .pigeon-node {
-                min-width: 140px;
-                max-width: 160px;
-                padding: 0.5rem;
-                font-size: 0.8rem;
-                transform: translate(-50%, -50%) scale(0.8); /* Keep centering, add scale for mobile */
+                width: 150px;
+                padding: 10px;
+                font-size: 0.85rem;
+                transform: translate(-50%, 0) scale(0.9); /* Smaller for mobile */
             }
             
             .pigeon-header {
@@ -8905,7 +8898,7 @@ Lütfen yardımcı olun.`);
             `;
         }
         
-        // Position nodes with perfect grid layout
+        // Position nodes with hierarchical top-down layout
         function positionNodes() {
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
@@ -8914,63 +8907,59 @@ Lütfen yardımcı olun.`);
             if (container.dataset.positioning === 'true') return;
             container.dataset.positioning = 'true';
             
-            // Get all nodes directly (no generation wrappers)
+            // Get all nodes
             const allNodes = container.querySelectorAll('.pigeon-node');
+            const containerWidth = container.offsetWidth;
             
-            // Group nodes by generation
-            const nodesByGeneration = {};
+            // Create levels based on parent-child relationships
+            const levels = {};
+            const processedNodes = new Set();
+            
+            // First, organize nodes by generation to create hierarchy
+            const nodesByGen = {};
             allNodes.forEach(node => {
-                const gen = node.getAttribute('data-generation') || '0';
-                if (!nodesByGeneration[gen]) {
-                    nodesByGeneration[gen] = [];
-                }
-                nodesByGeneration[gen].push(node);
+                const gen = parseInt(node.getAttribute('data-generation') || '0');
+                if (!nodesByGen[gen]) nodesByGen[gen] = [];
+                nodesByGen[gen].push(node);
             });
             
             // Constants for layout
-            const NODE_HEIGHT = 120;
-            const MIN_SPACING = 30;
-            const containerHeight = container.offsetHeight || 800;
+            const NODE_WIDTH = 200;
+            const NODE_HEIGHT = 100;
+            const HORIZONTAL_GAP = 80;
+            const VERTICAL_GAP = 150;
+            const TOP_MARGIN = 50;
             
-            // Position each generation
-            Object.keys(nodesByGeneration).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen) => {
-                const nodes = nodesByGeneration[gen];
-                const generationNumber = parseInt(gen);
+            // Position nodes level by level (generation = level)
+            Object.keys(nodesByGen).sort((a, b) => parseInt(a) - parseInt(b)).forEach((gen, levelIndex) => {
+                const nodesInLevel = nodesByGen[gen];
+                const levelY = TOP_MARGIN + (levelIndex * VERTICAL_GAP);
                 
-                // NEW X FORMULA: X = (generation_number * 300) + 50
-                const x = (generationNumber * 300) + 50;
+                // Calculate total width needed for this level
+                const totalWidth = (nodesInLevel.length * NODE_WIDTH) + ((nodesInLevel.length - 1) * HORIZONTAL_GAP);
+                const startX = Math.max(50, (containerWidth - totalWidth) / 2); // Center the level
                 
-                // Y positioning - Equal distribution based on container height
-                const totalNodesHeight = nodes.length * NODE_HEIGHT;
-                let spacing = (containerHeight - totalNodesHeight) / (nodes.length + 1);
-                
-                // Minimum spacing check
-                if (spacing < MIN_SPACING) {
-                    spacing = MIN_SPACING;
-                }
-                
-                nodes.forEach((node, nodeIndex) => {
-                    const y = spacing + (nodeIndex * (NODE_HEIGHT + spacing));
+                // Position each node in the level
+                nodesInLevel.forEach((node, index) => {
+                    const x = startX + (index * (NODE_WIDTH + HORIZONTAL_GAP)) + (NODE_WIDTH / 2);
+                    const y = levelY;
                     
-                    // Position with CSS left/top (transform will be handled by CSS)
+                    // Apply position
                     node.style.left = x + 'px';
                     node.style.top = y + 'px';
+                    node.style.width = NODE_WIDTH + 'px';
+                    node.style.height = 'auto';
+                    
+                    // Store position for connection drawing
+                    node.dataset.centerX = x;
+                    node.dataset.centerY = y + 50; // Approximate center
                 });
             });
             
-            // Calculate container height
-            let maxY = 0;
-            allNodes.forEach(node => {
-                const bottom = node.offsetTop + node.offsetHeight;
-                maxY = Math.max(maxY, bottom);
-            });
-            
-            // Set height with 3000px maximum limit
-            if (maxY > 0) {
-                const newHeight = Math.min(maxY + 100, 3000);
-                container.style.height = newHeight + 'px';
-                container.style.minHeight = 'initial';
-            }
+            // Calculate and set container height
+            let maxY = TOP_MARGIN + (Object.keys(nodesByGen).length * VERTICAL_GAP) + 100;
+            container.style.height = Math.min(maxY, 2000) + 'px';
+            container.style.minHeight = '600px';
             
             // Clear positioning flag
             setTimeout(() => {
@@ -8978,7 +8967,7 @@ Lütfen yardımcı olun.`);
             }, 100);
         }
         
-        // Draw connection lines between nodes (orthogonal lines only)
+        // Draw connection lines with clean top-down hierarchy
         function drawConnectionLines() {
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
@@ -8992,134 +8981,141 @@ Lütfen yardımcı olun.`);
             svg.style.position = 'absolute';
             svg.style.top = '0';
             svg.style.left = '0';
-            svg.style.zIndex = '20'; // High z-index
+            svg.style.zIndex = '1'; // Behind nodes
             svg.style.pointerEvents = 'none';
             
-            const containerRect = container.getBoundingClientRect();
             const allNodes = container.querySelectorAll('.pigeon-node');
             
-            // Track max dimensions
-            let maxX = 0;
-            let maxY = 0;
+            // Track dimensions for SVG size
+            let maxX = container.offsetWidth;
+            let maxY = container.offsetHeight;
             
-            // Helper function to get node position
-            function getNodePosition(node) {
-                const rect = node.getBoundingClientRect();
+            // Helper to get stored positions
+            function getNodeCenter(node) {
                 return {
-                    left: rect.left - containerRect.left,
-                    right: rect.right - containerRect.left,
-                    top: rect.top - containerRect.top,
-                    bottom: rect.bottom - containerRect.top,
-                    centerX: (rect.left + rect.right) / 2 - containerRect.left,
-                    centerY: (rect.top + rect.bottom) / 2 - containerRect.top
+                    x: parseFloat(node.dataset.centerX) || parseFloat(node.style.left),
+                    y: parseFloat(node.dataset.centerY) || (parseFloat(node.style.top) + 50)
                 };
             }
             
-            // Draw connections for all nodes
+            // Group children by their parents
+            const parentChildMap = new Map();
+            
             allNodes.forEach(childNode => {
                 const fatherId = childNode.getAttribute('data-father-id');
                 const motherId = childNode.getAttribute('data-mother-id');
                 
-                if (fatherId && motherId) {
-                    const fatherNode = container.querySelector(`#${fatherId}`);
-                    const motherNode = container.querySelector(`#${motherId}`);
+                if (fatherId || motherId) {
+                    const parentKey = `${fatherId || 'none'}_${motherId || 'none'}`;
+                    if (!parentChildMap.has(parentKey)) {
+                        parentChildMap.set(parentKey, {
+                            father: fatherId ? container.querySelector(`#${fatherId}`) : null,
+                            mother: motherId ? container.querySelector(`#${motherId}`) : null,
+                            children: []
+                        });
+                    }
+                    parentChildMap.get(parentKey).children.push(childNode);
+                }
+            });
+            
+            // Draw connections for each parent group
+            parentChildMap.forEach(({father, mother, children}) => {
+                if (!children.length) return;
+                
+                const lineColor = '#6b7280'; // Softer gray color
+                const lineWidth = 2;
+                
+                // Case 1: Both parents exist
+                if (father && mother) {
+                    const fatherCenter = getNodeCenter(father);
+                    const motherCenter = getNodeCenter(mother);
                     
-                    if (fatherNode && motherNode) {
-                        const childPos = getNodePosition(childNode);
-                        const fatherPos = getNodePosition(fatherNode);
-                        const motherPos = getNodePosition(motherNode);
-                        
-                        // PART A: Marriage Bracket (] shape)
-                        const bracketX = Math.min(fatherPos.left, motherPos.left) - 20;
-                        
-                        // 1. Father to bracket horizontal line
-                        const fatherLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        fatherLine.setAttribute('d', `M ${fatherPos.left} ${fatherPos.centerY} H ${bracketX}`);
-                        fatherLine.setAttribute('class', 'connection-line');
-                        fatherLine.setAttribute('stroke', '#8b5cf6'); // Purple color
-                        fatherLine.setAttribute('stroke-width', '3');
-                        fatherLine.setAttribute('stroke-linecap', 'round');
-                        fatherLine.setAttribute('fill', 'none');
-                        svg.appendChild(fatherLine);
-                        
-                        // 2. Mother to bracket horizontal line
-                        const motherLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        motherLine.setAttribute('d', `M ${motherPos.left} ${motherPos.centerY} H ${bracketX}`);
-                        motherLine.setAttribute('class', 'connection-line');
-                        motherLine.setAttribute('stroke', '#8b5cf6');
-                        motherLine.setAttribute('stroke-width', '3');
-                        motherLine.setAttribute('stroke-linecap', 'round');
-                        motherLine.setAttribute('fill', 'none');
-                        svg.appendChild(motherLine);
-                        
-                        // 3. Vertical connecting line
-                        const minY = Math.min(fatherPos.centerY, motherPos.centerY);
-                        const maxLineY = Math.max(fatherPos.centerY, motherPos.centerY);
-                        const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        verticalLine.setAttribute('d', `M ${bracketX} ${minY} V ${maxLineY}`);
-                        verticalLine.setAttribute('class', 'connection-line');
-                        verticalLine.setAttribute('stroke', '#8b5cf6');
-                        verticalLine.setAttribute('stroke-width', '3');
-                        verticalLine.setAttribute('stroke-linecap', 'round');
-                        verticalLine.setAttribute('fill', 'none');
-                        svg.appendChild(verticalLine);
-                        
-                        // PART B: Child Connection
-                        const bracketMidY = (motherPos.centerY + fatherPos.centerY) / 2;
+                    // 1. Horizontal line between parents
+                    const parentLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    parentLine.setAttribute('d', `M ${fatherCenter.x} ${fatherCenter.y + 30} H ${motherCenter.x}`);
+                    parentLine.setAttribute('stroke', lineColor);
+                    parentLine.setAttribute('stroke-width', lineWidth);
+                    parentLine.setAttribute('fill', 'none');
+                    svg.appendChild(parentLine);
+                    
+                    // 2. Calculate midpoint
+                    const midX = (fatherCenter.x + motherCenter.x) / 2;
+                    const midY = fatherCenter.y + 30;
+                    
+                    // 3. Vertical line down from midpoint
+                    const dropY = midY + 40;
+                    const verticalDrop = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    verticalDrop.setAttribute('d', `M ${midX} ${midY} V ${dropY}`);
+                    verticalDrop.setAttribute('stroke', lineColor);
+                    verticalDrop.setAttribute('stroke-width', lineWidth);
+                    verticalDrop.setAttribute('fill', 'none');
+                    svg.appendChild(verticalDrop);
+                    
+                    // 4. Connect to children
+                    if (children.length === 1) {
+                        // Single child - direct line
+                        const childCenter = getNodeCenter(children[0]);
                         const childLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        childLine.setAttribute('d', 
-                            `M ${childPos.right} ${childPos.centerY} ` +  // Start at child right edge
-                            `H ${childPos.right + 20} ` +                  // 20px right
-                            `V ${bracketMidY} ` +                          // Down/up to bracket mid
-                            `H ${bracketX}`                                // Horizontal to bracket
-                        );
-                        childLine.setAttribute('class', 'connection-line');
-                        childLine.setAttribute('stroke', '#8b5cf6');
-                        childLine.setAttribute('stroke-width', '3');
-                        childLine.setAttribute('stroke-linecap', 'round');
+                        childLine.setAttribute('d', `M ${midX} ${dropY} V ${childCenter.y - 30}`);
+                        childLine.setAttribute('stroke', lineColor);
+                        childLine.setAttribute('stroke-width', lineWidth);
                         childLine.setAttribute('fill', 'none');
                         svg.appendChild(childLine);
+                    } else {
+                        // Multiple children - T-shape distribution
+                        const childCenters = children.map(getNodeCenter);
+                        const leftmostX = Math.min(...childCenters.map(c => c.x));
+                        const rightmostX = Math.max(...childCenters.map(c => c.x));
                         
-                        // Update max coordinates
-                        maxX = Math.max(maxX, childPos.right + 20, fatherPos.right, motherPos.right);
-                        maxY = Math.max(maxY, childPos.bottom, fatherPos.bottom, motherPos.bottom);
+                        // Horizontal distribution line
+                        const distributionLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        distributionLine.setAttribute('d', `M ${leftmostX} ${dropY} H ${rightmostX}`);
+                        distributionLine.setAttribute('stroke', lineColor);
+                        distributionLine.setAttribute('stroke-width', lineWidth);
+                        distributionLine.setAttribute('fill', 'none');
+                        svg.appendChild(distributionLine);
+                        
+                        // Lines to each child
+                        children.forEach(child => {
+                            const childCenter = getNodeCenter(child);
+                            const childLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            childLine.setAttribute('d', `M ${childCenter.x} ${dropY} V ${childCenter.y - 30}`);
+                            childLine.setAttribute('stroke', lineColor);
+                            childLine.setAttribute('stroke-width', lineWidth);
+                            childLine.setAttribute('fill', 'none');
+                            svg.appendChild(childLine);
+                        });
                     }
-                } else if (fatherId || motherId) {
-                    // Single parent case
-                    const parentId = fatherId || motherId;
-                    const parentNode = container.querySelector(`#${parentId}`);
                     
-                    if (parentNode) {
-                        const childPos = getNodePosition(childNode);
-                        const parentPos = getNodePosition(parentNode);
+                // Case 2: Single parent
+                } else {
+                    const parent = father || mother;
+                    if (parent) {
+                        const parentCenter = getNodeCenter(parent);
                         
-                        const midX = (parentPos.left + childPos.right) / 2;
-                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                        path.setAttribute('d', `M ${parentPos.left} ${parentPos.centerY} H ${midX} V ${childPos.centerY} H ${childPos.right}`);
-                        path.setAttribute('class', 'connection-line');
-                        path.setAttribute('stroke', '#8b5cf6');
-                        path.setAttribute('stroke-width', '3');
-                        path.setAttribute('stroke-linecap', 'round');
-                        path.setAttribute('fill', 'none');
-                        svg.appendChild(path);
-                        
-                        maxX = Math.max(maxX, childPos.right, parentPos.right);
-                        maxY = Math.max(maxY, childPos.bottom, parentPos.bottom);
+                        // Simple vertical line to child
+                        children.forEach(child => {
+                            const childCenter = getNodeCenter(child);
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            path.setAttribute('d', `M ${parentCenter.x} ${parentCenter.y + 30} V ${childCenter.y - 30}`);
+                            path.setAttribute('stroke', lineColor);
+                            path.setAttribute('stroke-width', lineWidth);
+                            path.setAttribute('fill', 'none');
+                            svg.appendChild(path);
+                        });
                     }
                 }
             });
             
             // Set SVG dimensions
-            const svgWidth = maxX + 100;
-            const svgHeight = Math.min(maxY + 100, 3000); // Max 3000px
-            svg.setAttribute('width', svgWidth);
-            svg.setAttribute('height', svgHeight);
-            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-            svg.style.width = svgWidth + 'px';
-            svg.style.height = svgHeight + 'px';
+            svg.setAttribute('width', maxX);
+            svg.setAttribute('height', maxY);
+            svg.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
+            svg.style.width = maxX + 'px';
+            svg.style.height = maxY + 'px';
             
-            // Append SVG to container
-            container.appendChild(svg);
+            // Insert SVG at the beginning (behind nodes)
+            container.insertBefore(svg, container.firstChild);
         }
         
         // Removed drawSVGLine function - no longer needed as we're using orthogonal lines only
@@ -9796,8 +9792,8 @@ Lütfen yardımcı olun.`);
                 window.pedigreeTimeout = setTimeout(() => {
                     positionNodes();
                     drawConnectionLines();
-                    // Initialize zoom functionality
-                    initPedigreeZoom();
+                    // Zoom functionality disabled for cleaner experience
+                    // initPedigreeZoom();
                     // Debug: Check if lines are drawn
                     console.log('Drawing connection lines...');
                     const svg = document.querySelector('.connection-svg');
@@ -11744,59 +11740,27 @@ Lütfen yardımcı olun.`);
         const minZoom = 0.5;
         const maxZoom = 3;
         
+        // Zoom functions disabled - using native scroll
         function zoomIn() {
-            if (zoomLevel < maxZoom) {
-                zoomLevel += zoomStep;
-                applyZoom();
-            }
+            return; // Disabled
         }
         
         function zoomOut() {
-            if (zoomLevel > minZoom) {
-                zoomLevel -= zoomStep;
-                applyZoom();
-            }
+            return; // Disabled
         }
         
         function zoomFit() {
-            zoomLevel = 1;
-            applyZoom();
-            // Center the view
-            const container = document.getElementById('pedigreeContainer');
-            if (container) {
-                const tree = container.querySelector('.pedigree-tree');
-                if (tree) {
-                    tree.scrollTo(0, 0);
-                }
-            }
+            return; // Disabled
         }
         
         function applyZoom() {
-            const wrapper = document.getElementById('pedigreeWrapper');
-            if (wrapper) {
-                wrapper.style.transform = `scale(${zoomLevel})`;
-                // Redraw connection lines after zoom
-                setTimeout(() => {
-                    drawConnectionLines();
-                }, 100);
-            }
+            return; // Disabled
         }
         
-        // Add mouse wheel zoom support
+        // Zoom functionality disabled for cleaner experience
         function initPedigreeZoom() {
-            const container = document.getElementById('pedigreeContainer');
-            if (!container) return;
-            
-            container.addEventListener('wheel', (e) => {
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    if (e.deltaY < 0) {
-                        zoomIn();
-                    } else {
-                        zoomOut();
-                    }
-                }
-            });
+            // Zoom disabled - using native scroll instead
+            return;
         }
         
         window.zoomIn = zoomIn;
