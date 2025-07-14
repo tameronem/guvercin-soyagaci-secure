@@ -7057,6 +7057,20 @@ Lütfen yardımcı olun.`);
             cleanupPreviousViews();
             updateActiveTab(1);
             
+            // Verify required functions exist
+            console.log('Function check:', {
+                showPigeonDetail: typeof showPigeonDetail,
+                showPedigree: typeof showPedigree,
+                deletePigeon: typeof deletePigeon
+            });
+            
+            if (typeof showPigeonDetail !== 'function') {
+                console.error('showPigeonDetail function not defined!');
+            }
+            if (typeof showPedigree !== 'function') {
+                console.error('showPedigree function not defined!');
+            }
+            
             // Loading göster
             document.getElementById('content').innerHTML = `
                 <div class="container mx-auto">
@@ -7094,6 +7108,16 @@ Lütfen yardımcı olun.`);
                 
                 const t = translations[currentLang];
                 
+                // Debug: Check translations
+                console.log('Current language:', currentLang);
+                console.log('Translation object:', t);
+                console.log('Button translations:', {
+                    detail: t.detail,
+                    pedigree: t.pedigree,
+                    hasDetail: !!t.detail,
+                    hasPedigree: !!t.pedigree
+                });
+                
                 // Get unique values for filters
                 const allPigeons = result.data || [];
                 const breeds = [...new Set(allPigeons.map(p => p.breed).filter(b => b))];
@@ -7112,6 +7136,11 @@ Lütfen yardımcı olun.`);
                     totalPages: totalPages,
                     showing: paginatedPigeons.length
                 });
+                
+                // Log button rendering info
+                console.log('Rendering pigeon cards with buttons');
+                console.log('Sample pigeon data:', paginatedPigeons[0]);
+                console.log('Button visibility will be ensured with CSS');
             
             document.getElementById('content').innerHTML = `
                 <div class="container mx-auto">
@@ -7200,11 +7229,11 @@ Lütfen yardımcı olun.`);
                                 </div>
                             </div>
                             <div class="flex gap-2 mt-4">
-                                <button type="button" data-action="showDetail" data-pigeon-id="${pigeon.id}" onclick="showPigeonDetail('${pigeon.id}')" class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition text-sm">
-                                    <i class="fas fa-eye"></i> ${t.detail}
+                                <button type="button" data-action="showDetail" data-pigeon-id="${pigeon.id}" onclick="try { showPigeonDetail('${pigeon.id}'); } catch(e) { console.error('Error calling showPigeonDetail:', e); alert('Detay görüntülenemedi: ' + e.message); }" class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition text-sm">
+                                    <i class="fas fa-eye"></i> ${t.detail || 'Detay'}
                                 </button>
-                                <button type="button" data-action="showPedigree" data-pigeon-id="${pigeon.id}" onclick="showPedigree('${pigeon.id}')" class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition text-sm">
-                                    <i class="fas fa-sitemap"></i> ${t.pedigree}
+                                <button type="button" data-action="showPedigree" data-pigeon-id="${pigeon.id}" onclick="try { showPedigree('${pigeon.id}'); } catch(e) { console.error('Error calling showPedigree:', e); alert('Soyağacı görüntülenemedi: ' + e.message); }" class="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition text-sm">
+                                    <i class="fas fa-sitemap"></i> ${t.pedigree || 'Soyağacı'}
                                 </button>
                                 <button type="button" data-action="deletePigeon" data-pigeon-id="${pigeon.id}" onclick="deletePigeon('${pigeon.id}')" class="px-3 py-2 bg-red-500/20 border border-red-500/40 rounded-lg hover:bg-red-500/30 transition text-sm">
                                     <i class="fas fa-trash"></i>
@@ -12388,6 +12417,54 @@ Lütfen yardımcı olun.`);
                     }
                     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                         background: linear-gradient(to bottom, #0891b2, #7c3aed);
+                    }
+                    
+                    /* Ensure pigeon card buttons are visible */
+                    .pigeon-card button {
+                        visibility: visible !important;
+                        display: inline-flex !important;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 1 !important;
+                    }
+                    
+                    .pigeon-card .flex.gap-2.mt-4 {
+                        display: flex !important;
+                        visibility: visible !important;
+                    }
+                    
+                    .pigeon-card button[data-action] {
+                        min-width: 80px;
+                        white-space: nowrap;
+                    }
+                    
+                    /* Enhanced button styling for better visibility */
+                    .pigeon-card button[data-action="showDetail"] {
+                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2)) !important;
+                        border-color: rgba(99, 102, 241, 0.4) !important;
+                    }
+                    
+                    .pigeon-card button[data-action="showDetail"]:hover {
+                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(99, 102, 241, 0.4)) !important;
+                        border-color: rgba(99, 102, 241, 0.6) !important;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+                    }
+                    
+                    .pigeon-card button[data-action="showPedigree"] {
+                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2)) !important;
+                        border-color: rgba(16, 185, 129, 0.4) !important;
+                    }
+                    
+                    .pigeon-card button[data-action="showPedigree"]:hover {
+                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(16, 185, 129, 0.4)) !important;
+                        border-color: rgba(16, 185, 129, 0.6) !important;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                    }
+                    
+                    .pigeon-card button i {
+                        margin-right: 0.5rem;
                     }
                 </style>
             `;
