@@ -9363,56 +9363,11 @@ Lütfen yardımcı olun.`);
             );
         }
         
-        // Create bird card for grid layout
-        function createBirdCard(pigeon, t, genIndex, nodeIndex) {
-            if (pigeon.empty) {
-                return createUnknownCard(pigeon.gender || 'unknown', t, genIndex, nodeIndex);
-            }
-            
-            const genderClass = pigeon.gender || 'unknown';
-            const birthYear = pigeon.birthDate ? new Date(pigeon.birthDate).getFullYear() : '';
-            
-            return `
-                <div class="pigeon-card ${genderClass}" 
-                     id="pigeon-${pigeon.id}"
-                     data-pigeon-id="${pigeon.id}" 
-                     data-generation="${genIndex}"
-                     data-index="${nodeIndex}"
-                     onclick="showPedigree('${pigeon.id}')">
-                    <div class="pigeon-photo">
-                        ${pigeon.image ? 
-                            `<img src="${pigeon.image}" alt="${pigeon.name}">` : 
-                            `<i class="fas fa-dove placeholder-icon"></i>`
-                        }
-                    </div>
-                    <div class="pigeon-info">
-                        <div class="pigeon-name">${pigeon.name}</div>
-                        <div class="pigeon-band">${pigeon.bandNumber}</div>
-                        ${birthYear ? `<div class="pigeon-year">${birthYear}</div>` : ''}
-                    </div>
-                </div>
-            `;
-        }
+        // REMOVED: Old grid-based functions - replaced with D3.js
+        // createBirdCard, createUnknownCard, and drawPedigreeConnections are no longer needed
         
-        // Create unknown bird card
-        function createUnknownCard(gender, t, genIndex, nodeIndex) {
-            return `
-                <div class="pigeon-card unknown ${gender}" 
-                     data-generation="${genIndex}"
-                     data-index="${nodeIndex}">
-                    <div class="pigeon-photo">
-                        <i class="fas fa-question placeholder-icon"></i>
-                    </div>
-                    <div class="pigeon-info">
-                        <div class="pigeon-name">${t.unknown || 'Bilinmiyor'}</div>
-                        <div class="pigeon-band">-</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Draw orthogonal connection lines for grid layout
-        function drawPedigreeConnections() {
+        /* ARCHIVED - Old grid-based connection drawing
+        function drawPedigreeConnections_OLD() {
             const container = document.querySelector('.pedigree-grid');
             if (!container) return;
             
@@ -9480,7 +9435,9 @@ Lütfen yardımcı olun.`);
             }, 100);
         }
         
-        // OLD drawConnectionLines function removed - replaced with drawPedigreeConnections
+        */ // End of archived grid-based functions
+        
+        /* ARCHIVED - Old tree-based connection drawing
         function drawConnectionLines_REMOVED() {
             const container = document.querySelector('.pedigree-tree');
             if (!container) return;
@@ -10289,45 +10246,12 @@ Lütfen yardımcı olun.`);
                     </div>
                 `;
                 
-                // Position nodes and add connection lines after rendering
+                // Render D3.js pedigree tree after DOM is ready
                 if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
                 window.pedigreeTimeout = setTimeout(() => {
-                    drawPedigreeConnections();
-                    // Zoom functionality disabled for cleaner experience
-                    // initPedigreeZoom();
-                    // Debug: Check if lines are drawn
-                    console.log('Drawing connection lines...');
-                    const svg = document.querySelector('.connection-svg');
-                    if (svg) {
-                        console.log('SVG found, paths:', svg.querySelectorAll('path').length);
-                    } else {
-                        console.log('SVG not found!');
-                    }
+                    renderD3Pedigree(pedigreeData, t);
+                    console.log('D3.js pedigree rendered');
                 }, 100);
-                
-                // Add resize event handler with debouncing (only once)
-                if (!window.pedigreeResizeHandler) {
-                    window.pedigreeResizeHandler = true;
-                    let resizeTimeout;
-                    window.addEventListener('resize', () => {
-                        clearTimeout(resizeTimeout);
-                        resizeTimeout = setTimeout(() => {
-                            drawPedigreeConnections();
-                        }, 300); // Increased debounce to prevent rapid firing
-                    });
-                    
-                    // Handle orientation changes for mobile devices
-                    window.addEventListener('orientationchange', () => {
-                        // Clear lines immediately for visual feedback
-                        const container = document.querySelector('.pedigree-tree');
-                        if (container) {
-                            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
-                        }
-                        setTimeout(() => {
-                            drawPedigreeConnections();
-                        }, 200);
-                    });
-                }
                 
                 // REMOVED scroll event listener - not needed and can cause loops
                 // Positions should be independent of scroll position
