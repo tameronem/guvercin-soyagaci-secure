@@ -7435,96 +7435,300 @@
         }
 
 
-        // Render modern pedigree tree
+        // Render modern pedigree tree using D3.js
         function renderModernPedigree(node, t) {
-            const generations = [];
+            // Return container for D3 rendering
+            return '<div class="pedigree-tree" id="pedigree-d3-container"></div>';
+        }
+        
+        // D3.js Pedigree Tree Renderer
+        function renderD3PedigreeTree(pigeonData, t) {
+            // Clear previous content
+            d3.select('#pedigree-d3-container').selectAll('*').remove();
             
-            // Organize nodes by generation
-            function collectGenerations(n, genIndex = 0) {
-                if (!n || genIndex >= 4) return;
+            // Convert data to D3 hierarchy format
+            function convertToHierarchy(n, depth = 0, position = 'root') {
+                if (!n || depth >= 4) return null;
                 
-                if (!generations[genIndex]) generations[genIndex] = [];
-                generations[genIndex].push(n);
+                const children = [];
+                if (n.father) {
+                    const fatherNode = convertToHierarchy(n.father, depth + 1, 'father');
+                    if (fatherNode) children.push(fatherNode);
+                }
+                if (n.mother) {
+                    const motherNode = convertToHierarchy(n.mother, depth + 1, 'mother');
+                    if (motherNode) children.push(motherNode);
+                }
                 
-                if (n.father) collectGenerations(n.father, genIndex + 1);
-                if (n.mother) collectGenerations(n.mother, genIndex + 1);
+                return {
+                    id: n.id || `empty-${depth}-${position}`,
+                    name: n.name || n.kume_no || t('bilinmiyor'),
+                    data: n,
+                    depth: depth,
+                    position: position,
+                    children: children.length > 0 ? children : null
+                };
             }
             
-            collectGenerations(node);
+            const data = convertToHierarchy(pigeonData);
             
-            // Build HTML structure
-            let html = '<div class="pedigree-tree">';
+            // Set dimensions
+            const container = document.getElementById('pedigree-d3-container');
+            const width = container.offsetWidth || 1200;
+            const height = 600;
+            const nodeWidth = window.innerWidth <= 768 ? 180 : 240;
+            const nodeHeight = window.innerWidth <= 768 ? 80 : 100;
+            const margin = { top: 40, right: 120, bottom: 40, left: 40 };
             
-            // Calculate parent IDs for each node (parent-to-child approach)
-            const nodeParentMap = {};
-            generations.forEach((gen, genIndex) => {
-                if (genIndex < generations.length - 1) { // Son generation'ın çocuğu yok
-                    gen.forEach((parent, parentIndex) => {
-                        if (!parent.empty && parent.id) {
-                            const childGen = generations[genIndex + 1];
-                            const fatherChild = childGen[parentIndex * 2];     // Sol çocuk (father tarafı)
-                            const motherChild = childGen[parentIndex * 2 + 1]; // Sağ çocuk (mother tarafı)
-                            
-                            if (fatherChild && !fatherChild.empty && fatherChild.id) {
-                                // Mevcut bilgiyi koru ve yeni bilgiyi ekle
-                                nodeParentMap[fatherChild.id] = {
-                                    ...(nodeParentMap[fatherChild.id] || {}),
-                                    fatherId: parent.id
-                                };
-                            }
-                            
-                            if (motherChild && !motherChild.empty && motherChild.id) {
-                                // Mevcut bilgiyi koru ve yeni bilgiyi ekle
-                                nodeParentMap[motherChild.id] = {
-                                    ...(nodeParentMap[motherChild.id] || {}),
-                                    motherId: parent.id
-                                };
-                            }
-                        }
-                    });
+            // Create SVG
+            const svg = d3.select('#pedigree-d3-container')
+                .append('svg')
+                .attr('width', '100%')
+                .attr('height', height)
+                .attr('viewBox', `0 0 ${width} ${height}`)
+                .attr('preserveAspectRatio', 'xMidYMid meet');
+            
+            // Add gradient definitions
+            const defs = svg.append('defs');
+            
+            // Male gradient
+            const maleGradient = defs.append('linearGradient')
+                .attr('id', 'male-gradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '100%')
+                .attr('y2', '100%');
+            
+            maleGradient.append('stop')
+                .attr('offset', '0%')
+                .attr('stop-color', '#3b82f6')
+                .attr('stop-opacity', 0.1);
+                
+            maleGradient.append('stop')
+                .attr('offset', '100%')
+                .attr('stop-color', '#2563eb')
+                .attr('stop-opacity', 0.05);
+            
+            // Female gradient
+            const femaleGradient = defs.append('linearGradient')
+                .attr('id', 'female-gradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '100%')
+                .attr('y2', '100%');
+            
+            femaleGradient.append('stop')
+                .attr('offset', '0%')
+                .attr('stop-color', '#ec4899')
+                .attr('stop-opacity', 0.1);
+                
+            femaleGradient.append('stop')
+                .attr('offset', '100%')
+                .attr('stop-color', '#db2777')
+                .attr('stop-opacity', 0.05);
+            
+            // Create container group
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+            
+            // Create tree layout
+            const treeLayout = d3.tree()
+                .size([height - margin.top - margin.bottom, width - margin.left - margin.right - nodeWidth])
+                .separation((a, b) => a.parent === b.parent ? 1.2 : 1.5);
+            
+            // Create hierarchy and apply layout
+            const root = d3.hierarchy(data);
+            const treeData = treeLayout(root);
+            
+            // Flip x and y for horizontal layout
+            treeData.descendants().forEach(d => {
+                const temp = d.x;
+                d.x = d.y + nodeWidth / 2;
+                d.y = temp;
+            });
+            
+            // Create elbow path function
+            function elbow(d) {
+                const sourceX = d.source.x;
+                const sourceY = d.source.y;
+                const targetX = d.target.x;
+                const targetY = d.target.y;
+                
+                const midX = (sourceX + targetX) / 2;
+                
+                return `M ${sourceX},${sourceY}
+                        L ${midX},${sourceY}
+                        L ${midX},${targetY}
+                        L ${targetX},${targetY}`;
+            }
+            
+            // Draw links
+            const links = g.selectAll('.link')
+                .data(treeData.links())
+                .enter()
+                .append('path')
+                .attr('class', 'link')
+                .attr('d', elbow)
+                .style('fill', 'none')
+                .style('stroke', '#10b981')
+                .style('stroke-width', 2)
+                .style('stroke-opacity', 0.6);
+            
+            // Draw nodes
+            const nodes = g.selectAll('.node')
+                .data(treeData.descendants())
+                .enter()
+                .append('g')
+                .attr('class', 'node')
+                .attr('transform', d => `translate(${d.x},${d.y})`);
+            
+            // Add rectangles for nodes
+            nodes.append('rect')
+                .attr('x', -nodeWidth / 2)
+                .attr('y', -nodeHeight / 2)
+                .attr('width', nodeWidth)
+                .attr('height', nodeHeight)
+                .attr('rx', 16)
+                .attr('ry', 16)
+                .style('fill', d => {
+                    if (d.data.data.empty) return '#374151';
+                    return d.data.data.gender === 'male' || d.data.data.cinsiyet === 'Erkek' ? 'url(#male-gradient)' : 'url(#female-gradient)';
+                })
+                .style('stroke', d => {
+                    if (d.data.data.empty) return '#6b7280';
+                    return d.data.data.gender === 'male' || d.data.data.cinsiyet === 'Erkek' ? '#3b82f6' : '#ec4899';
+                })
+                .style('stroke-width', d => d.data.data.empty ? 1 : 2)
+                .style('stroke-dasharray', d => d.data.data.empty ? '5,5' : 'none')
+                .style('cursor', d => d.data.data.empty ? 'default' : 'pointer')
+                .on('click', function(event, d) {
+                    if (!d.data.data.empty && d.data.data.id) {
+                        showPigeonDetail(d.data.data.id);
+                    }
+                });
+            
+            // Add familial role labels
+            nodes.append('text')
+                .attr('y', -nodeHeight / 2 - 8)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '12px')
+                .style('font-weight', '500')
+                .style('fill', '#9ca3af')
+                .text(d => {
+                    const role = getFamilialRole(d.data.depth, d.data.position);
+                    return role || '';
+                });
+            
+            // Add pigeon images or icons
+            nodes.each(function(d) {
+                const node = d3.select(this);
+                const data = d.data.data;
+                
+                if (data.image && !data.empty) {
+                    // Add image
+                    const imgGroup = node.append('g')
+                        .attr('transform', 'translate(-30, ' + (-nodeHeight / 2 + 10) + ')');
+                    
+                    // Add circular clip path
+                    const clipId = `clip-${d.data.id}`;
+                    defs.append('clipPath')
+                        .attr('id', clipId)
+                        .append('circle')
+                        .attr('cx', 30)
+                        .attr('cy', 30)
+                        .attr('r', 28);
+                    
+                    imgGroup.append('image')
+                        .attr('width', 60)
+                        .attr('height', 60)
+                        .attr('href', data.image)
+                        .attr('clip-path', `url(#${clipId})`);
+                    
+                    // Add border circle
+                    imgGroup.append('circle')
+                        .attr('cx', 30)
+                        .attr('cy', 30)
+                        .attr('r', 29)
+                        .style('fill', 'none')
+                        .style('stroke', data.gender === 'male' || data.cinsiyet === 'Erkek' ? '#3b82f6' : '#ec4899')
+                        .style('stroke-width', 2);
+                } else {
+                    // Add icon
+                    node.append('text')
+                        .attr('x', 0)
+                        .attr('y', -5)
+                        .attr('text-anchor', 'middle')
+                        .style('font-size', '28px')
+                        .text('🐦');
+                }
+                
+                // Add name
+                node.append('text')
+                    .attr('y', nodeHeight / 2 - 20)
+                    .attr('text-anchor', 'middle')
+                    .style('font-size', '14px')
+                    .style('font-weight', '600')
+                    .style('fill', '#f3f4f6')
+                    .text(data.name || data.bandNumber || t.bilinmiyor || 'Bilinmiyor');
+                
+                // Add band number
+                if (data.bandNumber) {
+                    node.append('text')
+                        .attr('y', nodeHeight / 2 - 5)
+                        .attr('text-anchor', 'middle')
+                        .style('font-size', '12px')
+                        .style('fill', '#9ca3af')
+                        .text(data.bandNumber);
                 }
             });
             
-            // Render all nodes directly without generation wrappers
-            generations.forEach((gen, genIndex) => {
-                gen.forEach((pigeon, index) => {
-                    const parentInfo = pigeon.id ? (nodeParentMap[pigeon.id] || {}) : {};
-                    html += renderPigeonNode(pigeon, t, genIndex, index, parentInfo);
+            // Add zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.5, 2])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
                 });
-            });
             
-            html += '</div>';
-            return html;
+            svg.call(zoom);
+            
+            // Center the tree initially
+            const bounds = g.node().getBBox();
+            const fullWidth = width;
+            const fullHeight = height;
+            const widthScale = fullWidth / bounds.width;
+            const heightScale = fullHeight / bounds.height;
+            const scale = 0.8 * Math.min(widthScale, heightScale);
+            
+            const translate = [
+                fullWidth / 2 - scale * (bounds.x + bounds.width / 2),
+                fullHeight / 2 - scale * (bounds.y + bounds.height / 2)
+            ];
+            
+            svg.call(
+                zoom.transform,
+                d3.zoomIdentity
+                    .translate(translate[0], translate[1])
+                    .scale(scale)
+            );
         }
         
         // Calculate familial role based on generation and position
-        function getFamilialRole(generation, index) {
-            if (generation === 0) return null; // Root pigeon, no label
+        function getFamilialRole(depth, position) {
+            if (depth === 0) return null;
             
-            const isMale = index % 2 === 0;
-            
-            if (generation === 1) {
-                return isMale ? 'Baba' : 'Anne';
-            } else if (generation === 2) {
-                // Determine if paternal or maternal side
-                const isPaternal = index < 2;
-                if (isMale) {
-                    return isPaternal ? 'Dede' : 'Dede';
-                } else {
-                    return isPaternal ? 'Babaanne' : 'Anneanne';
+            if (depth === 1) {
+                return position === 'father' ? 'Baba' : 'Anne';
+            } else if (depth === 2) {
+                if (position === 'father') {
+                    return 'Dede';
+                } else if (position === 'mother') {
+                    return 'Anneanne';
                 }
-            } else if (generation === 3) {
-                // Great-grandparents
-                if (isMale) {
-                    return 'Büyük Dede';
-                } else {
-                    return 'Büyük Anne';
-                }
-            } else {
-                // For deeper generations, add more "Büyük"
-                const prefix = 'Büyük '.repeat(generation - 2);
-                return isMale ? prefix + 'Dede' : prefix + 'Anne';
+            } else if (depth === 3) {
+                return position === 'father' ? 'Büyük Dede' : 'Büyük Anne';
             }
+            
+            return null;
         }
         
         // Render individual pigeon node
@@ -8473,11 +8677,10 @@
                 document.body.scrollTop = 0;
                 document.documentElement.scrollTop = 0;
                 
-                // Position nodes and add connection lines after rendering with better timing
+                // Render D3.js pedigree tree after DOM is ready
                 if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
                 window.pedigreeTimeout = setTimeout(() => {
-                    positionNodes();
-                    drawConnectionLines();
+                    renderD3PedigreeTree(pedigreeData, t);
                 }, 300);
                 
                 // Add ResizeObserver for better performance and accuracy
@@ -8493,8 +8696,7 @@
                     window.pedigreeResizeObserver = new ResizeObserver((entries) => {
                         clearTimeout(resizeTimeout);
                         resizeTimeout = setTimeout(() => {
-                            positionNodes();
-                            drawConnectionLines();
+                            renderD3PedigreeTree(pedigreeData, t);
                         }, 150);
                     });
                     
@@ -8509,21 +8711,16 @@
                     window.addEventListener('resize', () => {
                         clearTimeout(resizeTimeout);
                         resizeTimeout = setTimeout(() => {
-                            positionNodes();
-                            drawConnectionLines();
+                            renderD3PedigreeTree(pedigreeData, t);
                         }, 150); // Faster response for mobile
                     });
                     
                     // Handle orientation changes for mobile devices
                     window.addEventListener('orientationchange', () => {
-                        // Clear lines immediately for visual feedback
-                        const container = document.querySelector('.pedigree-tree');
-                        if (container) {
-                            container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
-                        }
+                        // Clear D3 SVG immediately for visual feedback
+                        d3.select('#pedigree-d3-container').selectAll('*').remove();
                         setTimeout(() => {
-                            positionNodes();
-                            drawConnectionLines();
+                            renderD3PedigreeTree(pedigreeData, t);
                         }, 200);
                     });
                 }
@@ -15362,6 +15559,9 @@
             }
         }
     </script>
+    
+    <!-- D3.js for Pedigree Tree -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     
     <!-- AI Breeding Modules -->
     <script src="js/ai-breeding/color-pattern-system.js"></script>
