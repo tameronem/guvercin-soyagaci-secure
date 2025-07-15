@@ -984,12 +984,15 @@
             min-height: 600px;
             overflow: auto;
             -webkit-overflow-scrolling: touch;
+            touch-action: pan-x pan-y;
+            width: 100%;
         }
         
         .pedigree-wrapper {
             display: inline-block;
             min-width: 100%;
             padding: 40px;
+            width: max-content;
         }
         
         /* Pedigree tree styles - Modern redesign */
@@ -1000,10 +1003,12 @@
             padding: 2rem;
             min-height: 600px;
             overflow-x: auto;
-            overflow-y: visible;
-            background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
-            scroll-behavior: auto;
+            overflow-y: auto;
+            background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+            scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
+            touch-action: pan-x pan-y;
+            will-change: scroll-position;
             /* Ensure proper stacking context for SVG */
             position: relative;
         }
@@ -1408,6 +1413,8 @@
         @media (max-width: 768px) {
             .pedigree-wrapper {
                 padding: 1rem;
+                min-width: max-content;
+                width: auto;
             }
             
             .pedigree-tree {
@@ -1415,8 +1422,11 @@
                 min-height: 400px;
                 /* Removed transform scale - using smaller sizes instead */
                 font-size: 0.85rem;
-                overflow-x: auto;
+                overflow: auto;
                 -webkit-overflow-scrolling: touch;
+                touch-action: pan-x pan-y;
+                position: relative;
+                width: 100%;
             }
             
             .generation {
@@ -1475,7 +1485,7 @@
             /* Mobile-specific connection line improvements */
             .connection-line {
                 /* Stronger lines for better visibility on mobile */
-                background: linear-gradient(90deg, rgba(99, 102, 241, 0.6), rgba(168, 85, 247, 0.6)) !important;
+                background: linear-gradient(90deg, rgba(16, 185, 129, 0.7), rgba(6, 182, 212, 0.7)) !important;
                 z-index: 10;
                 min-height: 3px !important;
                 min-width: 3px !important;
@@ -1485,7 +1495,7 @@
             .connection-joint {
                 width: 10px !important;
                 height: 10px !important;
-                background: radial-gradient(circle, #6366f1, #8b5cf6) !important;
+                background: radial-gradient(circle, #10b981, #06b6d4) !important;
                 z-index: 11;
             }
             
@@ -1509,8 +1519,8 @@
             /* Ensure lines are properly positioned relative to viewport */
             .pedigree-tree {
                 position: relative;
-                overflow-x: auto;
-                overflow-y: hidden;
+                overflow: auto;
+                min-width: 100vw;
             }
             
             /* Adjust line positioning for mobile viewport */
@@ -1518,7 +1528,7 @@
                 margin: 0 10px;
                 width: 30px;
                 height: 3px;
-                background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.7), transparent) !important;
+                background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.7), transparent) !important;
             }
         }
         
@@ -7635,11 +7645,16 @@
                 });
             });
             
-            // Update container height if needed
+            // Update container dimensions if needed
             const maxY = Math.max(...Array.from(allNodes).map(n => n.offsetTop + n.offsetHeight));
+            const maxX = Math.max(...Array.from(allNodes).map(n => n.offsetLeft + n.offsetWidth));
+            
             if (maxY > container.offsetHeight) {
                 container.style.minHeight = (maxY + 40) + 'px';
             }
+            
+            // Set minimum width to ensure scrolling works properly
+            container.style.minWidth = (maxX + 40) + 'px';
         }
         
         // Draw connection lines between nodes
@@ -7649,9 +7664,6 @@
             
             // Clear existing lines and SVG
             container.querySelectorAll('.connection-line, .vertical-line, .connection-joint, .connection-svg').forEach(element => element.remove());
-            
-            // Get container bounds for accurate positioning
-            const containerRect = container.getBoundingClientRect();
             
             // Create or get SVG element
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -7664,16 +7676,15 @@
             const allNodes = container.querySelectorAll('.pigeon-node');
             
             allNodes.forEach(node => {
-                const nodeRect = node.getBoundingClientRect();
-                const nodeX = nodeRect.left - containerRect.left + container.scrollLeft;
-                const nodeY = nodeRect.top - containerRect.top + container.scrollTop;
-                maxX = Math.max(maxX, nodeX + nodeRect.width);
-                maxY = Math.max(maxY, nodeY + nodeRect.height);
+                const nodeX = node.offsetLeft;
+                const nodeY = node.offsetTop;
+                maxX = Math.max(maxX, nodeX + node.offsetWidth);
+                maxY = Math.max(maxY, nodeY + node.offsetHeight);
             });
             
-            // Add padding to SVG dimensions
-            svg.setAttribute('width', maxX + 50);
-            svg.setAttribute('height', maxY + 50);
+            // Add padding to SVG dimensions and ensure minimum size
+            svg.setAttribute('width', Math.max(maxX + 100, container.scrollWidth));
+            svg.setAttribute('height', Math.max(maxY + 100, container.scrollHeight));
             svg.style.position = 'absolute';
             svg.style.top = '0';
             svg.style.left = '0';
@@ -7691,11 +7702,11 @@
             const isMobile = window.innerWidth <= 768;
             const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
             stop1.setAttribute('offset', '0%');
-            stop1.setAttribute('stop-color', isMobile ? 'rgba(99, 102, 241, 0.7)' : 'rgba(99, 102, 241, 0.5)');
+            stop1.setAttribute('stop-color', isMobile ? 'rgba(16, 185, 129, 0.8)' : 'rgba(16, 185, 129, 0.6)');
             
             const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
             stop2.setAttribute('offset', '100%');
-            stop2.setAttribute('stop-color', isMobile ? 'rgba(168, 85, 247, 0.7)' : 'rgba(168, 85, 247, 0.5)');
+            stop2.setAttribute('stop-color', isMobile ? 'rgba(6, 182, 212, 0.8)' : 'rgba(6, 182, 212, 0.6)');
             
             gradient.appendChild(stop1);
             gradient.appendChild(stop2);
@@ -7711,18 +7722,16 @@
                 const motherId = node.getAttribute('data-mother-id');
                 
                 if (fatherId || motherId) {
-                    // Get accurate node position using getBoundingClientRect
-                    const nodeRect = node.getBoundingClientRect();
-                    const nodeX = nodeRect.left - containerRect.left + container.scrollLeft;
-                    const nodeY = nodeRect.top - containerRect.top + container.scrollTop + nodeRect.height / 2;
+                    // Get accurate node position using offsetLeft/offsetTop for proper positioning
+                    const nodeX = node.offsetLeft;
+                    const nodeY = node.offsetTop + node.offsetHeight / 2;
                     
                     // Connect to father
                     if (fatherId) {
                         const father = container.querySelector(`#${fatherId}`);
                         if (father) {
-                            const fatherRect = father.getBoundingClientRect();
-                            const fatherX = fatherRect.right - containerRect.left + container.scrollLeft;
-                            const fatherY = fatherRect.top - containerRect.top + container.scrollTop + fatherRect.height / 2;
+                            const fatherX = father.offsetLeft + father.offsetWidth;
+                            const fatherY = father.offsetTop + father.offsetHeight / 2;
                             drawSVGLine(svg, fatherX, fatherY, nodeX, nodeY, isMobile);
                         }
                     }
@@ -7731,9 +7740,8 @@
                     if (motherId) {
                         const mother = container.querySelector(`#${motherId}`);
                         if (mother) {
-                            const motherRect = mother.getBoundingClientRect();
-                            const motherX = motherRect.right - containerRect.left + container.scrollLeft;
-                            const motherY = motherRect.top - containerRect.top + container.scrollTop + motherRect.height / 2;
+                            const motherX = mother.offsetLeft + mother.offsetWidth;
+                            const motherY = mother.offsetTop + mother.offsetHeight / 2;
                             drawSVGLine(svg, motherX, motherY, nodeX, nodeY, isMobile);
                         }
                     }
@@ -7786,16 +7794,16 @@
                 joint1.setAttribute('cx', midX);
                 joint1.setAttribute('cy', y1);
                 joint1.setAttribute('r', isMobile ? '3' : '2.5');
-                joint1.setAttribute('fill', '#6366f1');
-                joint1.setAttribute('opacity', '0.7');
+                joint1.setAttribute('fill', '#10b981');
+                joint1.setAttribute('opacity', '0.9');
                 joint1.style.animationDelay = `${delay + 0.1}s`;
                 
                 const joint2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 joint2.setAttribute('cx', midX);
                 joint2.setAttribute('cy', y2);
                 joint2.setAttribute('r', isMobile ? '3' : '2.5');
-                joint2.setAttribute('fill', '#8b5cf6');
-                joint2.setAttribute('opacity', '0.7');
+                joint2.setAttribute('fill', '#06b6d4');
+                joint2.setAttribute('opacity', '0.9');
                 joint2.style.animationDelay = `${delay + 0.2}s`;
                 
                 // Add joints to SVG
