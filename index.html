@@ -7341,22 +7341,55 @@ Lütfen yardımcı olun.`);
                     }
                     
                     /* Responsive düzenlemeler */
-                    @media (max-width: 768px) {
+                    @media (max-width: 640px) {
+                        .grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 1rem !important;
+                            padding: 0 0.5rem !important;
+                        }
+                        
                         .pigeon-card {
-                            padding: 1rem !important;
+                            padding: 1.25rem !important;
+                            max-width: 100% !important;
+                            width: 100% !important;
                         }
                         
                         .pigeon-card-image {
-                            height: 150px !important;
+                            height: 220px !important;
                         }
                         
                         .pigeon-btn {
-                            padding: 0.375rem 0.75rem !important;
-                            font-size: 0.813rem !important;
+                            padding: 0.625rem 1rem !important;
+                            font-size: 0.875rem !important;
                         }
                         
                         .pigeon-card-header h3 {
-                            font-size: 1.1rem !important;
+                            font-size: 1.25rem !important;
+                        }
+                        
+                        .pigeon-card-info p {
+                            font-size: 0.9rem !important;
+                        }
+                    }
+                    
+                    @media (min-width: 641px) and (max-width: 768px) {
+                        .grid {
+                            grid-template-columns: repeat(2, 1fr) !important;
+                        }
+                        
+                        .pigeon-card {
+                            padding: 1.25rem !important;
+                        }
+                        
+                        .pigeon-card-image {
+                            height: 180px !important;
+                        }
+                    }
+                    
+                    @media (min-width: 1024px) {
+                        .grid {
+                            max-width: 1400px !important;
+                            margin: 0 auto !important;
                         }
                     }
                 </style>
@@ -7409,7 +7442,7 @@ Lütfen yardımcı olun.`);
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6" style="grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));">
                     ${paginatedPigeons.map((pigeon, index) => {
                         try {
                             console.log(`Kart ${index + 1} render ediliyor:`, pigeon.name, pigeon.id);
