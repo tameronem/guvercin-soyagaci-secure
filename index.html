@@ -5589,12 +5589,66 @@ Lütfen yardımcı olun.`);
             return true;
         }
 
+        // Global cleanup function - Sayfa geçişlerinde temizlik
+        function cleanupPreviousViews() {
+            // 1. Tüm aktif timeout'ları temizle
+            if (window.pedigreeTimeout) {
+                clearTimeout(window.pedigreeTimeout);
+                window.pedigreeTimeout = null;
+            }
+            
+            // 2. Tüm aktif interval'leri temizle
+            if (window.activeIntervals) {
+                window.activeIntervals.forEach(intervalId => clearInterval(intervalId));
+                window.activeIntervals = [];
+            }
+            
+            // 3. Kamerayı durdur (QR okuyucu için)
+            if (window.qrScanner && window.qrScanner.stop) {
+                window.qrScanner.stop();
+            }
+            
+            // 4. Event listener'ları temizle
+            if (window.pedigreeResizeHandler) {
+                // Resize handler flag'ini sıfırla
+                window.pedigreeResizeHandler = false;
+            }
+            
+            // 5. Tüm modal'ları kapat
+            const modals = ['pigeonModal', 'authModal', 'qrModal', 'incubationModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // 6. Chart instance'larını temizle
+            if (window.activeCharts) {
+                window.activeCharts.forEach(chart => {
+                    if (chart && chart.destroy) {
+                        chart.destroy();
+                    }
+                });
+                window.activeCharts = [];
+            }
+            
+            // 7. D3.js zoom handler'larını temizle
+            if (window.d3ZoomHandler) {
+                window.d3ZoomHandler = null;
+            }
+            
+            console.log('Previous views cleaned up');
+        }
+
         // Show Homepage
         async function showHomepage() {
             const contentDiv = document.getElementById('content');
             
             // Async operation tracking
             window.currentAsyncOperations = window.currentAsyncOperations || [];
+            window.activeIntervals = window.activeIntervals || [];
+            window.activeCharts = window.activeCharts || [];
             const operation = {
                 cancelled: false,
                 cancel() { this.cancelled = true; }
@@ -5605,9 +5659,9 @@ Lütfen yardımcı olun.`);
             contentDiv.innerHTML = '<div class="text-center py-20"><i class="fas fa-spinner fa-spin text-4xl text-cyan-400"></i><p class="mt-4">Yükleniyor...</p></div>';
             
             try {
-                // Tanımsız fonksiyonları kaldırdık - cleanupPreviousViews ve updateActiveTab mevcut değil
-                // cleanupPreviousViews();
-                // updateActiveTab(0);
+                // Önceki görünümleri temizle
+                cleanupPreviousViews();
+                // updateActiveTab(0); // updateActiveTab henüz tanımlı değil
             
             // If not logged in, show landing page
             if (!storage.currentUser) {
