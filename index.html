@@ -7498,26 +7498,8 @@ Lütfen yardımcı olun.`);
                     }
                 });
                 
-                // Button click testi ve renk kontrolü
+                // Button renk kontrolü
                 if (pigeonButtons.length > 0) {
-                    console.log('=== BUTTON CLICK TESTİ ===');
-                    console.log('İlk butona test click yapmayı deneyin:');
-                    const firstBtn = pigeonButtons[0];
-                    
-                    // Click event listener ekle
-                    firstBtn.addEventListener('click', function(e) {
-                        console.log('TEST CLICK ÇALIŞTI!', e);
-                    }, { once: true });
-                    
-                    // Simüle click
-                    try {
-                        firstBtn.click();
-                        console.log('Simüle click başarılı');
-                    } catch (err) {
-                        console.error('Click hatası:', err);
-                    }
-                    
-                    // Renk kontrolü
                     console.log('=== BUTON RENK KONTROLÜ ===');
                     pigeonButtons.forEach((btn, i) => {
                         const styles = window.getComputedStyle(btn);
