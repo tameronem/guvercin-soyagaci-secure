@@ -1,0 +1,164 @@
+.wt-ajax-load:empty {
+    min-height: 50dvh;
+}
+
+.webtrees-pedigree-fullscreen-container::backdrop {
+    background-color: var(--bs-body-bg);
+}
+
+.webtrees-pedigree-fullscreen-container {
+    position: relative;
+}
+
+/* Button toolbar */
+.webtrees-pedigree-fullscreen-container .btn-toolbar {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.webtrees-pedigree-fullscreen-container .btn-chart {
+    color: var(--bs-btn-bg);
+    background: rgb(245, 245, 245);
+    border: 1px solid rgb(210, 210, 210);
+    width: 40px;
+    height: 32px;
+    border-radius: 30%;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+}
+
+.webtrees-pedigree-fullscreen-container .btn-primary:hover {
+    background: rgb(245, 245, 245);
+}
+
+.webtrees-pedigree-fullscreen-container .btn-chart:hover {
+    color: var(--link-color-hover);
+}
+
+.webtrees-pedigree-fullscreen-container .btn-chart .icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.webtrees-pedigree-fullscreen-container .btn-chart .icon .svg-inline--fa {
+    height: 1.5em;
+    vertical-align: -0.375em;
+}
+
+.webtrees-pedigree-fullscreen-container .btn-fullscreen span:nth-child(2) {
+    display: none;
+}
+
+/* Form */
+.form-element-description {
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+
+#webtrees-pedigree-chart-form .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* SVG */
+.webtrees-pedigree-chart-container {
+    position: relative;
+    font-size: unset;
+    display: flex;
+    flex: auto;
+}
+
+.webtrees-pedigree-chart-container svg {
+    display: block;
+    cursor: grab;
+}
+
+.webtrees-pedigree-chart-container svg:active {
+    cursor: grabbing;
+}
+
+.webtrees-pedigree-chart-container svg .person {
+    cursor: pointer;
+}
+
+.webtrees-pedigree-chart-container svg rect.background {
+    fill: none;
+    pointer-events: all;
+}
+
+.webtrees-pedigree-chart-container div.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: 10px sans-serif;
+    pointer-events: none;
+    transition: opacity ease-in-out;
+    transition-duration: 0s;
+    backdrop-filter: blur(5px);
+}
+
+@supports (-webkit-backdrop-filter: none) {
+    .webtrees-pedigree-chart-container div.overlay {
+        -webkit-backdrop-filter: blur(1em);
+    }
+}
+
+.webtrees-pedigree-chart-container div.overlay .tooltip {
+    font-size: 22px;
+    color: #5a6268;
+    position: relative;
+    margin: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 1;
+    text-align: center;
+}
+
+@supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+    .webtrees-pedigree-chart-container div.overlay {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .webtrees-pedigree-chart-container div.overlay .tooltip {
+        color: white;
+    }
+}
+
+/* Fullscreen */
+[fullscreen] .webtrees-pedigree-fullscreen-container .wt-page-content {
+    padding: 0;
+}
+
+[fullscreen] .webtrees-pedigree-fullscreen-container .btn-fullscreen span:nth-child(1) {
+    display: none;
+}
+
+[fullscreen] .webtrees-pedigree-fullscreen-container .btn-fullscreen span:nth-child(2) {
+    display: inline-block;
+}
+
+[fullscreen] .webtrees-pedigree-fullscreen-container #exportPNG {
+    display: none;
+}
+
+[fullscreen] .webtrees-pedigree-fullscreen-container #exportSVG {
+    display: none;
+}
+
+[fullscreen] .webtrees-pedigree-chart-container {
+    min-height: 100dvh;
+    max-height: 100dvh;
+}

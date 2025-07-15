@@ -5641,6 +5641,120 @@ Lütfen yardımcı olun.`);
             console.log('Previous views cleaned up');
         }
 
+        // Check authentication state on page load
+        async function checkAuthState() {
+            console.log('Checking auth state...');
+            
+            // 1. LocalStorage'dan currentUser kontrol et
+            const storedUser = storage.currentUser;
+            
+            // 2. Supabase session kontrol et
+            if (window.supabaseClient && window.supabaseClient.checkSession) {
+                try {
+                    const session = await window.supabaseClient.checkSession();
+                    
+                    if (session && session.user) {
+                        // Session varsa, user bilgilerini güncelle
+                        const userData = {
+                            id: session.user.id,
+                            email: session.user.email,
+                            firstName: session.user.user_metadata?.firstName || '',
+                            lastName: session.user.user_metadata?.lastName || '',
+                            name: session.user.user_metadata?.name || session.user.email.split('@')[0]
+                        };
+                        
+                        // Storage'ı güncelle
+                        storage.currentUser = userData;
+                        
+                        // UI'ı güncelle
+                        updateAuthUI(true);
+                        
+                        // Ana sayfayı göster
+                        if (typeof showHomepage === 'function') {
+                            showHomepage();
+                        }
+                        
+                        console.log('User authenticated:', userData.email);
+                    } else {
+                        // Session yoksa logout yap
+                        storage.currentUser = null;
+                        updateAuthUI(false);
+                        console.log('No active session found');
+                    }
+                } catch (error) {
+                    console.error('Error checking auth state:', error);
+                    // Hata durumunda mevcut localStorage verisini kullan
+                    if (storedUser) {
+                        updateAuthUI(true);
+                        showHomepage();
+                    } else {
+                        updateAuthUI(false);
+                    }
+                }
+            } else {
+                // Supabase client hazır değilse, localStorage'a güven
+                if (storedUser) {
+                    updateAuthUI(true);
+                    showHomepage();
+                } else {
+                    updateAuthUI(false);
+                }
+            }
+        }
+
+        // Update UI based on authentication status
+        function updateAuthUI(isAuthenticated) {
+            const authSection = document.getElementById('authSection');
+            const userInfo = document.getElementById('userInfo');
+            const authButtons = document.getElementById('authButtons');
+            const mobileUserInfo = document.getElementById('mobileUserInfo');
+            
+            if (isAuthenticated && storage.currentUser) {
+                // Kullanıcı giriş yapmış
+                if (authButtons) authButtons.style.display = 'none';
+                if (userInfo) {
+                    userInfo.style.display = 'block';
+                    userInfo.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="text-gray-300 text-sm truncate max-w-[200px]">
+                                ${storage.currentUser.name || storage.currentUser.email}
+                            </span>
+                            <button onclick="logout()" class="text-sm text-red-400 hover:text-red-300 transition">
+                                <i class="fas fa-sign-out-alt"></i> Çıkış
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                // Mobil menü kullanıcı bilgisi
+                if (mobileUserInfo) {
+                    mobileUserInfo.innerHTML = `
+                        <div class="text-white px-4 py-2 border-b border-gray-700">
+                            <span class="block text-sm text-gray-400">Hoş geldiniz</span>
+                            <span class="block truncate">${storage.currentUser.name || storage.currentUser.email}</span>
+                        </div>
+                    `;
+                }
+            } else {
+                // Kullanıcı giriş yapmamış
+                if (userInfo) userInfo.style.display = 'none';
+                if (authButtons) authButtons.style.display = 'flex';
+                if (mobileUserInfo) mobileUserInfo.innerHTML = '';
+            }
+        }
+
+        // Update active tab in navigation
+        function updateActiveTab(index) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach((tab, i) => {
+                if (i === index) {
+                    tab.classList.add('tab-active');
+                } else {
+                    tab.classList.remove('tab-active');
+                }
+            });
+        }
+
         // Show Homepage
         async function showHomepage() {
             const contentDiv = document.getElementById('content');
@@ -11594,18 +11708,6 @@ Lütfen yardımcı olun.`);
             showNotification(userMessage, 'error');
         }
 
-
-        // Update active tab
-        function updateActiveTab(index) {
-            const tabs = document.querySelectorAll('.tab-btn');
-            tabs.forEach((tab, i) => {
-                if (i === index) {
-                    tab.classList.add('tab-active');
-                } else {
-                    tab.classList.remove('tab-active');
-                }
-            });
-        }
 
         // Show notification
         function showNotification(message, type = 'info') {

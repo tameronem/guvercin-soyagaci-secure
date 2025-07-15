@@ -1,0 +1,63 @@
+/* SVG export styles */
+.webtrees-pedigree-chart-container svg {
+    min-height: 50dvh;
+}
+
+/* Required for the exported SVG to display properly in Inkscape */
+.webtrees-pedigree-chart-container svg.rtl {
+    direction: rtl !important;
+    unicode-bidi: bidi-override !important;
+}
+
+.webtrees-pedigree-chart-container svg rect.female {
+    stroke: var(--sex-f-fg, rgb(255, 32, 128));
+    stroke-dasharray: none;
+    stroke-width: 3px;
+    fill: var(--sex-f-bg, rgb(233, 218, 241));
+}
+
+.webtrees-pedigree-chart-container svg rect.male {
+    stroke: var(--sex-m-fg, rgb(129, 169, 203));
+    stroke-dasharray: none;
+    stroke-width: 3px;
+    fill: var(--sex-m-bg, rgb(237, 247, 253));
+}
+
+.webtrees-pedigree-chart-container svg rect.unknown {
+    stroke: var(--sex-u-fg, rgb(129, 169, 203));
+    stroke-dasharray: 5;
+    stroke-width: 3px;
+    fill: var(--sex-u-bg, rgb(255, 255, 255));
+}
+
+.webtrees-pedigree-chart-container svg rect.image {
+    stroke: rgb(175, 175, 175);
+}
+
+.webtrees-pedigree-chart-container svg path.link {
+    fill: none;
+    stroke: rgb(175, 175, 175);
+    stroke-width: 1.5px;
+    stroke-linecap: butt;
+    shape-rendering: geometricPrecision;
+}
+
+.webtrees-pedigree-chart-container svg text.date {
+    fill: currentColor;
+    font-weight: normal;
+    font-size: 13px;
+}
+
+.webtrees-pedigree-chart-container svg text.wt-chart-box-name {
+    fill: var(--link-color, currentColor);
+}
+
+.webtrees-pedigree-chart-container svg text.wt-chart-box-name-alt {
+    fill: currentColor;
+    font-weight: 500;
+    font-size: 0.85em;
+}
+
+.webtrees-pedigree-chart-container svg text.wt-chart-box-name:hover:not(.wt-chart-box-name-alt) {
+    fill: var(--link-color-hover);
+}

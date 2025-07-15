@@ -1,0 +1,179 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Pedigree chart\n"
+"POT-Creation-Date: 2024-12-22 12:46+0100\n"
+"PO-Revision-Date: 2024-12-22 12:50+0100\n"
+"Last-Translator: Rico Sonntag <mail@ricosonntag.de>\n"
+"Language-Team: \n"
+"Language: nn\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.5\n"
+"X-Poedit-Basepath: ../../..\n"
+"X-Poedit-KeywordsList: translate\n"
+"X-Poedit-SearchPath-0: src\n"
+"X-Poedit-SearchPath-1: resources/views\n"
+
+#: src/Configuration.php:196 src/Configuration.php:204
+msgid "left"
+msgstr "venstre"
+
+#: src/Configuration.php:197 src/Configuration.php:205
+msgid "right"
+msgstr "høgre"
+
+#: src/Configuration.php:198 src/Configuration.php:206
+msgid "up"
+msgstr "opp"
+
+#: src/Configuration.php:199 src/Configuration.php:207
+msgid "down"
+msgstr "ned"
+
+#: src/Module.php:124 src/Module.php:239
+msgid "Pedigree chart"
+msgstr "Anediagram"
+
+#: src/Module.php:134
+msgid "A pedigree chart of an individual’s ancestors."
+msgstr "Eit diagram over ein person sine anar."
+
+#: src/Module.php:236 src/Traits/ModuleChartTrait.php:41
+#, php-format
+msgid "Pedigree chart of %s"
+msgstr "Anediagram for %s"
+
+#: src/Module.php:252
+msgid "Use Ctrl + scroll to zoom in the view"
+msgstr "Bruk Ctrl + scroll for zoom"
+
+#: src/Module.php:253
+msgid "Move the view with two fingers"
+msgstr "Bruk to fingrar for å endre synsfelt"
+
+#: src/Processor/DateProcessor.php:129
+#, php-format
+msgid "Born: %s"
+msgstr "Fødd: %s"
+
+#: src/Processor/DateProcessor.php:133
+#, php-format
+msgid "Died: %s"
+msgstr "Død: %s"
+
+#: src/Processor/DateProcessor.php:137
+msgid "Deceased"
+msgstr "Død"
+
+#: src/Traits/ModuleConfigTrait.php:91
+#, php-format
+msgid "The preferences for the module “%s” have been updated."
+msgstr "Innstillingane for modulen “%s” har blitt oppdatert."
+
+#: resources/views/modules/components/buttonbar/center-button.phtml:18
+msgid "Re center"
+msgstr "Tibakestill"
+
+#: resources/views/modules/components/buttonbar/fullscreen-button.phtml:18
+msgid "Switch between full screen mode and normal view"
+msgstr ""
+
+#: resources/views/modules/components/buttonbar/help-button.phtml:17
+msgid "Show help"
+msgstr ""
+
+#: resources/views/modules/components/buttonbar/png-export-button.phtml:18
+msgid "Export as PNG"
+msgstr "Eksporter som PNG"
+
+#: resources/views/modules/components/buttonbar/svg-export-button.phtml:18
+msgid "Export as SVG"
+msgstr "Eksporter som SVG"
+
+#: resources/views/modules/pedigree-chart/config.phtml:25
+msgid "Control panel"
+msgstr "Kontrollpanel"
+
+#: resources/views/modules/pedigree-chart/config.phtml:25
+msgid "Modules"
+msgstr "Modular"
+
+#: resources/views/modules/pedigree-chart/config.phtml:44
+msgid "General"
+msgstr ""
+
+#: resources/views/modules/pedigree-chart/config.phtml:50
+msgid "Hide the SVG export button"
+msgstr ""
+
+#: resources/views/modules/pedigree-chart/config.phtml:60
+msgid "Hide the PNG export button"
+msgstr ""
+
+#: resources/views/modules/pedigree-chart/config.phtml:73
+msgid "save"
+msgstr "lagre"
+
+#: resources/views/modules/pedigree-chart/config.phtml:78
+msgid "cancel"
+msgstr "avbryt"
+
+#: resources/views/modules/pedigree-chart/form/generations.phtml:22
+msgid "Generations"
+msgstr "Generasjonar"
+
+#: resources/views/modules/pedigree-chart/form/layout.phtml:23
+msgid "Layout"
+msgstr "Utsjånad"
+
+#: resources/views/modules/pedigree-chart/form/layout.phtml:29
+msgid ""
+"Show empty boxes for missing individuals. Caution: May slow down your system!"
+msgstr "Syn tomme felt for manglande personar. Varsel: Kan seinke sytemet!"
+
+#: resources/views/modules/pedigree-chart/form/layout.phtml:39
+msgid "Open individual in new browser window/tab"
+msgstr "Opne person i nytt vindauge/fane"
+
+#: resources/views/modules/pedigree-chart/form/layout.phtml:45
+msgid ""
+"Open the current individual's detail page in a new browser window/tab when "
+"it's left-clicked, otherwise the current window/tab is used."
+msgstr ""
+"Opnar gjeldande person si faktaside i nytt vindage/fane. Om ikkje, opnast "
+"sida i same vindauge/fane."
+
+#: resources/views/modules/pedigree-chart/form/layout.phtml:53
+msgid "Show alternative name of individual"
+msgstr "Syn alternativt namn på person"
+
+#: resources/views/modules/pedigree-chart/form/layout.phtml:59
+msgid ""
+"Displays a person's alternate name, if available. This simultaneously "
+"enlarges the individuals' respective boxes to create the necessary space for "
+"the display."
+msgstr ""
+"Syner alternativt namn på personar der dette er tilgjengeleg. Dette vil og "
+"utvide personboksar for å gi plass til syninga."
+
+#: resources/views/modules/pedigree-chart/form/orientation.phtml:22
+msgid "Orientation"
+msgstr "Orientering"
+
+#: resources/views/modules/pedigree-chart/page.phtml:39
+msgid "Individual"
+msgstr "Person"
+
+#: resources/views/modules/pedigree-chart/page.phtml:64
+msgid "view"
+msgstr "syn"
+
+#: resources/views/modules/pedigree-chart/page.phtml:75
+msgid "Show more options"
+msgstr "Syn fleire val"
+
+#: resources/views/modules/pedigree-chart/page.phtml:76
+msgid "Hide more options"
+msgstr "Skjul fleire val"

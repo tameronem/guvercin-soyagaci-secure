@@ -1,0 +1,67 @@
+<?php
+
+/**
+ * This file is part of the package magicsunday/webtrees-pedigree-chart.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+use Fisharebest\Webtrees\View;
+use MagicSunday\Webtrees\PedigreeChart\Configuration;
+
+/**
+ * @var string        $javascript
+ * @var Configuration $configuration
+ * @var array         $id                The unique chart ID
+ * @var array         $chartParams
+ * @var string[]      $exportStylesheets A list of stylesheets used by SVG export
+ * @var array         $data              The chart data
+ */
+?>
+
+<div class="webtrees-pedigree-chart-container" id="webtrees-pedigree-chart-container-<?= $id ?>"></div>
+
+<?php View::push('javascript'); ?>
+<script src="<?= e($javascript) ?>"></script>
+<?php View::endpush(); ?>
+
+<?php View::push('javascript'); ?>
+<script>
+
+// Create chart instance
+new WebtreesPedigreeChart.PedigreeChart(
+    "#webtrees-pedigree-chart-container-<?= $id ?>",
+    {
+        labels: <?= json_encode($chartParams['labels']) ?>,
+        rtl: <?= json_encode($chartParams['rtl']) ?>,
+        cssFiles: <?= json_encode($exportStylesheets) ?>,
+
+        get generations() {
+            return (typeof generations !== "undefined" && generations !== null) ? generations : <?= $configuration->getGenerations() ?>
+        },
+
+        get showEmptyBoxes() {
+            return (typeof showEmptyBoxes !== "undefined" && showEmptyBoxes !== null) ? showEmptyBoxes : <?= json_encode($configuration->getShowEmptyBoxes()) ?>;
+        },
+
+        get treeLayout() {
+            return (typeof treeLayout !== "undefined" && treeLayout !== null) ? treeLayout : <?= json_encode($configuration->getLayout()) ?>;
+        },
+
+        get openNewTabOnClick() {
+            return (typeof openNewTabOnClick !== "undefined" && openNewTabOnClick !== null) ? openNewTabOnClick : <?= json_encode($configuration->getOpenNewTabOnClick()) ?>;
+        },
+
+        get showAlternativeName() {
+            return (typeof showAlternativeName !== "undefined" && showAlternativeName !== null) ? showAlternativeName : <?= json_encode($configuration->getShowAlternativeName()) ?>;
+        },
+
+        data: <?= json_encode($data) ?>
+    }
+);
+
+</script>
+<?php View::endpush(); ?>
