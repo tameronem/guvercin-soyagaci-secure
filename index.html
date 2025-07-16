@@ -5120,7 +5120,7 @@
                     <button onclick="window.showPedigree('${pigeon.id}')" class="btn-primary">
                         <i class="fas fa-sitemap mr-2"></i> ${t.view_pedigree || 'Soyağacını Görüntüle'}
                     </button>
-                    <button onclick="showEditPigeon('${pigeon.id}')" class="px-6 py-3 bg-purple-500 rounded-full hover:bg-purple-600 transition">
+                    <button onclick="window.showEditPigeon('${pigeon.id}')" class="px-6 py-3 bg-purple-500 rounded-full hover:bg-purple-600 transition">
                         <i class="fas fa-edit mr-2"></i> ${t.edit || 'Düzenle'}
                     </button>
                 </div>
@@ -7896,7 +7896,7 @@ Lütfen yardımcı olun.`);
                                 <button 
                                     type="button"
                                     class="pigeon-btn pigeon-btn-delete w-full"
-                                    onclick="if(confirm('Bu güvercini silmek istediğinizden emin misiniz?')) deletePigeon('${pigeon.id}')">
+                                    onclick="if(confirm('Bu güvercini silmek istediğinizden emin misiniz?')) window.deletePigeon('${pigeon.id}')">
                                     <i class="fas fa-trash"></i>
                                     <span>Sil</span>
                                 </button>
@@ -12583,6 +12583,9 @@ Lütfen yardımcı olun.`);
         window.previewImageEdit = previewImageEdit;
         window.handleEditPigeon = handleEditPigeon;
         window.deletePigeon = deletePigeon;
+        window.deleteMating = deleteMating;
+        window.showEditMating = showEditMating;
+        window.handleEditMating = handleEditMating;
         window.renderModernPedigree = renderModernPedigree;
         window.renderPigeonNode = renderPigeonNode;
         window.drawConnectionLines = drawConnectionLines;
@@ -12809,6 +12812,149 @@ Lütfen yardımcı olun.`);
                 console.error('Form yükleme hatası:', error);
                 showNotification(error.message || 'Form yüklenemedi', 'error');
                 showMatings();
+            }
+        }
+
+        // Show Edit Mating Form - SUPABASE VERSION
+        async function showEditMating(matingId) {
+            // Loading göster
+            document.getElementById('content').innerHTML = `
+                <div class="container mx-auto">
+                    <div class="glass p-8 rounded-3xl text-center">
+                        <i class="fas fa-spinner fa-spin text-4xl text-cyan-400 mb-4"></i>
+                        <p class="text-xl">Düzenleme formu hazırlanıyor...</p>
+                    </div>
+                </div>
+            `;
+            
+            try {
+                // Mating verisini getir
+                const matingResult = await SupabaseDB.getMating(matingId);
+                if (!matingResult.success || !matingResult.data) {
+                    throw new Error('Kuluçka kaydı bulunamadı');
+                }
+                
+                const mating = matingResult.data;
+                
+                // Güvercinleri getir
+                const pigeonsResult = await SupabaseDB.getPigeons(storage.currentUser.id);
+                if (!pigeonsResult.success) {
+                    throw new Error('Güvercin listesi yüklenemedi');
+                }
+                
+                const userPigeons = pigeonsResult.data || [];
+                const males = userPigeons.filter(p => p.gender === 'male');
+                const females = userPigeons.filter(p => p.gender === 'female');
+                const t = translations[currentLang];
+                
+                document.getElementById('content').innerHTML = `
+                <div class="container mx-auto">
+                <div class="glass p-8 rounded-3xl">
+                <h2 class="text-3xl font-bold mb-8">Kuluçka Kaydını Düzenle</h2>
+                
+                <form onsubmit="handleEditMating(event, '${matingId}')" class="max-w-2xl mx-auto">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-300 mb-2">${t.male_pigeon}*</label>
+                            <select id="maleId" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                                <option value="">${t.select}</option>
+                                ${males.map(p => `<option value="${p.id}" ${p.id === mating.male_id ? 'selected' : ''}>${p.name} - ${p.band_number}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 mb-2">${t.female_pigeon}*</label>
+                            <select id="femaleId" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                                <option value="">${t.select}</option>
+                                ${females.map(p => `<option value="${p.id}" ${p.id === mating.female_id ? 'selected' : ''}>${p.name} - ${p.band_number}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-300 mb-2">${t.mating_date}*</label>
+                        <input type="date" id="matingDate" value="${mating.mating_date || ''}" onchange="updateDates()" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                ${t.egg_laying_date}
+                                <span class="text-xs text-gray-500">(Otomatik: +7 gün)</span>
+                            </label>
+                            <input type="date" id="eggLayingDate" value="${mating.egg_laying_date || ''}" onchange="updateHatchDate()" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                ${t.expected_hatch}
+                                <span class="text-xs text-gray-500">(Otomatik: +18 gün)</span>
+                            </label>
+                            <input type="date" id="expectedHatchDate" value="${mating.expected_hatch_date || ''}" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="hatched" ${mating.hatched ? 'checked' : ''} class="mr-3 w-4 h-4 text-cyan-600 bg-black/50 border-gray-600 rounded focus:ring-cyan-500">
+                            <span class="text-gray-300">${t.hatched}</span>
+                        </label>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-gray-300 mb-2">${t.notes}</label>
+                        <textarea id="matingNotes" rows="3" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">${mating.notes || ''}</textarea>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <button type="submit" class="btn-primary flex-1">
+                            <i class="fas fa-save mr-2"></i> ${t.save}
+                        </button>
+                        <button type="button" onclick="window.showMatings()" class="flex-1 px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
+                            ${t.cancel}
+                        </button>
+                    </div>
+                </form>
+                </div>
+                </div>
+            `;
+            } catch (error) {
+                console.error('Düzenleme formu yükleme hatası:', error);
+                showNotification(error.message || 'Düzenleme formu yüklenemedi', 'error');
+                window.showMatings();
+            }
+        }
+
+        // Handle Edit Mating - SUPABASE VERSION
+        async function handleEditMating(event, matingId) {
+            event.preventDefault();
+            
+            // Loading göster
+            showNotification('Kuluçka kaydı güncelleniyor...', 'info');
+            
+            try {
+                // Form verilerini topla
+                const matingData = {
+                    maleId: document.getElementById('maleId').value,
+                    femaleId: document.getElementById('femaleId').value,
+                    matingDate: document.getElementById('matingDate').value,
+                    eggLayingDate: document.getElementById('eggLayingDate').value || null,
+                    expectedHatchDate: document.getElementById('expectedHatchDate').value || null,
+                    hatched: document.getElementById('hatched').checked,
+                    notes: document.getElementById('matingNotes').value
+                };
+                
+                // Supabase'de eşleştirmeyi güncelle
+                const result = await SupabaseDB.updateMating(matingId, matingData);
+                
+                if (!result.success) {
+                    throw new Error(result.error);
+                }
+                
+                showNotification('Kuluçka kaydı başarıyla güncellendi!', 'success');
+                window.showMatings();
+                
+            } catch (error) {
+                console.error('Eşleştirme güncelleme hatası:', error);
+                showNotification(error.message || 'Kuluçka kaydı güncellenemedi', 'error');
             }
         }
 
