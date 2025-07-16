@@ -3037,16 +3037,58 @@
         
         // Create floating particles
         
-        // REAL FUNCTIONS - Defined immediately at script start
-        console.log('Setting up real functions immediately...');
+        // IMMEDIATE WRAPPER FUNCTIONS - Available instantly for onclick handlers
+        console.log('Setting up immediate wrapper functions...');
+        
+        // showPedigree wrapper - available immediately
+        window.showPedigree = function(pigeonId, maxGenerations = 4) {
+            console.log('🔄 showPedigree called, checking for real function...');
+            
+            if (window.showPedigreeReal && typeof window.showPedigreeReal === 'function') {
+                console.log('✅ Real function found, executing...');
+                return window.showPedigreeReal(pigeonId, maxGenerations);
+            } else {
+                console.log('⏳ Real function not ready yet, waiting...');
+                setTimeout(() => {
+                    if (window.showPedigreeReal) {
+                        window.showPedigreeReal(pigeonId, maxGenerations);
+                    } else {
+                        alert('Soyağacı fonksiyonu henüz yüklenemedi. Lütfen sayfayı yenileyin.');
+                    }
+                }, 100);
+            }
+        };
+        
+        // showMatings wrapper - available immediately
+        window.showMatings = function() {
+            console.log('🔄 showMatings called, checking for real function...');
+            
+            if (window.showMatingsReal && typeof window.showMatingsReal === 'function') {
+                console.log('✅ Real function found, executing...');
+                return window.showMatingsReal();
+            } else {
+                console.log('⏳ Real function not ready yet, waiting...');
+                setTimeout(() => {
+                    if (window.showMatingsReal) {
+                        window.showMatingsReal();
+                    } else {
+                        alert('Eşleştirme fonksiyonu henüz yüklenemedi. Lütfen sayfayı yenileyin.');
+                    }
+                }, 100);
+            }
+        };
         
         // Test function to verify they work
         window.testFunctions = function() {
             console.log('Testing functions...');
             console.log('showPedigree type:', typeof window.showPedigree);
             console.log('showMatings type:', typeof window.showMatings);
-            console.log('Functions are ready:', typeof window.showPedigree === 'function' && typeof window.showMatings === 'function');
+            console.log('showPedigreeReal type:', typeof window.showPedigreeReal);
+            console.log('showMatingsReal type:', typeof window.showMatingsReal);
+            console.log('Wrappers ready:', typeof window.showPedigree === 'function' && typeof window.showMatings === 'function');
         };
+        
+        console.log('✅ Wrapper functions ready immediately!');
         
         const translations = {
             tr: {
@@ -10227,8 +10269,8 @@ Lütfen yardımcı olun.`);
         }
 
         // Show Pedigree - SUPABASE VERSION WITH SVG VISUALIZATION
-        // Direct function definition - no placeholder needed
-        window.showPedigree = async function(pigeonId, maxGenerations = 4) {
+        // Real function - called by wrapper
+        window.showPedigreeReal = async function(pigeonId, maxGenerations = 4) {
             if (!checkAuth()) return;
             cleanupPreviousViews();
             const t = translations[currentLang];
@@ -10445,8 +10487,8 @@ Lütfen yardımcı olun.`);
         }
 
         // Show Matings - SUPABASE VERSION
-        // Direct function definition - no placeholder needed
-        window.showMatings = async function() {
+        // Real function - called by wrapper
+        window.showMatingsReal = async function() {
             if (!checkAuth()) return;
             cleanupPreviousViews();
             updateActiveTab(2);
@@ -17149,9 +17191,12 @@ Lütfen yardımcı olun.`);
             
             // Debug: Check function availability
             console.log('=== Function Status Check ===');
-            console.log('window.showPedigree:', typeof window.showPedigree);
-            console.log('window.showMatings:', typeof window.showMatings);
-            console.log('Functions ready:', window.showPedigree !== undefined && window.showMatings !== undefined);
+            console.log('window.showPedigree (wrapper):', typeof window.showPedigree);
+            console.log('window.showMatings (wrapper):', typeof window.showMatings);
+            console.log('window.showPedigreeReal:', typeof window.showPedigreeReal);
+            console.log('window.showMatingsReal:', typeof window.showMatingsReal);
+            console.log('Wrappers ready:', window.showPedigree !== undefined && window.showMatings !== undefined);
+            console.log('Real functions ready:', window.showPedigreeReal !== undefined && window.showMatingsReal !== undefined);
             
             // Make sure all functions are properly attached to window
             window.showHomepage = showHomepage;
