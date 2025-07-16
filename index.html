@@ -3041,38 +3041,52 @@
         console.log('Setting up early placeholder functions...');
         
         window.showPedigree = function(pigeonId, maxGenerations = 4) {
-            console.log('showPedigree placeholder called, waiting for real function...');
-            // Store the call for later execution
-            window.showPedigree.pendingCalls = window.showPedigree.pendingCalls || [];
-            window.showPedigree.pendingCalls.push({ pigeonId, maxGenerations });
+            console.log('🔄 showPedigree placeholder called, waiting for real function...');
             
-            // Check if real function is available
-            const checkReal = () => {
-                if (window.showPedigree.real) {
-                    console.log('Real showPedigree found, executing...');
+            // Enhanced checking mechanism
+            const checkReal = (attempts = 0) => {
+                console.log(`🔍 Checking for real showPedigree function (attempt ${attempts + 1})`);
+                
+                if (window.showPedigree.real && typeof window.showPedigree.real === 'function') {
+                    console.log('✅ Real showPedigree found, executing immediately...');
+                    window.showPedigree = window.showPedigree.real;
                     window.showPedigree.real(pigeonId, maxGenerations);
+                    return;
+                }
+                
+                if (attempts < 100) { // Max 10 seconds
+                    setTimeout(() => checkReal(attempts + 1), 100);
                 } else {
-                    setTimeout(checkReal, 100);
+                    console.error('❌ Real showPedigree function not found after 10 seconds');
+                    alert('Soyağacı fonksiyonu yüklenemedi. Sayfayı yenileyin.');
                 }
             };
+            
             checkReal();
         };
         
         window.showMatings = function() {
-            console.log('showMatings placeholder called, waiting for real function...');
-            // Store the call for later execution
-            window.showMatings.pendingCalls = window.showMatings.pendingCalls || [];
-            window.showMatings.pendingCalls.push({});
+            console.log('🔄 showMatings placeholder called, waiting for real function...');
             
-            // Check if real function is available
-            const checkReal = () => {
-                if (window.showMatings.real) {
-                    console.log('Real showMatings found, executing...');
+            // Enhanced checking mechanism
+            const checkReal = (attempts = 0) => {
+                console.log(`🔍 Checking for real showMatings function (attempt ${attempts + 1})`);
+                
+                if (window.showMatings.real && typeof window.showMatings.real === 'function') {
+                    console.log('✅ Real showMatings found, executing immediately...');
+                    window.showMatings = window.showMatings.real;
                     window.showMatings.real();
+                    return;
+                }
+                
+                if (attempts < 100) { // Max 10 seconds
+                    setTimeout(() => checkReal(attempts + 1), 100);
                 } else {
-                    setTimeout(checkReal, 100);
+                    console.error('❌ Real showMatings function not found after 10 seconds');
+                    alert('Eşleştirme fonksiyonu yüklenemedi. Sayfayı yenileyin.');
                 }
             };
+            
             checkReal();
         };
         
@@ -10474,6 +10488,10 @@ Lütfen yardımcı olun.`);
             }
         }
 
+        // IMMEDIATE REPLACEMENT - showPedigree
+        window.showPedigree = window.showPedigree.real;
+        console.log('✅ showPedigree REPLACED with real function');
+
         // Show Matings
         // Show Matings - SUPABASE VERSION
         // Store real function and replace placeholder
@@ -10739,6 +10757,10 @@ Lütfen yardımcı olun.`);
             doc.save(`${pigeon.name}_${pigeon.bandNumber}.pdf`);
             showNotification('PDF başarıyla indirildi!', 'success');
         }
+
+        // IMMEDIATE REPLACEMENT - showMatings
+        window.showMatings = window.showMatings.real;
+        console.log('✅ showMatings REPLACED with real function');
 
         function exportPedigreePDF(pigeonId) {
             const pigeon = storage.pigeons.find(p => p.id === pigeonId);
@@ -17177,22 +17199,36 @@ Lütfen yardımcı olun.`);
             }
             
             // Debug: Check function availability
-            console.log('=== Function Availability Check ===');
+            console.log('=== DETAILED Function Availability Check ===');
             console.log('window.showPedigree:', typeof window.showPedigree);
             console.log('window.showMatings:', typeof window.showMatings);
+            console.log('window.showPedigree.real:', typeof window.showPedigree.real);
+            console.log('window.showMatings.real:', typeof window.showMatings.real);
             console.log('showPedigree exists:', window.showPedigree !== undefined);
             console.log('showMatings exists:', window.showMatings !== undefined);
             
             // Replace placeholder functions with real functions
-            console.log('=== Replacing Placeholder Functions ===');
-            if (window.showPedigree.real) {
-                console.log('Replacing showPedigree placeholder with real function');
+            console.log('=== FINAL Replacing Placeholder Functions ===');
+            if (window.showPedigree.real && typeof window.showPedigree.real === 'function') {
+                console.log('✅ FINAL: Replacing showPedigree placeholder with real function');
                 window.showPedigree = window.showPedigree.real;
+            } else {
+                console.warn('⚠️ FINAL: showPedigree.real not found or not a function');
             }
-            if (window.showMatings.real) {
-                console.log('Replacing showMatings placeholder with real function');
+            
+            if (window.showMatings.real && typeof window.showMatings.real === 'function') {
+                console.log('✅ FINAL: Replacing showMatings placeholder with real function');
                 window.showMatings = window.showMatings.real;
+            } else {
+                console.warn('⚠️ FINAL: showMatings.real not found or not a function');
             }
+            
+            // Final status check
+            console.log('=== FINAL STATUS CHECK ===');
+            console.log('Final showPedigree type:', typeof window.showPedigree);
+            console.log('Final showMatings type:', typeof window.showMatings);
+            console.log('Are they still placeholders?', window.showPedigree.toString().includes('placeholder'));
+            console.log('Are they still placeholders?', window.showMatings.toString().includes('placeholder'));
             
             // Make sure all functions are properly attached to window
             window.showHomepage = showHomepage;
