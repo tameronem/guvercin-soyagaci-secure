@@ -4374,7 +4374,7 @@
                     storage.currentUser = result.user;
                     closeAuthModal();
                     showNotification(result.message, 'success');
-                    updateNavigation();
+                    updateAuthUI(true);
                     showHomepage();
                 } else {
                     showNotification(result.message, 'error');
@@ -4430,7 +4430,7 @@
                     if (loginResult.success) {
                         storage.currentUser = loginResult.user;
                         closeAuthModal();
-                        updateNavigation();
+                        updateAuthUI(true);
                         showHomepage();
                     }
                 } else {
@@ -5387,126 +5387,7 @@ Lütfen yardımcı olun.`);
             }
         }
 
-        // Update authentication UI
-        async function updateAuthUI() {
-            try {
-                const userDisplay = document.getElementById('userDisplay');
-                const authButtons = document.getElementById('authButtons');
-                const navAuthRequired = document.querySelectorAll('.nav-auth-required');
-                const mobileUserInfo = document.getElementById('mobileUserInfo');
-                
-                if (storage.currentUser) {
-                // User is logged in
-                if (userDisplay) {
-                    // Mobilde gizli kalması için hidden class'ını kaldırmıyoruz
-                    // HTML'de zaten "hidden md:flex" var, bu mobilde gizli desktop'ta görünür demek
-                    // Hiçbir şey yapmaya gerek yok
-                }
-                if (authButtons) {
-                    authButtons.classList.add('hidden');
-                }
-                
-                // Update user email display
-                const userEmailElement = document.getElementById('userEmail');
-                if (userEmailElement) {
-                    userEmailElement.textContent = storage.currentUser.email || '';
-                }
-                
-                // Check and update premium status
-                try {
-                    const isPremium = await checkPremiumStatus(storage.currentUser.id);
-                    const premiumBadge = document.getElementById('premiumBadge');
-                    if (premiumBadge) {
-                        if (isPremium) {
-                            premiumBadge.classList.remove('hidden');
-                        } else {
-                            premiumBadge.classList.add('hidden');
-                        }
-                    }
-                    
-                    // Update mobile user info
-                    if (mobileUserInfo) {
-                        // Get premium expiry date if premium
-                        let premiumInfo = null;
-                        if (isPremium) {
-                            premiumInfo = await getPremiumExpiryDate(storage.currentUser.id);
-                        }
-                        
-                        mobileUserInfo.innerHTML = `
-                            <div class="p-4 bg-gradient-to-r from-purple-900/50 to-cyan-900/50 rounded-lg">
-                                <div class="text-center">
-                                    <!-- Kullanıcı ikonu -->
-                                    <i class="fas fa-user-circle text-5xl text-gray-300 mb-3"></i>
-                                    
-                                    <!-- Email adresi -->
-                                    <p class="text-base font-medium text-gray-200 truncate px-2 mb-2">${storage.currentUser.email}</p>
-                                    
-                                    <!-- Premium durumu -->
-                                    ${isPremium ? `
-                                        <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full">
-                                            <i class="fas fa-crown text-white"></i>
-                                            <span class="text-sm font-bold text-white">Premium Üye</span>
-                                        </div>
-                                    ` : `
-                                        <button onclick="showPricing(); toggleMobileMenu();" class="inline-flex items-center gap-2 px-4 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-full transition">
-                                            <i class="fas fa-arrow-up text-cyan-400"></i>
-                                            <span class="text-sm text-cyan-400">Premium'a Yükselt</span>
-                                        </button>
-                                    `}
-                                </div>
-                            </div>
-                        `;
-                        
-                        mobileUserInfo.classList.remove('hidden');
-                    }
-                } catch (error) {
-                    console.error('Error checking premium status:', error);
-                }
-                
-                // Show auth-required navigation items (including mobile menu items)
-                navAuthRequired.forEach(item => {
-                    item.style.display = '';
-                    // For block-level elements in mobile menu
-                    if (item.classList.contains('w-full')) {
-                        item.style.display = 'block';
-                    }
-                });
-                
-                // Show mobile logout container
-                const mobileLogoutContainer = document.getElementById('mobileLogoutContainer');
-                if (mobileLogoutContainer) {
-                    mobileLogoutContainer.classList.remove('hidden');
-                }
-            } else {
-                // User is logged out
-                if (userDisplay) {
-                    userDisplay.classList.add('hidden');
-                    // Note: We don't need to remove flex as md:flex handles it
-                }
-                if (authButtons) {
-                    authButtons.classList.remove('hidden');
-                }
-                
-                // Hide auth-required navigation items (including mobile menu items)
-                navAuthRequired.forEach(item => {
-                    item.style.display = 'none';
-                });
-                
-                // Hide mobile user info
-                if (mobileUserInfo) {
-                    mobileUserInfo.classList.add('hidden');
-                }
-                
-                // Hide mobile logout container
-                const mobileLogoutContainer = document.getElementById('mobileLogoutContainer');
-                if (mobileLogoutContainer) {
-                    mobileLogoutContainer.classList.add('hidden');
-                }
-            }
-            } catch (error) {
-                console.error('updateAuthUI error:', error);
-            }
-        }
+        // REMOVED: Old async updateAuthUI function - replaced with the simpler version
         
         // Logout function
         async function logout() {
@@ -17460,6 +17341,17 @@ Lütfen yardımcı olun.`);
                             console.log('[App] updateAuthUI function not found, skipping UI update');
                         }
                     }
+                }
+                
+                // Set up auth state change listener
+                if (window.supabaseClient && window.supabaseClient.client) {
+                    const { data: authListener } = window.supabaseClient.client.auth.onAuthStateChange((event, session) => {
+                        console.log('[Auth] State changed:', event);
+                        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+                            updateAuthUI(session !== null);
+                        }
+                    });
+                    console.log('[App] Auth state listener registered');
                 }
             } catch (error) {
                 console.error('[App] Session check error:', error);
