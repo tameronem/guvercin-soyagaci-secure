@@ -3088,44 +3088,6 @@
             console.log('Wrappers ready:', typeof window.showPedigree === 'function' && typeof window.showMatings === 'function');
         };
         
-        // Wrapper for showEditPigeon - available immediately
-        window.showEditPigeon = function(pigeonId) {
-            console.log('🔄 showEditPigeon wrapper called for:', pigeonId);
-            
-            if (typeof showEditPigeon === 'function') {
-                console.log('✅ Real showEditPigeon function found, executing...');
-                return showEditPigeon(pigeonId);
-            } else {
-                console.error('⏳ showEditPigeon not ready yet, waiting...');
-                setTimeout(() => {
-                    if (typeof showEditPigeon === 'function') {
-                        showEditPigeon(pigeonId);
-                    } else {
-                        alert('Düzenleme fonksiyonu yüklenemedi. Lütfen sayfayı yenileyin.');
-                    }
-                }, 500);
-            }
-        };
-        
-        // Wrapper for deletePigeon - available immediately
-        window.deletePigeon = function(pigeonId) {
-            console.log('🔄 deletePigeon wrapper called for:', pigeonId);
-            
-            if (typeof deletePigeon === 'function') {
-                console.log('✅ Real deletePigeon function found, executing...');
-                return deletePigeon(pigeonId);
-            } else {
-                console.error('⏳ deletePigeon not ready yet, waiting...');
-                setTimeout(() => {
-                    if (typeof deletePigeon === 'function') {
-                        deletePigeon(pigeonId);
-                    } else {
-                        alert('Silme fonksiyonu yüklenemedi. Lütfen sayfayı yenileyin.');
-                    }
-                }, 500);
-            }
-        };
-        
         console.log('✅ Wrapper functions ready immediately!');
         
         // SIMPLE REAL FUNCTIONS - Defined immediately without dependencies
@@ -10345,6 +10307,9 @@ Lütfen yardımcı olun.`);
                 showNotification(error.message || 'Güvercin bilgileri yüklenemedi', 'error');
             }
         }
+        
+        // Make showEditPigeon globally available immediately after definition
+        window.showEditPigeon = showEditPigeon;
 
         // Preview image for edit form
         function previewImageEdit(event) {
@@ -10460,6 +10425,9 @@ Lütfen yardımcı olun.`);
                 showNotification(error.message || 'Güvercin silinemedi', 'error');
             }
         }
+        
+        // Make deletePigeon globally available immediately after definition
+        window.deletePigeon = deletePigeon;
 
         // Show Pigeon Detail - SUPABASE VERSION
         async function showPigeonDetail(pigeonId) {
@@ -12636,10 +12604,8 @@ Lütfen yardımcı olun.`);
         window.closePigeonModal = closePigeonModal;
         window.showPigeonDetail = showPigeonDetail;
         // showPedigree already defined directly on window
-        window.showEditPigeon = showEditPigeon;
         window.previewImageEdit = previewImageEdit;
         window.handleEditPigeon = handleEditPigeon;
-        window.deletePigeon = deletePigeon;
         window.deleteMating = deleteMating;
         window.showEditMating = showEditMating;
         window.handleEditMating = handleEditMating;
