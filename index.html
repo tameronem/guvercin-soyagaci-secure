@@ -40,16 +40,7 @@
             console.log('showPigeons called - waiting for initialization');
         };
         
-        window.showMatings = function() {
-            console.log('showMatings called - waiting for initialization');
-            // Auto-retry when real function is loaded
-            setTimeout(() => {
-                if (window.showMatings !== arguments.callee && typeof window.showMatings === 'function') {
-                    console.log('showMatings is now ready, retrying...');
-                    window.showMatings();
-                }
-            }, 1000);
-        };
+        // Placeholder removed - showMatings is now defined directly on window
         
         window.showHealthRecords = function() {
             console.log('showHealthRecords called - waiting for initialization');
@@ -87,16 +78,7 @@
             console.log('changeLanguage called with lang:', lang, '- waiting for initialization');
         };
         
-        window.showPedigree = function(pigeonId, maxGenerations) {
-            console.log('showPedigree called with pigeonId:', pigeonId, '- waiting for initialization');
-            // Auto-retry when real function is loaded
-            setTimeout(() => {
-                if (window.showPedigree !== arguments.callee && typeof window.showPedigree === 'function') {
-                    console.log('showPedigree is now ready, retrying...');
-                    window.showPedigree(pigeonId, maxGenerations);
-                }
-            }, 1000);
-        };
+        // Placeholder removed - showPedigree is now defined directly on window
     </script>
     
     <style>
@@ -10213,7 +10195,7 @@ Lütfen yardımcı olun.`);
         }
 
         // Show Pedigree - SUPABASE VERSION WITH SVG VISUALIZATION
-        async function showPedigree(pigeonId, maxGenerations = 4) {
+        window.showPedigree = async function(pigeonId, maxGenerations = 4) {
             if (!checkAuth()) return;
             cleanupPreviousViews();
             const t = translations[currentLang];
@@ -10431,7 +10413,7 @@ Lütfen yardımcı olun.`);
 
         // Show Matings
         // Show Matings - SUPABASE VERSION
-        async function showMatings() {
+        window.showMatings = async function() {
             if (!checkAuth()) return;
             cleanupPreviousViews();
             updateActiveTab(2);
@@ -12183,10 +12165,10 @@ Lütfen yardımcı olun.`);
         // Make all navigation functions globally accessible
         window.showHomepage = showHomepage;
         window.showPigeons = showPigeons;
-        window.showMatings = showMatings;
+        // window.showMatings = showMatings; // Already defined directly on window
         window.showHealthRecords = showHealthRecords;
         window.showPigeonDetail = showPigeonDetail;
-        window.showPedigree = showPedigree;
+        // window.showPedigree = showPedigree; // Already defined directly on window
         window.printPedigree = printPedigree;
         window.exportPedigreePDF = exportPedigreePDF;
         window.exportSVGPedigreePDF = exportSVGPedigreePDF;
@@ -12212,7 +12194,7 @@ Lütfen yardımcı olun.`);
         // window.closeAuthModal = closeAuthModal;
         window.closePigeonModal = closePigeonModal;
         window.showPigeonDetail = showPigeonDetail;
-        window.showPedigree = showPedigree;
+        // window.showPedigree = showPedigree; // Already defined directly on window
         window.showEditPigeon = showEditPigeon;
         window.previewImageEdit = previewImageEdit;
         window.handleEditPigeon = handleEditPigeon;
@@ -17048,7 +17030,7 @@ Lütfen yardımcı olun.`);
         window.handleRegister = handleRegister;
         window.showHomepage = showHomepage;
         window.showPigeons = showPigeons;
-        window.showMatings = showMatings;
+        // window.showMatings = showMatings; // Already defined directly on window
         window.showHealthRecords = showHealthRecords;
         window.showPerformanceRecords = showPerformanceRecords;
         window.showRacingPerformance = showRacingPerformance;
@@ -17130,10 +17112,17 @@ Lütfen yardımcı olun.`);
                 console.log('Captcha system initialized');
             }
             
+            // Debug: Check function availability
+            console.log('=== Function Availability Check ===');
+            console.log('window.showPedigree:', typeof window.showPedigree);
+            console.log('window.showMatings:', typeof window.showMatings);
+            console.log('showPedigree exists:', window.showPedigree !== undefined);
+            console.log('showMatings exists:', window.showMatings !== undefined);
+            
             // Make sure all functions are properly attached to window
             window.showHomepage = showHomepage;
             window.showPigeons = showPigeons;
-            window.showMatings = showMatings;
+            // window.showMatings = showMatings; // Already defined directly on window
             window.showHealthRecords = showHealthRecords;
             window.showPerformanceRecords = showPerformanceRecords;
             window.showRacingPerformance = showRacingPerformance;
@@ -17149,7 +17138,7 @@ Lütfen yardımcı olun.`);
             window.updateAuthUI = updateAuthUI;
             
             // Pedigree and pigeon detail functions
-            window.showPedigree = showPedigree;
+            // window.showPedigree = showPedigree; // Already defined directly on window
             window.showPigeonDetail = showPigeonDetail;
             window.printPedigree = printPedigree;
             window.exportPedigreePDF = exportPedigreePDF;
