@@ -2942,7 +2942,7 @@
             <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
             </button>
-            <button onclick="window.window.showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+            <button onclick="window.showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
             </button>
             <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
@@ -3036,6 +3036,48 @@
         })();
         
         // Create floating particles
+        
+        // EARLY PLACEHOLDER FUNCTIONS - Define immediately to prevent "not defined" errors
+        console.log('Setting up early placeholder functions...');
+        
+        window.showPedigree = function(pigeonId, maxGenerations = 4) {
+            console.log('showPedigree placeholder called, waiting for real function...');
+            // Store the call for later execution
+            window.showPedigree.pendingCalls = window.showPedigree.pendingCalls || [];
+            window.showPedigree.pendingCalls.push({ pigeonId, maxGenerations });
+            
+            // Check if real function is available
+            const checkReal = () => {
+                if (window.showPedigree.real) {
+                    console.log('Real showPedigree found, executing...');
+                    window.showPedigree.real(pigeonId, maxGenerations);
+                } else {
+                    setTimeout(checkReal, 100);
+                }
+            };
+            checkReal();
+        };
+        
+        window.showMatings = function() {
+            console.log('showMatings placeholder called, waiting for real function...');
+            // Store the call for later execution
+            window.showMatings.pendingCalls = window.showMatings.pendingCalls || [];
+            window.showMatings.pendingCalls.push({});
+            
+            // Check if real function is available
+            const checkReal = () => {
+                if (window.showMatings.real) {
+                    console.log('Real showMatings found, executing...');
+                    window.showMatings.real();
+                } else {
+                    setTimeout(checkReal, 100);
+                }
+            };
+            checkReal();
+        };
+        
+        console.log('Early placeholder functions set up successfully');
+        
         const translations = {
             tr: {
                 app_title: "Güvercin Soyağacı",
@@ -5534,7 +5576,20 @@ Lütfen yardımcı olun.`);
             // 2. Eğer localStorage'da user varsa, UI'ı güncelle
             if (storedUser) {
                 console.log('Found stored user, updating UI...');
+                // Set current user to maintain state
+                storage.currentUser = storedUser;
                 updateAuthUI(true);
+                
+                // Show user content immediately
+                try {
+                    if (typeof showHomepage === 'function') {
+                        setTimeout(() => showHomepage(), 100);
+                    }
+                } catch (error) {
+                    console.error('Error showing homepage:', error);
+                }
+                
+                return true; // User is authenticated
             }
             
             // 3. Supabase session kontrol et
@@ -10202,7 +10257,8 @@ Lütfen yardımcı olun.`);
         }
 
         // Show Pedigree - SUPABASE VERSION WITH SVG VISUALIZATION
-        window.showPedigree = async function(pigeonId, maxGenerations = 4) {
+        // Store real function and replace placeholder
+        window.showPedigree.real = async function(pigeonId, maxGenerations = 4) {
             if (!checkAuth()) return;
             cleanupPreviousViews();
             const t = translations[currentLang];
@@ -10420,7 +10476,8 @@ Lütfen yardımcı olun.`);
 
         // Show Matings
         // Show Matings - SUPABASE VERSION
-        window.showMatings = async function() {
+        // Store real function and replace placeholder
+        window.showMatings.real = async function() {
             if (!checkAuth()) return;
             cleanupPreviousViews();
             updateActiveTab(2);
@@ -17125,6 +17182,17 @@ Lütfen yardımcı olun.`);
             console.log('window.showMatings:', typeof window.showMatings);
             console.log('showPedigree exists:', window.showPedigree !== undefined);
             console.log('showMatings exists:', window.showMatings !== undefined);
+            
+            // Replace placeholder functions with real functions
+            console.log('=== Replacing Placeholder Functions ===');
+            if (window.showPedigree.real) {
+                console.log('Replacing showPedigree placeholder with real function');
+                window.showPedigree = window.showPedigree.real;
+            }
+            if (window.showMatings.real) {
+                console.log('Replacing showMatings placeholder with real function');
+                window.showMatings = window.showMatings.real;
+            }
             
             // Make sure all functions are properly attached to window
             window.showHomepage = showHomepage;
