@@ -79,6 +79,10 @@
         window.changeLanguage = function(lang) {
             console.log('changeLanguage called with lang:', lang, '- waiting for initialization');
         };
+        
+        window.showPedigree = function(pigeonId, maxGenerations) {
+            console.log('showPedigree called with pigeonId:', pigeonId, '- waiting for initialization');
+        };
     </script>
     
     <style>
@@ -4936,7 +4940,8 @@
         // Update navigation based on login state
         async function updateNavigation() {
             // Call the new updateAuthUI function which handles everything
-            await updateAuthUI();
+            const isAuthenticated = !!storage.currentUser;
+            updateAuthUI(isAuthenticated);
             return;
             
             // Legacy code below (kept for reference but not executed)
@@ -5402,7 +5407,7 @@ Lütfen yardımcı olun.`);
                 localStorage.removeItem('currentUser');
                 
                 // Update UI
-                await updateAuthUI();
+                updateAuthUI(false);
                 
                 // Show notification
                 showNotification(
@@ -5589,6 +5594,7 @@ Lütfen yardımcı olun.`);
             const userInfo = document.getElementById('userInfo');
             const authButtons = document.getElementById('authButtons');
             const mobileUserInfo = document.getElementById('mobileUserInfo');
+            const authRequiredButtons = document.querySelectorAll('.nav-auth-required');
             
             if (isAuthenticated && storage.currentUser) {
                 // Kullanıcı giriş yapmış
@@ -5616,11 +5622,21 @@ Lütfen yardımcı olun.`);
                         </div>
                     `;
                 }
+                
+                // Show auth-required navigation buttons
+                authRequiredButtons.forEach(button => {
+                    button.style.display = 'block';
+                });
             } else {
                 // Kullanıcı giriş yapmamış
                 if (userInfo) userInfo.style.display = 'none';
                 if (authButtons) authButtons.style.display = 'flex';
                 if (mobileUserInfo) mobileUserInfo.innerHTML = '';
+                
+                // Hide auth-required navigation buttons
+                authRequiredButtons.forEach(button => {
+                    button.style.display = 'none';
+                });
             }
         }
 
@@ -17336,7 +17352,7 @@ Lütfen yardımcı olun.`);
                         console.log('[App] Found existing session for:', session.user.email);
                         // Update UI with session info
                         if (typeof updateAuthUI === 'function') {
-                            await updateAuthUI();
+                            updateAuthUI(true);
                         } else {
                             console.log('[App] updateAuthUI function not found, skipping UI update');
                         }
