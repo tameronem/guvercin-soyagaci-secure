@@ -3094,13 +3094,44 @@
         window.showPedigreeReal = function(pigeonId, maxGenerations = 4) {
             console.log('✅ showPedigreeReal called with:', pigeonId, maxGenerations);
             const content = document.getElementById('content');
-            if (content) {
+            
+            if (!content) {
+                console.error('Content element not found');
+                return;
+            }
+            
+            // Auth check
+            if (typeof checkAuth === 'function' && !checkAuth()) {
+                alert('Önce giriş yapmalısınız');
+                return;
+            }
+            
+            // Dependencies kontrolü
+            if (typeof storage === 'undefined') {
                 content.innerHTML = `
                     <div class="container mx-auto p-8">
                         <div class="glass p-8 rounded-3xl text-center">
                             <h2 class="text-3xl font-bold text-white mb-4">Soyağacı</h2>
-                            <p class="text-gray-300 mb-4">Güvercin ID: ${pigeonId}</p>
-                            <p class="text-gray-300 mb-6">Nesil: ${maxGenerations}</p>
+                            <p class="text-gray-300 mb-6">Veriler yükleniyor...</p>
+                        </div>
+                    </div>
+                `;
+                setTimeout(() => window.showPedigreeReal(pigeonId, maxGenerations), 500);
+                return;
+            }
+            
+            // Güvercini bul
+            let pigeon = null;
+            if (storage.pigeons && Array.isArray(storage.pigeons)) {
+                pigeon = storage.pigeons.find(p => p.id === pigeonId);
+            }
+            
+            if (!pigeon) {
+                content.innerHTML = `
+                    <div class="container mx-auto p-8">
+                        <div class="glass p-8 rounded-3xl text-center">
+                            <h2 class="text-3xl font-bold text-white mb-4">Soyağacı</h2>
+                            <p class="text-red-400 mb-6">Güvercin bulunamadı (ID: ${pigeonId})</p>
                             <button onclick="window.showPigeons ? window.showPigeons() : history.back()" 
                                     class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
                                 <i class="fas fa-arrow-left mr-2"></i> Geri Dön
@@ -3108,26 +3139,247 @@
                         </div>
                     </div>
                 `;
+                return;
             }
+            
+            // Soyağacı HTML'i oluştur
+            content.innerHTML = `
+                <div class="container mx-auto p-8">
+                    <div class="glass p-8 rounded-3xl">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-3xl font-bold text-white">${pigeon.name} - Soyağacı</h2>
+                            <div class="flex gap-2">
+                                <button onclick="window.showPedigreeReal('${pigeonId}', 3)" 
+                                        class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                    3 Nesil
+                                </button>
+                                <button onclick="window.showPedigreeReal('${pigeonId}', 4)" 
+                                        class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                    4 Nesil
+                                </button>
+                                <button onclick="window.showPedigreeReal('${pigeonId}', 5)" 
+                                        class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                    5 Nesil
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="pedigree-simple bg-gray-800 p-6 rounded-xl">
+                            <div class="main-pigeon text-center mb-8 bg-purple-600 p-4 rounded-lg">
+                                <h3 class="text-2xl font-bold text-white">${pigeon.name}</h3>
+                                <p class="text-gray-200">Band: ${pigeon.bandNumber || 'Belirtilmemiş'}</p>
+                                <p class="text-gray-200">Renk: ${pigeon.color || 'Belirtilmemiş'}</p>
+                                <p class="text-gray-200">Cinsiyet: ${pigeon.gender === 'male' ? 'Erkek' : pigeon.gender === 'female' ? 'Dişi' : 'Belirtilmemiş'}</p>
+                                ${pigeon.birthDate ? `<p class="text-gray-200">Doğum: ${pigeon.birthDate}</p>` : ''}
+                            </div>
+                            
+                            <div class="parents grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="father bg-blue-600 p-4 rounded-lg">
+                                    <h4 class="text-xl font-bold text-white mb-2">
+                                        <i class="fas fa-male mr-2"></i>Baba
+                                    </h4>
+                                    <p class="text-gray-200">${pigeon.father?.name || 'Bilinmiyor'}</p>
+                                    ${pigeon.father?.bandNumber ? `<p class="text-gray-200">Band: ${pigeon.father.bandNumber}</p>` : ''}
+                                    ${pigeon.father?.color ? `<p class="text-gray-200">Renk: ${pigeon.father.color}</p>` : ''}
+                                </div>
+                                
+                                <div class="mother bg-pink-600 p-4 rounded-lg">
+                                    <h4 class="text-xl font-bold text-white mb-2">
+                                        <i class="fas fa-female mr-2"></i>Anne
+                                    </h4>
+                                    <p class="text-gray-200">${pigeon.mother?.name || 'Bilinmiyor'}</p>
+                                    ${pigeon.mother?.bandNumber ? `<p class="text-gray-200">Band: ${pigeon.mother.bandNumber}</p>` : ''}
+                                    ${pigeon.mother?.color ? `<p class="text-gray-200">Renk: ${pigeon.mother.color}</p>` : ''}
+                                </div>
+                            </div>
+                            
+                            ${maxGenerations > 3 ? `
+                                <div class="grandparents mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div class="bg-gray-700 p-3 rounded-lg">
+                                        <h5 class="font-bold text-white text-sm">Baba Baba</h5>
+                                        <p class="text-gray-300 text-sm">${pigeon.father?.father?.name || 'Bilinmiyor'}</p>
+                                    </div>
+                                    <div class="bg-gray-700 p-3 rounded-lg">
+                                        <h5 class="font-bold text-white text-sm">Baba Anne</h5>
+                                        <p class="text-gray-300 text-sm">${pigeon.father?.mother?.name || 'Bilinmiyor'}</p>
+                                    </div>
+                                    <div class="bg-gray-700 p-3 rounded-lg">
+                                        <h5 class="font-bold text-white text-sm">Anne Baba</h5>
+                                        <p class="text-gray-300 text-sm">${pigeon.mother?.father?.name || 'Bilinmiyor'}</p>
+                                    </div>
+                                    <div class="bg-gray-700 p-3 rounded-lg">
+                                        <h5 class="font-bold text-white text-sm">Anne Anne</h5>
+                                        <p class="text-gray-300 text-sm">${pigeon.mother?.mother?.name || 'Bilinmiyor'}</p>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="mt-8 flex gap-4 flex-wrap">
+                            <button onclick="window.showPigeons ? window.showPigeons() : history.back()" 
+                                    class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
+                                <i class="fas fa-arrow-left mr-2"></i> Geri Dön
+                            </button>
+                            <button onclick="window.showPigeonDetail ? window.showPigeonDetail('${pigeonId}') : void(0)" 
+                                    class="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition">
+                                <i class="fas fa-info-circle mr-2"></i> Detaylar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         };
         
         window.showMatingsReal = function() {
             console.log('✅ showMatingsReal called');
             const content = document.getElementById('content');
-            if (content) {
+            
+            if (!content) {
+                console.error('Content element not found');
+                return;
+            }
+            
+            // Auth check
+            if (typeof checkAuth === 'function' && !checkAuth()) {
+                alert('Önce giriş yapmalısınız');
+                return;
+            }
+            
+            // Dependencies kontrolü
+            if (typeof storage === 'undefined') {
                 content.innerHTML = `
                     <div class="container mx-auto p-8">
                         <div class="glass p-8 rounded-3xl text-center">
                             <h2 class="text-3xl font-bold text-white mb-4">Eşleştirmeler</h2>
-                            <p class="text-gray-300 mb-6">Eşleştirme listesi yükleniyor...</p>
+                            <p class="text-gray-300 mb-6">Veriler yükleniyor...</p>
+                        </div>
+                    </div>
+                `;
+                setTimeout(() => window.showMatingsReal(), 500);
+                return;
+            }
+            
+            // Eşleştirme verilerini al
+            let matings = [];
+            if (storage.matings && Array.isArray(storage.matings)) {
+                matings = storage.matings;
+            }
+            
+            // Eşleştirmeler HTML'i oluştur
+            let matingsHTML = '';
+            if (matings.length === 0) {
+                matingsHTML = `
+                    <div class="text-center bg-gray-800 p-8 rounded-xl">
+                        <i class="fas fa-heart text-6xl text-gray-600 mb-4"></i>
+                        <h3 class="text-xl font-bold text-white mb-2">Henüz eşleştirme yok</h3>
+                        <p class="text-gray-400 mb-6">İlk eşleştirmenizi eklemek için yeni eşleştirme butonunu kullanın.</p>
+                        <button onclick="window.showAddMating ? window.showAddMating() : void(0)" 
+                                class="px-6 py-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition">
+                            <i class="fas fa-plus mr-2"></i> Yeni Eşleştirme
+                        </button>
+                    </div>
+                `;
+            } else {
+                matingsHTML = matings.map(mating => {
+                    const maleName = mating.male?.name || mating.maleName || 'Erkek Güvercin';
+                    const femaleName = mating.female?.name || mating.femaleName || 'Dişi Güvercin';
+                    const matingDate = mating.mating_date || mating.date || 'Tarih belirtilmemiş';
+                    const status = mating.status || 'Aktif';
+                    const expectedHatch = mating.expected_hatch_date || 'Hesaplanmamış';
+                    
+                    return `
+                        <div class="mating-card bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-purple-500 transition">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-xl font-bold text-white">
+                                    <i class="fas fa-male text-blue-400 mr-2"></i>${maleName}
+                                    <span class="text-pink-400 mx-2">×</span>
+                                    <i class="fas fa-female text-pink-400 mr-2"></i>${femaleName}
+                                </h3>
+                                <span class="px-3 py-1 bg-green-600 text-white text-sm rounded-full">
+                                    ${status}
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <p class="text-gray-400 text-sm">Eşleştirme Tarihi</p>
+                                    <p class="text-white font-semibold">
+                                        <i class="fas fa-calendar mr-2"></i>${matingDate}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400 text-sm">Beklenen Çıkış</p>
+                                    <p class="text-white font-semibold">
+                                        <i class="fas fa-egg mr-2"></i>${expectedHatch}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            ${mating.notes ? `
+                                <div class="mb-4">
+                                    <p class="text-gray-400 text-sm">Notlar</p>
+                                    <p class="text-gray-300">${mating.notes}</p>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="flex gap-2 flex-wrap">
+                                <button onclick="window.showEditMating ? window.showEditMating('${mating.id}') : void(0)" 
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+                                    <i class="fas fa-edit mr-1"></i> Düzenle
+                                </button>
+                                <button onclick="window.deleteMating ? window.deleteMating('${mating.id}') : void(0)" 
+                                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">
+                                    <i class="fas fa-trash mr-1"></i> Sil
+                                </button>
+                                ${mating.male?.id ? `
+                                    <button onclick="window.showPedigreeReal('${mating.male.id}')" 
+                                            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm">
+                                        <i class="fas fa-sitemap mr-1"></i> Erkek Soyağacı
+                                    </button>
+                                ` : ''}
+                                ${mating.female?.id ? `
+                                    <button onclick="window.showPedigreeReal('${mating.female.id}')" 
+                                            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm">
+                                        <i class="fas fa-sitemap mr-1"></i> Dişi Soyağacı
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            content.innerHTML = `
+                <div class="container mx-auto p-8">
+                    <div class="glass p-8 rounded-3xl">
+                        <div class="flex justify-between items-center mb-8">
+                            <div>
+                                <h2 class="text-3xl font-bold text-white">Eşleştirmeler</h2>
+                                <p class="text-gray-400 mt-2">Toplam ${matings.length} eşleştirme</p>
+                            </div>
+                            <button onclick="window.showAddMating ? window.showAddMating() : void(0)" 
+                                    class="px-6 py-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition">
+                                <i class="fas fa-plus mr-2"></i> Yeni Eşleştirme
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            ${matingsHTML}
+                        </div>
+                        
+                        <div class="mt-8 flex gap-4 flex-wrap">
                             <button onclick="window.showPigeons ? window.showPigeons() : history.back()" 
                                     class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
                                 <i class="fas fa-arrow-left mr-2"></i> Geri Dön
                             </button>
+                            <button onclick="window.showHomepage ? window.showHomepage() : void(0)" 
+                                    class="px-6 py-3 bg-cyan-600 text-white rounded-full hover:bg-cyan-700 transition">
+                                <i class="fas fa-home mr-2"></i> Ana Sayfa
+                            </button>
                         </div>
                     </div>
-                `;
-            }
+                </div>
+            `;
         };
         
         console.log('✅ Simple real functions defined immediately!');
