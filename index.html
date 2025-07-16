@@ -3093,12 +3093,8 @@
         // SIMPLE REAL FUNCTIONS - Defined immediately without dependencies
         window.showPedigreeReal = function(pigeonId, maxGenerations = 4) {
             console.log('✅ showPedigreeReal called with:', pigeonId, maxGenerations);
-            const content = document.getElementById('content');
-            
-            if (!content) {
-                console.error('Content element not found');
-                return;
-            }
+            cleanupPreviousViews();
+            const t = translations[currentLang] || {};
             
             // Auth check
             if (typeof checkAuth === 'function' && !checkAuth()) {
@@ -3106,13 +3102,13 @@
                 return;
             }
             
-            // Dependencies kontrolü
+            // Dependencies check
             if (typeof storage === 'undefined') {
-                content.innerHTML = `
-                    <div class="container mx-auto p-8">
+                document.getElementById('content').innerHTML = `
+                    <div class="container mx-auto">
                         <div class="glass p-8 rounded-3xl text-center">
-                            <h2 class="text-3xl font-bold text-white mb-4">Soyağacı</h2>
-                            <p class="text-gray-300 mb-6">Veriler yükleniyor...</p>
+                            <i class="fas fa-spinner fa-spin text-4xl text-cyan-400 mb-4"></i>
+                            <p class="text-xl">Veriler yükleniyor...</p>
                         </div>
                     </div>
                 `;
@@ -3120,114 +3116,124 @@
                 return;
             }
             
-            // Güvercini bul
-            let pigeon = null;
-            if (storage.pigeons && Array.isArray(storage.pigeons)) {
-                pigeon = storage.pigeons.find(p => p.id === pigeonId);
-            }
+            // Loading state
+            document.getElementById('content').innerHTML = `
+                <div class="container mx-auto">
+                    <div class="glass p-8 rounded-3xl text-center">
+                        <i class="fas fa-spinner fa-spin text-4xl text-cyan-400 mb-4"></i>
+                        <p class="text-xl">Soyağacı yükleniyor...</p>
+                    </div>
+                </div>
+            `;
             
-            if (!pigeon) {
-                content.innerHTML = `
-                    <div class="container mx-auto p-8">
+            try {
+                // Find the pigeon
+                let pigeon = null;
+                if (storage.pigeons && Array.isArray(storage.pigeons)) {
+                    pigeon = storage.pigeons.find(p => p.id === pigeonId);
+                }
+                
+                if (!pigeon) {
+                    throw new Error('Güvercin bulunamadı');
+                }
+                
+                // Build pedigree tree from localStorage data
+                function buildPedigreeTree(pigeonId, generation = 0) {
+                    if (generation >= maxGenerations || !pigeonId) return null;
+                    
+                    const p = storage.pigeons.find(pigeon => pigeon.id === pigeonId);
+                    if (!p) return null;
+                    
+                    const node = {
+                        id: p.id,
+                        name: p.name,
+                        altName: p.altName || '',
+                        bandNumber: p.bandNumber,
+                        gender: p.gender || 'unknown',
+                        birthDate: p.birthDate,
+                        deathDate: p.deathDate || null,
+                        image: p.image || null,
+                        color: p.color,
+                        breed: p.breed,
+                        strain: p.strain,
+                        owner: p.owner,
+                        notes: p.notes,
+                        generation: generation
+                    };
+                    
+                    // Always create parent slots for consistent tree structure
+                    if (generation < maxGenerations - 1) {
+                        node.father = p.fatherId ? buildPedigreeTree(p.fatherId, generation + 1) : 
+                            { id: `empty-father-${p.id}-${generation}`, empty: true, gender: 'male', generation: generation + 1 };
+                        node.mother = p.motherId ? buildPedigreeTree(p.motherId, generation + 1) : 
+                            { id: `empty-mother-${p.id}-${generation}`, empty: true, gender: 'female', generation: generation + 1 };
+                    }
+                    
+                    return node;
+                }
+                
+                const pedigreeData = buildPedigreeTree(pigeonId);
+                
+                // Create pedigree HTML with D3.js SVG rendering
+                document.getElementById('content').innerHTML = `
+                    <div class="pedigree-page" style="background: #0d1321; min-height: 100vh; padding: 2rem;">
+                        <div class="container mx-auto">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-3xl font-bold text-white">${pigeon.name} - Soyağacı</h2>
+                                <div class="flex gap-2">
+                                    <button onclick="window.showPedigreeReal('${pigeonId}', 3)" class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                        3 Nesil
+                                    </button>
+                                    <button onclick="window.showPedigreeReal('${pigeonId}', 4)" class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                        4 Nesil
+                                    </button>
+                                    <button onclick="window.showPedigreeReal('${pigeonId}', 5)" class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                        5 Nesil
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="pedigree-container" id="pedigreeContainer">
+                                <div class="pedigree-wrapper" id="pedigreeWrapper">
+                                    <!-- D3.js will render here -->
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8 flex gap-4 flex-wrap">
+                                <button onclick="window.showPigeons ? window.showPigeons() : history.back()" class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
+                                    <i class="fas fa-arrow-left mr-2"></i> Geri Dön
+                                </button>
+                                <button onclick="printPedigree()" class="px-6 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition">
+                                    <i class="fas fa-print mr-2"></i> Yazdır
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Render D3.js pedigree tree after DOM is ready
+                if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
+                window.pedigreeTimeout = setTimeout(() => {
+                    renderD3Pedigree(pedigreeData, t);
+                    console.log('D3.js pedigree rendered');
+                }, 100);
+                
+            } catch (error) {
+                console.error('Pedigree error:', error);
+                document.getElementById('content').innerHTML = `
+                    <div class="container mx-auto">
                         <div class="glass p-8 rounded-3xl text-center">
-                            <h2 class="text-3xl font-bold text-white mb-4">Soyağacı</h2>
-                            <p class="text-red-400 mb-6">Güvercin bulunamadı (ID: ${pigeonId})</p>
+                            <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                            <p class="text-xl">Soyağacı yüklenemedi</p>
+                            <p class="text-gray-400 mt-2">${error.message}</p>
                             <button onclick="window.showPigeons ? window.showPigeons() : history.back()" 
-                                    class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
+                                    class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition mt-4">
                                 <i class="fas fa-arrow-left mr-2"></i> Geri Dön
                             </button>
                         </div>
                     </div>
                 `;
-                return;
             }
-            
-            // Soyağacı HTML'i oluştur
-            content.innerHTML = `
-                <div class="container mx-auto p-8">
-                    <div class="glass p-8 rounded-3xl">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-3xl font-bold text-white">${pigeon.name} - Soyağacı</h2>
-                            <div class="flex gap-2">
-                                <button onclick="window.showPedigreeReal('${pigeonId}', 3)" 
-                                        class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
-                                    3 Nesil
-                                </button>
-                                <button onclick="window.showPedigreeReal('${pigeonId}', 4)" 
-                                        class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
-                                    4 Nesil
-                                </button>
-                                <button onclick="window.showPedigreeReal('${pigeonId}', 5)" 
-                                        class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
-                                    5 Nesil
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="pedigree-simple bg-gray-800 p-6 rounded-xl">
-                            <div class="main-pigeon text-center mb-8 bg-purple-600 p-4 rounded-lg">
-                                <h3 class="text-2xl font-bold text-white">${pigeon.name}</h3>
-                                <p class="text-gray-200">Band: ${pigeon.bandNumber || 'Belirtilmemiş'}</p>
-                                <p class="text-gray-200">Renk: ${pigeon.color || 'Belirtilmemiş'}</p>
-                                <p class="text-gray-200">Cinsiyet: ${pigeon.gender === 'male' ? 'Erkek' : pigeon.gender === 'female' ? 'Dişi' : 'Belirtilmemiş'}</p>
-                                ${pigeon.birthDate ? `<p class="text-gray-200">Doğum: ${pigeon.birthDate}</p>` : ''}
-                            </div>
-                            
-                            <div class="parents grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="father bg-blue-600 p-4 rounded-lg">
-                                    <h4 class="text-xl font-bold text-white mb-2">
-                                        <i class="fas fa-male mr-2"></i>Baba
-                                    </h4>
-                                    <p class="text-gray-200">${pigeon.father?.name || 'Bilinmiyor'}</p>
-                                    ${pigeon.father?.bandNumber ? `<p class="text-gray-200">Band: ${pigeon.father.bandNumber}</p>` : ''}
-                                    ${pigeon.father?.color ? `<p class="text-gray-200">Renk: ${pigeon.father.color}</p>` : ''}
-                                </div>
-                                
-                                <div class="mother bg-pink-600 p-4 rounded-lg">
-                                    <h4 class="text-xl font-bold text-white mb-2">
-                                        <i class="fas fa-female mr-2"></i>Anne
-                                    </h4>
-                                    <p class="text-gray-200">${pigeon.mother?.name || 'Bilinmiyor'}</p>
-                                    ${pigeon.mother?.bandNumber ? `<p class="text-gray-200">Band: ${pigeon.mother.bandNumber}</p>` : ''}
-                                    ${pigeon.mother?.color ? `<p class="text-gray-200">Renk: ${pigeon.mother.color}</p>` : ''}
-                                </div>
-                            </div>
-                            
-                            ${maxGenerations > 3 ? `
-                                <div class="grandparents mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div class="bg-gray-700 p-3 rounded-lg">
-                                        <h5 class="font-bold text-white text-sm">Baba Baba</h5>
-                                        <p class="text-gray-300 text-sm">${pigeon.father?.father?.name || 'Bilinmiyor'}</p>
-                                    </div>
-                                    <div class="bg-gray-700 p-3 rounded-lg">
-                                        <h5 class="font-bold text-white text-sm">Baba Anne</h5>
-                                        <p class="text-gray-300 text-sm">${pigeon.father?.mother?.name || 'Bilinmiyor'}</p>
-                                    </div>
-                                    <div class="bg-gray-700 p-3 rounded-lg">
-                                        <h5 class="font-bold text-white text-sm">Anne Baba</h5>
-                                        <p class="text-gray-300 text-sm">${pigeon.mother?.father?.name || 'Bilinmiyor'}</p>
-                                    </div>
-                                    <div class="bg-gray-700 p-3 rounded-lg">
-                                        <h5 class="font-bold text-white text-sm">Anne Anne</h5>
-                                        <p class="text-gray-300 text-sm">${pigeon.mother?.mother?.name || 'Bilinmiyor'}</p>
-                                    </div>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
-                        <div class="mt-8 flex gap-4 flex-wrap">
-                            <button onclick="window.showPigeons ? window.showPigeons() : history.back()" 
-                                    class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
-                                <i class="fas fa-arrow-left mr-2"></i> Geri Dön
-                            </button>
-                            <button onclick="window.showPigeonDetail ? window.showPigeonDetail('${pigeonId}') : void(0)" 
-                                    class="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition">
-                                <i class="fas fa-info-circle mr-2"></i> Detaylar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
         };
         
         window.showMatingsReal = function() {
@@ -9689,7 +9695,7 @@ Lütfen yardımcı olun.`);
                 .style('cursor', d => d.data.data.empty ? 'default' : 'pointer')
                 .on('click', (event, d) => {
                     if (!d.data.data.empty && d.data.data.id) {
-                        showPedigree(d.data.data.id);
+                        window.showPedigreeReal(d.data.data.id);
                     }
                 });
             
