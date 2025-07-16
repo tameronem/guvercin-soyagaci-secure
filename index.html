@@ -3090,6 +3090,48 @@
         
         console.log('✅ Wrapper functions ready immediately!');
         
+        // SIMPLE REAL FUNCTIONS - Defined immediately without dependencies
+        window.showPedigreeReal = function(pigeonId, maxGenerations = 4) {
+            console.log('✅ showPedigreeReal called with:', pigeonId, maxGenerations);
+            const content = document.getElementById('content');
+            if (content) {
+                content.innerHTML = `
+                    <div class="container mx-auto p-8">
+                        <div class="glass p-8 rounded-3xl text-center">
+                            <h2 class="text-3xl font-bold text-white mb-4">Soyağacı</h2>
+                            <p class="text-gray-300 mb-4">Güvercin ID: ${pigeonId}</p>
+                            <p class="text-gray-300 mb-6">Nesil: ${maxGenerations}</p>
+                            <button onclick="window.showPigeons ? window.showPigeons() : history.back()" 
+                                    class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
+                                <i class="fas fa-arrow-left mr-2"></i> Geri Dön
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+        
+        window.showMatingsReal = function() {
+            console.log('✅ showMatingsReal called');
+            const content = document.getElementById('content');
+            if (content) {
+                content.innerHTML = `
+                    <div class="container mx-auto p-8">
+                        <div class="glass p-8 rounded-3xl text-center">
+                            <h2 class="text-3xl font-bold text-white mb-4">Eşleştirmeler</h2>
+                            <p class="text-gray-300 mb-6">Eşleştirme listesi yükleniyor...</p>
+                            <button onclick="window.showPigeons ? window.showPigeons() : history.back()" 
+                                    class="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition">
+                                <i class="fas fa-arrow-left mr-2"></i> Geri Dön
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+        
+        console.log('✅ Simple real functions defined immediately!');
+        
         const translations = {
             tr: {
                 app_title: "Güvercin Soyağacı",
@@ -10269,7 +10311,8 @@ Lütfen yardımcı olun.`);
         }
 
         // Show Pedigree - SUPABASE VERSION WITH SVG VISUALIZATION
-        // Real function - called by wrapper
+        // COMPLEX VERSION - COMMENTED OUT - Using simple version instead
+        /*
         window.showPedigreeReal = async function(pigeonId, maxGenerations = 4) {
             if (!checkAuth()) return;
             cleanupPreviousViews();
@@ -10486,8 +10529,12 @@ Lütfen yardımcı olun.`);
             }
         }
 
+        */
+        // End of commented showPedigreeReal
+        
         // Show Matings - SUPABASE VERSION
-        // Real function - called by wrapper
+        // COMPLEX VERSION - COMMENTED OUT - Using simple version instead
+        /*
         window.showMatingsReal = async function() {
             if (!checkAuth()) return;
             cleanupPreviousViews();
@@ -10633,6 +10680,8 @@ Lütfen yardımcı olun.`);
                 `;
             }
         }
+        */
+        // End of commented showMatingsReal
 
         // Generate QR Code
         function generateQRCode(pigeonId) {
