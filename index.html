@@ -42,6 +42,13 @@
         
         window.showMatings = function() {
             console.log('showMatings called - waiting for initialization');
+            // Auto-retry when real function is loaded
+            setTimeout(() => {
+                if (window.showMatings !== arguments.callee && typeof window.showMatings === 'function') {
+                    console.log('showMatings is now ready, retrying...');
+                    window.showMatings();
+                }
+            }, 1000);
         };
         
         window.showHealthRecords = function() {
@@ -82,6 +89,13 @@
         
         window.showPedigree = function(pigeonId, maxGenerations) {
             console.log('showPedigree called with pigeonId:', pigeonId, '- waiting for initialization');
+            // Auto-retry when real function is loaded
+            setTimeout(() => {
+                if (window.showPedigree !== arguments.callee && typeof window.showPedigree === 'function') {
+                    console.log('showPedigree is now ready, retrying...');
+                    window.showPedigree(pigeonId, maxGenerations);
+                }
+            }, 1000);
         };
     </script>
     
@@ -5398,8 +5412,8 @@ Lütfen yardımcı olun.`);
         async function logout() {
             try {
                 // Sign out from Supabase
-                if (window.supabase) {
-                    await window.supabase.auth.signOut();
+                if (window.supabaseClient && window.supabaseClient.signOut) {
+                    await window.supabaseClient.signOut();
                 }
                 
                 // Clear storage
@@ -17133,6 +17147,17 @@ Lütfen yardımcı olun.`);
             window.logout = logout;
             window.requestRefund = requestRefund;
             window.updateAuthUI = updateAuthUI;
+            
+            // Pedigree and pigeon detail functions
+            window.showPedigree = showPedigree;
+            window.showPigeonDetail = showPigeonDetail;
+            window.printPedigree = printPedigree;
+            window.exportPedigreePDF = exportPedigreePDF;
+            window.exportSVGPedigreePDF = exportSVGPedigreePDF;
+            window.closePigeonModal = closePigeonModal;
+            window.showEditPigeon = showEditPigeon;
+            window.handleEditPigeon = handleEditPigeon;
+            window.deletePigeon = deletePigeon;
             
             // Payment return kontrolü
             checkPaymentReturn();
