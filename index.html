@@ -3088,6 +3088,44 @@
             console.log('Wrappers ready:', typeof window.showPedigree === 'function' && typeof window.showMatings === 'function');
         };
         
+        // Wrapper for showEditPigeon - available immediately
+        window.showEditPigeon = function(pigeonId) {
+            console.log('🔄 showEditPigeon wrapper called for:', pigeonId);
+            
+            if (typeof showEditPigeon === 'function') {
+                console.log('✅ Real showEditPigeon function found, executing...');
+                return showEditPigeon(pigeonId);
+            } else {
+                console.error('⏳ showEditPigeon not ready yet, waiting...');
+                setTimeout(() => {
+                    if (typeof showEditPigeon === 'function') {
+                        showEditPigeon(pigeonId);
+                    } else {
+                        alert('Düzenleme fonksiyonu yüklenemedi. Lütfen sayfayı yenileyin.');
+                    }
+                }, 500);
+            }
+        };
+        
+        // Wrapper for deletePigeon - available immediately
+        window.deletePigeon = function(pigeonId) {
+            console.log('🔄 deletePigeon wrapper called for:', pigeonId);
+            
+            if (typeof deletePigeon === 'function') {
+                console.log('✅ Real deletePigeon function found, executing...');
+                return deletePigeon(pigeonId);
+            } else {
+                console.error('⏳ deletePigeon not ready yet, waiting...');
+                setTimeout(() => {
+                    if (typeof deletePigeon === 'function') {
+                        deletePigeon(pigeonId);
+                    } else {
+                        alert('Silme fonksiyonu yüklenemedi. Lütfen sayfayı yenileyin.');
+                    }
+                }, 500);
+            }
+        };
+        
         console.log('✅ Wrapper functions ready immediately!');
         
         // SIMPLE REAL FUNCTIONS - Defined immediately without dependencies
@@ -7732,6 +7770,18 @@ Lütfen yardımcı olun.`);
                         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
                     }
                     
+                    /* Düzenle butonu */
+                    .pigeon-btn-edit {
+                        background: linear-gradient(135deg, #a855f7, #9333ea) !important;
+                        color: white !important;
+                    }
+                    
+                    .pigeon-btn-edit:hover {
+                        background: linear-gradient(135deg, #9333ea, #7c3aed) !important;
+                        transform: translateY(-2px) !important;
+                        box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4) !important;
+                    }
+                    
                     /* Sil butonu */
                     .pigeon-btn-delete {
                         background: linear-gradient(135deg, #ef4444, #dc2626) !important;
@@ -7877,13 +7927,20 @@ Lütfen yardımcı olun.`);
                             
                             <!-- Buton Bölümü -->
                             <div class="pigeon-card-actions">
-                                <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div class="grid grid-cols-3 gap-2 mb-2">
                                     <button 
                                         type="button"
                                         class="pigeon-btn pigeon-btn-detail"
                                         onclick="showPigeonDetail('${pigeon.id}')">
                                         <i class="fas fa-eye"></i>
                                         <span>Detay</span>
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        class="pigeon-btn pigeon-btn-edit"
+                                        onclick="window.showEditPigeon('${pigeon.id}')">
+                                        <i class="fas fa-edit"></i>
+                                        <span>Düzenle</span>
                                     </button>
                                     <button 
                                         type="button"
@@ -10548,7 +10605,7 @@ Lütfen yardımcı olun.`);
                     
                     <!-- Alt butonlar -->
                     <div class="flex gap-4 mt-8">
-                        <button onclick="showEditPigeon('${pigeon.id}')" class="btn-primary">
+                        <button onclick="window.showEditPigeon('${pigeon.id}')" class="btn-primary">
                             <i class="fas fa-edit mr-2"></i> Düzenle
                         </button>
                         <button onclick="window.showPedigree('${pigeon.id}')" class="px-6 py-3 bg-purple-500 rounded-full hover:bg-purple-600 transition">
@@ -12969,13 +13026,6 @@ Lütfen yardımcı olun.`);
                 showNotification(error.message || 'Kuluçka kaydı güncellenemedi', 'error');
             }
         }
-
-        // Ensure all functions are properly attached to window immediately
-        window.showEditPigeon = showEditPigeon;
-        window.deletePigeon = deletePigeon;
-        window.showEditMating = showEditMating;
-        window.handleEditMating = handleEditMating;
-        window.deleteMating = deleteMating;
 
         // Date calculation functions
         function calculateEggLayingDate(matingDate) {
@@ -17695,10 +17745,6 @@ Lütfen yardımcı olun.`);
             window.exportPedigreePDF = exportPedigreePDF;
             window.exportSVGPedigreePDF = exportSVGPedigreePDF;
             window.closePigeonModal = closePigeonModal;
-            window.showEditPigeon = showEditPigeon;
-            window.handleEditPigeon = handleEditPigeon;
-            window.deletePigeon = deletePigeon;
-            
             // Payment return kontrolü
             checkPaymentReturn();
             
