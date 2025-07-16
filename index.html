@@ -12932,14 +12932,26 @@ Lütfen yardımcı olun.`);
             
             try {
                 // Form verilerini topla
+                const maleIdEl = document.getElementById('maleId');
+                const femaleIdEl = document.getElementById('femaleId');
+                const matingDateEl = document.getElementById('matingDate');
+                const eggLayingDateEl = document.getElementById('eggLayingDate');
+                const expectedHatchDateEl = document.getElementById('expectedHatchDate');
+                const hatchedEl = document.getElementById('hatched');
+                const notesEl = document.getElementById('matingNotes');
+                
+                if (!maleIdEl || !femaleIdEl || !matingDateEl) {
+                    throw new Error('Form elemanları bulunamadı');
+                }
+                
                 const matingData = {
-                    maleId: document.getElementById('maleId').value,
-                    femaleId: document.getElementById('femaleId').value,
-                    matingDate: document.getElementById('matingDate').value,
-                    eggLayingDate: document.getElementById('eggLayingDate').value || null,
-                    expectedHatchDate: document.getElementById('expectedHatchDate').value || null,
-                    hatched: document.getElementById('hatched').checked,
-                    notes: document.getElementById('matingNotes').value
+                    maleId: maleIdEl.value,
+                    femaleId: femaleIdEl.value,
+                    matingDate: matingDateEl.value,
+                    eggLayingDate: eggLayingDateEl ? eggLayingDateEl.value || null : null,
+                    expectedHatchDate: expectedHatchDateEl ? expectedHatchDateEl.value || null : null,
+                    hatched: hatchedEl ? hatchedEl.checked : false,
+                    notes: notesEl ? notesEl.value : ''
                 };
                 
                 // Supabase'de eşleştirmeyi güncelle
@@ -12957,6 +12969,13 @@ Lütfen yardımcı olun.`);
                 showNotification(error.message || 'Kuluçka kaydı güncellenemedi', 'error');
             }
         }
+
+        // Ensure all functions are properly attached to window immediately
+        window.showEditPigeon = showEditPigeon;
+        window.deletePigeon = deletePigeon;
+        window.showEditMating = showEditMating;
+        window.handleEditMating = handleEditMating;
+        window.deleteMating = deleteMating;
 
         // Date calculation functions
         function calculateEggLayingDate(matingDate) {
