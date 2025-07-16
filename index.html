@@ -2864,7 +2864,7 @@
                     <button onclick="showPigeons()" class="nav-auth-required tab-btn px-4 py-2 rounded-full transition" style="display: none;">
                         <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
                     </button>
-                    <button onclick="showMatings()" class="nav-auth-required tab-btn px-4 py-2 rounded-full transition" style="display: none;">
+                    <button onclick="window.showMatings()" class="nav-auth-required tab-btn px-4 py-2 rounded-full transition" style="display: none;">
                         <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
                     </button>
                     <button onclick="showHealthRecords()" class="nav-auth-required tab-btn px-4 py-2 rounded-full transition" style="display: none;">
@@ -2942,7 +2942,7 @@
             <button onclick="showPigeons(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-dove mr-2"></i> <span class="lang-text" data-tr="nav_pigeons">Güvercinler</span>
             </button>
-            <button onclick="showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
+            <button onclick="window.window.showMatings(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
                 <i class="fas fa-heart mr-2"></i> <span class="lang-text" data-tr="nav_matings">Eşleştirmeler</span>
             </button>
             <button onclick="showHealthRecords(); toggleMobileMenu();" class="w-full tab-btn px-4 py-3 rounded-lg text-left nav-auth-required" style="display: none;">
@@ -4763,7 +4763,7 @@
                 </div>
                 
                 <div class="flex gap-4 mt-6">
-                    <button onclick="showPedigree('${pigeon.id}')" class="btn-primary">
+                    <button onclick="window.showPedigree('${pigeon.id}')" class="btn-primary">
                         <i class="fas fa-sitemap mr-2"></i> ${t.view_pedigree || 'Soyağacını Görüntüle'}
                     </button>
                     <button onclick="showEditPigeon('${pigeon.id}')" class="px-6 py-3 bg-purple-500 rounded-full hover:bg-purple-600 transition">
@@ -5039,7 +5039,7 @@
                         <div class="hidden md:flex items-center space-x-8">
                             <a href="#" onclick="showHomepage()" class="hover:text-cyan-400 transition">${translations[currentLang].nav_home}</a>
                             <a href="#" onclick="showPigeons()" class="hover:text-cyan-400 transition">${translations[currentLang].nav_pigeons}</a>
-                            <a href="#" onclick="showMatings()" class="hover:text-cyan-400 transition">${translations[currentLang].nav_matings}</a>
+                            <a href="#" onclick="window.showMatings()" class="hover:text-cyan-400 transition">${translations[currentLang].nav_matings}</a>
                             <a href="#" onclick="showHealthRecords()" class="hover:text-cyan-400 transition">${translations[currentLang].nav_health}</a>
                             <a href="#" onclick="showRaces()" class="hover:text-cyan-400 transition">${translations[currentLang].nav_races}</a>
                         </div>
@@ -5529,8 +5529,15 @@ Lütfen yardımcı olun.`);
             
             // 1. LocalStorage'dan currentUser kontrol et
             const storedUser = storage.currentUser;
+            console.log('Stored user from localStorage:', storedUser);
             
-            // 2. Supabase session kontrol et
+            // 2. Eğer localStorage'da user varsa, UI'ı güncelle
+            if (storedUser) {
+                console.log('Found stored user, updating UI...');
+                updateAuthUI(true);
+            }
+            
+            // 3. Supabase session kontrol et
             if (window.supabaseClient && window.supabaseClient.checkSession) {
                 try {
                     const session = await window.supabaseClient.checkSession();
@@ -7514,7 +7521,7 @@ Lütfen yardımcı olun.`);
                                     <button 
                                         type="button"
                                         class="pigeon-btn pigeon-btn-pedigree"
-                                        onclick="showPedigree('${pigeon.id}')">
+                                        onclick="window.showPedigree('${pigeon.id}')">
                                         <i class="fas fa-sitemap"></i>
                                         <span>Soyağacı</span>
                                     </button>
@@ -7735,7 +7742,7 @@ Lütfen yardımcı olun.`);
                         <p class="text-xs text-gray-400 mt-1">${t.add_new_pigeon_desc || 'Yeni güvercin kaydı'}</p>
                     </div>
                     
-                    <div onclick="showMatings()" class="quick-action-card group">
+                    <div onclick="window.showMatings()" class="quick-action-card group">
                         <i class="fas fa-heart quick-action-icon"></i>
                         <h3 class="font-semibold mt-2">${t.nav_matings || 'Eşleştirmeler'}</h3>
                         <p class="text-xs text-gray-400 mt-1">${t.manage_matings_desc || 'Eşleştirme yönetimi'}</p>
@@ -10177,7 +10184,7 @@ Lütfen yardımcı olun.`);
                         <button onclick="showEditPigeon('${pigeon.id}')" class="btn-primary">
                             <i class="fas fa-edit mr-2"></i> Düzenle
                         </button>
-                        <button onclick="showPedigree('${pigeon.id}')" class="px-6 py-3 bg-purple-500 rounded-full hover:bg-purple-600 transition">
+                        <button onclick="window.showPedigree('${pigeon.id}')" class="px-6 py-3 bg-purple-500 rounded-full hover:bg-purple-600 transition">
                             <i class="fas fa-sitemap mr-2"></i> Soyağacı
                         </button>
                         <button onclick="generateQRCode('${pigeon.id}')" class="px-6 py-3 bg-blue-500 rounded-full hover:bg-blue-600 transition">
@@ -10274,13 +10281,13 @@ Lütfen yardımcı olun.`);
                             <div class="flex justify-between items-center mb-6">
                                 <h2 class="text-3xl font-bold text-white">${pigeon.name} - ${t.pedigree || 'Soyağacı'}</h2>
                                 <div class="flex gap-2">
-                                    <button onclick="showPedigree('${pigeonId}', 3)" class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                    <button onclick="window.showPedigree('${pigeonId}', 3)" class="px-4 py-2 ${maxGenerations === 3 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
                                         3 ${t.generation || 'Nesil'}
                                     </button>
-                                    <button onclick="showPedigree('${pigeonId}', 4)" class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                    <button onclick="window.showPedigree('${pigeonId}', 4)" class="px-4 py-2 ${maxGenerations === 4 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
                                         4 ${t.generation || 'Nesil'}
                                     </button>
-                                    <button onclick="showPedigree('${pigeonId}', 5)" class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
+                                    <button onclick="window.showPedigree('${pigeonId}', 5)" class="px-4 py-2 ${maxGenerations === 5 ? 'bg-purple-500' : 'bg-gray-700'} text-white rounded-lg hover:opacity-80 transition">
                                         5 ${t.generation || 'Nesil'}
                                     </button>
                                 </div>
@@ -12413,7 +12420,7 @@ Lütfen yardımcı olun.`);
                         <button type="submit" class="btn-primary flex-1">
                             <i class="fas fa-save mr-2"></i> ${t.save}
                         </button>
-                        <button type="button" onclick="showMatings()" class="flex-1 px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
+                        <button type="button" onclick="window.showMatings()" class="flex-1 px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
                             ${t.cancel}
                         </button>
                     </div>
@@ -12586,7 +12593,7 @@ Lütfen yardımcı olun.`);
                         <button type="submit" class="btn-primary flex-1">
                             <i class="fas fa-save mr-2"></i> ${t.save}
                         </button>
-                        <button type="button" onclick="showMatings()" class="flex-1 px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
+                        <button type="button" onclick="window.showMatings()" class="flex-1 px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
                             ${t.cancel}
                         </button>
                     </div>
@@ -17173,8 +17180,8 @@ Lütfen yardımcı olun.`);
             console.log('Application initialized successfully!');
         });
         
-        // Check auth state on load
-        async function checkAuthState() {
+        // Check auth state on load - Secondary function
+        async function checkAuthStateSecondary() {
             try {
                 // PHP dosyalarının varlığını kontrol et (sadece bir kez)
                 if (!window.phpFilesChecked) {
