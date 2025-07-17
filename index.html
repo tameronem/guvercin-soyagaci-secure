@@ -10365,6 +10365,132 @@ Lütfen yardımcı olun.`);
             );
         }
         
+        // New grid-based pedigree rendering function
+        function renderGridPedigree(pedigreeData, t) {
+            const container = document.getElementById('pedigreeWrapper');
+            if (!container) return;
+            
+            // Clear existing content
+            container.innerHTML = '';
+            
+            // Create main grid container
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'pedigree-grid-container';
+            
+            // Create levels (generations) from bottom to top
+            const levels = [
+                // Level 0: Main pigeon at bottom
+                createPedigreeLevel([pedigreeData], 0, t),
+                // Level 1: Parents
+                createPedigreeLevel([
+                    pedigreeData.father || { empty: true, gender: 'male', name: t.unknown || 'Bilinmiyor' },
+                    pedigreeData.mother || { empty: true, gender: 'female', name: t.unknown || 'Bilinmiyor' }
+                ], 1, t),
+                // Level 2: Grandparents
+                createPedigreeLevel([
+                    pedigreeData.father?.father || { empty: true, gender: 'male', name: t.unknown || 'Bilinmiyor' },
+                    pedigreeData.father?.mother || { empty: true, gender: 'female', name: t.unknown || 'Bilinmiyor' },
+                    pedigreeData.mother?.father || { empty: true, gender: 'male', name: t.unknown || 'Bilinmiyor' },
+                    pedigreeData.mother?.mother || { empty: true, gender: 'female', name: t.unknown || 'Bilinmiyor' }
+                ], 2, t)
+            ];
+            
+            // Add levels in reverse order (bottom to top)
+            levels.reverse().forEach(level => {
+                gridContainer.appendChild(level);
+            });
+            
+            container.appendChild(gridContainer);
+            
+            // Add zoom controls
+            const zoomControls = document.createElement('div');
+            zoomControls.className = 'pedigree-zoom-controls';
+            zoomControls.innerHTML = `
+                <button onclick="zoomPedigree(1.2)" class="pedigree-zoom-btn">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button onclick="zoomPedigree(0.8)" class="pedigree-zoom-btn">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button onclick="resetPedigreeZoom()" class="pedigree-zoom-btn">
+                    <i class="fas fa-compress"></i>
+                </button>
+            `;
+            container.appendChild(zoomControls);
+        }
+        
+        // Create a level (generation) of the pedigree
+        function createPedigreeLevel(pigeons, level, t) {
+            const levelDiv = document.createElement('div');
+            levelDiv.className = `pedigree-level level-${level}`;
+            
+            pigeons.forEach((pigeon, index) => {
+                const card = createPedigreeCard(pigeon, level, index, t);
+                levelDiv.appendChild(card);
+            });
+            
+            return levelDiv;
+        }
+        
+        // Create individual pedigree card
+        function createPedigreeCard(pigeon, level, index, t) {
+            const card = document.createElement('div');
+            card.className = `pedigree-card ${pigeon.gender === 'male' ? 'male' : 'female'}`;
+            
+            if (pigeon.empty) {
+                card.classList.add('empty');
+                card.innerHTML = `
+                    <div class="pedigree-empty">
+                        <i class="fas fa-question-circle"></i>
+                        <div>${t.unknown || 'Bilinmiyor'}</div>
+                    </div>
+                `;
+            } else {
+                // Add click handler for navigation
+                if (pigeon.id) {
+                    card.style.cursor = 'pointer';
+                    card.onclick = () => showPedigree(pigeon.id);
+                }
+                
+                card.innerHTML = `
+                    <div class="pedigree-header">
+                        <i class="fas ${pigeon.gender === 'male' ? 'fa-mars' : 'fa-venus'}"></i>
+                        <span class="pedigree-name">${pigeon.name || t.noName || 'İsimsiz'}</span>
+                    </div>
+                    <div class="pedigree-info">
+                        ${pigeon.ring_no ? `<div class="info-row"><i class="fas fa-ring"></i> ${pigeon.ring_no}</div>` : ''}
+                        ${pigeon.color ? `<div class="info-row"><i class="fas fa-palette"></i> ${pigeon.color}</div>` : ''}
+                        ${pigeon.birth_year ? `<div class="info-row"><i class="fas fa-calendar"></i> ${pigeon.birth_year}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            // Add data attributes for connection drawing
+            card.dataset.level = level;
+            card.dataset.index = index;
+            
+            return card;
+        }
+        
+        // Zoom functions for pedigree
+        window.zoomPedigree = function(factor) {
+            const container = document.querySelector('.pedigree-grid-container');
+            if (!container) return;
+            
+            const currentScale = parseFloat(container.style.transform?.match(/scale\(([\d.]+)\)/)?.[1] || 1);
+            const newScale = Math.max(0.5, Math.min(2, currentScale * factor));
+            
+            container.style.transform = `scale(${newScale})`;
+            container.style.transformOrigin = 'center center';
+        };
+        
+        window.resetPedigreeZoom = function() {
+            const container = document.querySelector('.pedigree-grid-container');
+            if (container) {
+                container.style.transform = 'scale(1)';
+            }
+        };
+        
         // REMOVED: Old grid-based functions - replaced with D3.js
         // createBirdCard, createUnknownCard, and drawPedigreeConnections are no longer needed
         
@@ -11052,11 +11178,11 @@ Lütfen yardımcı olun.`);
                     </div>
                 `;
                 
-                // Render D3.js pedigree tree after DOM is ready
+                // Render grid-based pedigree tree after DOM is ready
                 if (window.pedigreeTimeout) clearTimeout(window.pedigreeTimeout);
                 window.pedigreeTimeout = setTimeout(() => {
-                    renderD3Pedigree(pedigreeData, t);
-                    console.log('D3.js pedigree rendered');
+                    renderGridPedigree(pedigreeData, t);
+                    console.log('Grid-based pedigree rendered');
                 }, 100);
                 
                 // REMOVED scroll event listener - not needed and can cause loops
