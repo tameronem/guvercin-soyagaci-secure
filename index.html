@@ -3040,6 +3040,206 @@
         // IMMEDIATE WRAPPER FUNCTIONS - Available instantly for onclick handlers
         console.log('Setting up immediate wrapper functions...');
         
+        // CRITICAL: Define showEditPigeon immediately in global scope
+        window.showEditPigeon = async function(pigeonId) {
+            // Clean up any existing views first
+            cleanupPreviousViews();
+            
+            // Loading göster
+            document.getElementById('content').innerHTML = `
+                <div class="container mx-auto">
+                    <div class="glass p-8 rounded-3xl text-center">
+                        <i class="fas fa-spinner fa-spin text-4xl text-cyan-400 mb-4"></i>
+                        <p class="text-xl">Güvercin bilgileri yükleniyor...</p>
+                    </div>
+                </div>
+            `;
+            
+            try {
+                // Güvercin bilgilerini al
+                const pigeonResult = await SupabaseDB.getPigeon(pigeonId);
+                if (!pigeonResult.success || !pigeonResult.data) {
+                    throw new Error('Güvercin bulunamadı');
+                }
+                
+                const pigeon = pigeonResult.data;
+                
+                // Tüm güvercinleri al (anne-baba seçimi için)
+                const allPigeonsResult = await SupabaseDB.getPigeons(storage.currentUser.id);
+                if (!allPigeonsResult.success) {
+                    throw new Error('Güvercin listesi yüklenemedi');
+                }
+                
+                const userPigeons = (allPigeonsResult.data || []).filter(p => p.id !== pigeonId);
+                const males = userPigeons.filter(p => p.gender === 'male');
+                const females = userPigeons.filter(p => p.gender === 'female');
+                const t = translations[currentLang];
+            
+            document.getElementById('content').innerHTML = `
+                <div class="container mx-auto">
+                <div class="glass p-8 rounded-3xl">
+                <h2 class="text-3xl font-bold mb-8">${t.edit || 'Düzenle'} - ${pigeon.name}</h2>
+                
+                <form onsubmit="handleEditPigeon(event, '${pigeonId}')" class="max-w-2xl mx-auto">
+                    <div class="mb-6">
+                        <label class="block text-gray-300 mb-2">${t.pigeon_image || 'Güvercin Fotoğrafı'}</label>
+                        <input type="file" id="pigeonImageEdit" accept="image/*" onchange="previewImageEdit(event)" 
+                               class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">
+                        <div id="imagePreviewEdit" class="mt-4">
+                            ${pigeon.image_url ? `<img src="${pigeon.image_url}" class="image-preview">` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-300 mb-2">${t.name}*</label>
+                            <input type="text" id="pigeonNameEdit" value="${pigeon.name}" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 mb-2">${t.band_number}*</label>
+                            <input type="text" id="bandNumberEdit" value="${pigeon.band_number}" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-300 mb-2">${t.gender}*</label>
+                            <select id="genderEdit" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                                <option value="">${t.select}</option>
+                                <option value="male" ${pigeon.gender === 'male' ? 'selected' : ''}>${t.male}</option>
+                                <option value="female" ${pigeon.gender === 'female' ? 'selected' : ''}>${t.female}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 mb-2">${t.breed}*</label>
+                            <select id="breedEdit" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                                <option value="">${t.select}</option>
+                                <option value="taklaci" ${pigeon.breed === 'taklaci' ? 'selected' : ''}>Taklacı (Oyun Kuşu)</option>
+                                <option value="adana" ${pigeon.breed === 'adana' ? 'selected' : ''}>Adana Güvercini</option>
+                                <option value="bursa_oynari" ${pigeon.breed === 'bursa_oynari' ? 'selected' : ''}>Bursa Oynarı</option>
+                                <option value="dolapci" ${pigeon.breed === 'dolapci' ? 'selected' : ''}>Dolapçı Güvercini</option>
+                                <option value="hunkari" ${pigeon.breed === 'hunkari' ? 'selected' : ''}>Hünkari</option>
+                                <option value="sebap" ${pigeon.breed === 'sebap' ? 'selected' : ''}>Şebap Güvercini</option>
+                                <option value="van" ${pigeon.breed === 'van' ? 'selected' : ''}>Van Güvercini</option>
+                                <option value="posta" ${pigeon.breed === 'posta' ? 'selected' : ''}>Posta Güvercini</option>
+                                <option value="kelebek" ${pigeon.breed === 'kelebek' ? 'selected' : ''}>Kelebek Güvercini</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-300 mb-2">${t.birth_date}*</label>
+                        <input type="date" id="birthDateEdit" value="${pigeon.birth_date}" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-300 mb-2">${t.father}</label>
+                            <select id="fatherIdEdit" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">
+                                <option value="">${t.select}</option>
+                                ${males.map(p => `<option value="${p.id}" ${pigeon.father_id === p.id ? 'selected' : ''}>${p.name} - ${p.band_number}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 mb-2">${t.mother}</label>
+                            <select id="motherIdEdit" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">
+                                <option value="">${t.select}</option>
+                                ${females.map(p => `<option value="${p.id}" ${pigeon.mother_id === p.id ? 'selected' : ''}>${p.name} - ${p.band_number}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-gray-300 mb-2">${t.description}</label>
+                        <textarea id="descriptionEdit" rows="3" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">${pigeon.description || ''}</textarea>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <button type="submit" class="btn-primary flex-1">
+                            <i class="fas fa-save mr-2"></i> ${t.save}
+                        </button>
+                        <button type="button" onclick="showPigeons()" class="flex-1 px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
+                            ${t.cancel}
+                        </button>
+                    </div>
+                </form>
+                </div>
+                </div>
+            `;
+            } catch (error) {
+                console.error('Güvercin düzenleme hatası:', error);
+                
+                // Kullanıcıya anlamlı hata mesajı göster
+                document.getElementById('content').innerHTML = `
+                    <div class="container mx-auto">
+                        <div class="glass p-8 rounded-3xl text-center">
+                            <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                            <h2 class="text-2xl font-bold mb-4 text-red-400">Hata Oluştu</h2>
+                            <p class="text-xl mb-4">${error.message || 'Güvercin bilgileri yüklenirken bir hata oluştu.'}</p>
+                            <button onclick="showPigeons()" class="px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
+                                <i class="fas fa-arrow-left mr-2"></i> Geri Dön
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Hata bildirimini göster
+                showNotification(error.message || 'Güvercin bilgileri yüklenemedi', 'error');
+            }
+        };
+        
+        // CRITICAL: Define deletePigeon immediately in global scope
+        window.deletePigeon = async function(pigeonId) {
+            try {
+                // Önce güvercin bilgisini al
+                const pigeonResult = await SupabaseDB.getPigeon(pigeonId);
+                if (!pigeonResult.success || !pigeonResult.data) {
+                    showNotification('Güvercin bulunamadı', 'error');
+                    return;
+                }
+                
+                const pigeon = pigeonResult.data;
+                
+                if (confirm(`${pigeon.name} adlı güvercini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!`)) {
+                    // Loading göster
+                    showNotification('Güvercin siliniyor...', 'info');
+                    
+                    // Supabase'den sil
+                    const deleteResult = await SupabaseDB.deletePigeon(pigeonId);
+                    
+                    if (!deleteResult.success) {
+                        throw new Error(deleteResult.error);
+                    }
+                    
+                    // Resim varsa sil
+                    if (pigeon.image_url) {
+                        // URL'den path'i çıkar
+                        const urlParts = pigeon.image_url.split('/');
+                        const fileName = urlParts[urlParts.length - 1];
+                        const path = `${storage.currentUser.id}/${fileName}`;
+                        
+                        await SupabaseStorage.deletePigeonImage(path);
+                    }
+                    
+                    // Show success message
+                    showNotification('Güvercin başarıyla silindi', 'success');
+                    
+                    // Ensure we stay on the My Pigeons tab
+                    setTimeout(() => {
+                        // Refresh the list and ensure tab is active
+                        showPigeons();
+                        updateActiveTab(1);
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('Güvercin silme hatası:', error);
+                showNotification(error.message || 'Güvercin silinemedi', 'error');
+            }
+        };
+        
+        console.log('✅ Critical functions (showEditPigeon, deletePigeon) defined in global scope');
+        
         // showPedigree wrapper - available immediately
         window.showPedigree = function(pigeonId, maxGenerations = 4) {
             console.log('🔄 showPedigree called, checking for real function...');
@@ -10159,158 +10359,6 @@ Lütfen yardımcı olun.`);
             }
         }
 
-        // Show Edit Pigeon Form
-        async function showEditPigeon(pigeonId) {
-            // Clean up any existing views first
-            cleanupPreviousViews();
-            
-            // Loading göster
-            document.getElementById('content').innerHTML = `
-                <div class="container mx-auto">
-                    <div class="glass p-8 rounded-3xl text-center">
-                        <i class="fas fa-spinner fa-spin text-4xl text-cyan-400 mb-4"></i>
-                        <p class="text-xl">Güvercin bilgileri yükleniyor...</p>
-                    </div>
-                </div>
-            `;
-            
-            try {
-                // Güvercin bilgilerini al
-                const pigeonResult = await SupabaseDB.getPigeon(pigeonId);
-                if (!pigeonResult.success || !pigeonResult.data) {
-                    throw new Error('Güvercin bulunamadı');
-                }
-                
-                const pigeon = pigeonResult.data;
-                
-                // Tüm güvercinleri al (anne-baba seçimi için)
-                const allPigeonsResult = await SupabaseDB.getPigeons(storage.currentUser.id);
-                if (!allPigeonsResult.success) {
-                    throw new Error('Güvercin listesi yüklenemedi');
-                }
-                
-                const userPigeons = (allPigeonsResult.data || []).filter(p => p.id !== pigeonId);
-                const males = userPigeons.filter(p => p.gender === 'male');
-                const females = userPigeons.filter(p => p.gender === 'female');
-                const t = translations[currentLang];
-            
-            document.getElementById('content').innerHTML = `
-                <div class="container mx-auto">
-                <div class="glass p-8 rounded-3xl">
-                <h2 class="text-3xl font-bold mb-8">${t.edit || 'Düzenle'} - ${pigeon.name}</h2>
-                
-                <form onsubmit="handleEditPigeon(event, '${pigeonId}')" class="max-w-2xl mx-auto">
-                    <div class="mb-6">
-                        <label class="block text-gray-300 mb-2">${t.pigeon_image || 'Güvercin Fotoğrafı'}</label>
-                        <input type="file" id="pigeonImageEdit" accept="image/*" onchange="previewImageEdit(event)" 
-                               class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">
-                        <div id="imagePreviewEdit" class="mt-4">
-                            ${pigeon.image_url ? `<img src="${pigeon.image_url}" class="image-preview">` : ''}
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-gray-300 mb-2">${t.name}*</label>
-                            <input type="text" id="pigeonNameEdit" value="${pigeon.name}" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
-                        </div>
-                        <div>
-                            <label class="block text-gray-300 mb-2">${t.band_number}*</label>
-                            <input type="text" id="bandNumberEdit" value="${pigeon.band_number}" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-gray-300 mb-2">${t.gender}*</label>
-                            <select id="genderEdit" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
-                                <option value="">${t.select}</option>
-                                <option value="male" ${pigeon.gender === 'male' ? 'selected' : ''}>${t.male}</option>
-                                <option value="female" ${pigeon.gender === 'female' ? 'selected' : ''}>${t.female}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-gray-300 mb-2">${t.breed}*</label>
-                            <select id="breedEdit" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
-                                <option value="">${t.select}</option>
-                                <option value="taklaci" ${pigeon.breed === 'taklaci' ? 'selected' : ''}>Taklacı (Oyun Kuşu)</option>
-                                <option value="adana" ${pigeon.breed === 'adana' ? 'selected' : ''}>Adana Güvercini</option>
-                                <option value="bursa_oynari" ${pigeon.breed === 'bursa_oynari' ? 'selected' : ''}>Bursa Oynarı</option>
-                                <option value="dolapci" ${pigeon.breed === 'dolapci' ? 'selected' : ''}>Dolapçı Güvercini</option>
-                                <option value="hunkari" ${pigeon.breed === 'hunkari' ? 'selected' : ''}>Hünkari</option>
-                                <option value="sebap" ${pigeon.breed === 'sebap' ? 'selected' : ''}>Şebap Güvercini</option>
-                                <option value="van" ${pigeon.breed === 'van' ? 'selected' : ''}>Van Güvercini</option>
-                                <option value="posta" ${pigeon.breed === 'posta' ? 'selected' : ''}>Posta Güvercini</option>
-                                <option value="kelebek" ${pigeon.breed === 'kelebek' ? 'selected' : ''}>Kelebek Güvercini</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    
-                    <div class="mb-4">
-                        <label class="block text-gray-300 mb-2">${t.birth_date}*</label>
-                        <input type="date" id="birthDateEdit" value="${pigeon.birth_date}" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none" required>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-gray-300 mb-2">${t.father}</label>
-                            <select id="fatherIdEdit" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">
-                                <option value="">${t.select}</option>
-                                ${males.map(p => `<option value="${p.id}" ${pigeon.father_id === p.id ? 'selected' : ''}>${p.name} - ${p.band_number}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-gray-300 mb-2">${t.mother}</label>
-                            <select id="motherIdEdit" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">
-                                <option value="">${t.select}</option>
-                                ${females.map(p => `<option value="${p.id}" ${pigeon.mother_id === p.id ? 'selected' : ''}>${p.name} - ${p.band_number}</option>`).join('')}
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-6">
-                        <label class="block text-gray-300 mb-2">${t.description}</label>
-                        <textarea id="descriptionEdit" rows="3" class="w-full px-4 py-3 bg-black/50 rounded-lg border border-gray-600 focus:border-cyan-400 outline-none">${pigeon.description || ''}</textarea>
-                    </div>
-                    
-                    <div class="flex gap-4">
-                        <button type="submit" class="btn-primary flex-1">
-                            <i class="fas fa-save mr-2"></i> ${t.save}
-                        </button>
-                        <button type="button" onclick="showPigeons()" class="flex-1 px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
-                            ${t.cancel}
-                        </button>
-                    </div>
-                </form>
-                </div>
-                </div>
-            `;
-            } catch (error) {
-                console.error('Güvercin düzenleme hatası:', error);
-                
-                // Kullanıcıya anlamlı hata mesajı göster
-                document.getElementById('content').innerHTML = `
-                    <div class="container mx-auto">
-                        <div class="glass p-8 rounded-3xl text-center">
-                            <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                            <h2 class="text-2xl font-bold mb-4 text-red-400">Hata Oluştu</h2>
-                            <p class="text-xl mb-4">${error.message || 'Güvercin bilgileri yüklenirken bir hata oluştu.'}</p>
-                            <button onclick="showPigeons()" class="px-6 py-3 bg-gray-600 rounded-full hover:bg-gray-700 transition">
-                                <i class="fas fa-arrow-left mr-2"></i> Geri Dön
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                // Hata bildirimini göster
-                showNotification(error.message || 'Güvercin bilgileri yüklenemedi', 'error');
-            }
-        }
-        
-        // Make showEditPigeon globally available immediately after definition
-        window.showEditPigeon = showEditPigeon;
-
         // Preview image for edit form
         function previewImageEdit(event) {
             const file = event.target.files[0];
@@ -10376,58 +10424,6 @@ Lütfen yardımcı olun.`);
                 showNotification(error.message || 'Güvercin güncellenemedi', 'error');
             }
         }
-
-        // Delete pigeon - SUPABASE VERSION
-        async function deletePigeon(pigeonId) {
-            try {
-                // Önce güvercin bilgisini al
-                const pigeonResult = await SupabaseDB.getPigeon(pigeonId);
-                if (!pigeonResult.success || !pigeonResult.data) {
-                    showNotification('Güvercin bulunamadı', 'error');
-                    return;
-                }
-                
-                const pigeon = pigeonResult.data;
-                
-                if (confirm(`${pigeon.name} adlı güvercini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!`)) {
-                    // Loading göster
-                    showNotification('Güvercin siliniyor...', 'info');
-                    
-                    // Supabase'den sil
-                    const deleteResult = await SupabaseDB.deletePigeon(pigeonId);
-                    
-                    if (!deleteResult.success) {
-                        throw new Error(deleteResult.error);
-                    }
-                    
-                    // Resim varsa sil
-                    if (pigeon.image_url) {
-                        // URL'den path'i çıkar
-                        const urlParts = pigeon.image_url.split('/');
-                        const fileName = urlParts[urlParts.length - 1];
-                        const path = `${storage.currentUser.id}/${fileName}`;
-                        
-                        await SupabaseStorage.deletePigeonImage(path);
-                    }
-                    
-                    // Show success message
-                    showNotification('Güvercin başarıyla silindi', 'success');
-                    
-                    // Ensure we stay on the My Pigeons tab
-                    setTimeout(() => {
-                        // Refresh the list and ensure tab is active
-                        showPigeons();
-                        updateActiveTab(1);
-                    }, 100);
-                }
-            } catch (error) {
-                console.error('Güvercin silme hatası:', error);
-                showNotification(error.message || 'Güvercin silinemedi', 'error');
-            }
-        }
-        
-        // Make deletePigeon globally available immediately after definition
-        window.deletePigeon = deletePigeon;
 
         // Show Pigeon Detail - SUPABASE VERSION
         async function showPigeonDetail(pigeonId) {
